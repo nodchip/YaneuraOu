@@ -69,7 +69,7 @@ namespace Apery {
 extern int K00Sum[SquareNum][SquareNum];
 // KPP: King-Piece-Piece 玉と2駒の関係を評価するためのテーブル
 // Bonanza の三角テーブルを矩形テーブルに直したもの。
-extern s16 KPP[SquareNum][Apery::fe_end][Apery::fe_end];
+extern s32 KPP[SquareNum][Apery::fe_end][Apery::fe_end];
 // KKP: King-King-Piece 2玉と駒の関係を評価するためのテーブル
 extern s32 KKP[SquareNum][SquareNum][Apery::fe_end];
 
