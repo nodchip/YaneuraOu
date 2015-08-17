@@ -1,5 +1,5 @@
-#ifndef APERY_BITBOARD_HPP
-#define APERY_BITBOARD_HPP
+﻿#ifndef BITBOARD_HPP
+#define BITBOARD_HPP
 
 #include "common.hpp"
 #include "square.hpp"
@@ -175,15 +175,15 @@ public:
 		return constFirstOneLeftFromB9();
 	}
 	// Bitboard の 1 の bit を数える。
-	// Crossover は、merge() すると 1 である bit が重なる可能性があるなら true
-	template <bool Crossover = true>
-	int popCount() const { return (Crossover ? count1s(p(0)) + count1s(p(1)) : count1s(merge())); }
+	int popCount() const {
+		int count = count1s(this->p(0));
+		count += count1s(this->p(1));
+		return count;
+	}
 	// bit が 1 つだけ立っているかどうかを判定する。
-	// Crossover は、merge() すると 1 である bit が重なる可能性があるなら true
-	template <bool Crossover = true>
 	bool isOneBit() const {
 #if defined (HAVE_SSE42)
-		return (this->popCount<Crossover>() == 1);
+		return (this->popCount() == 1);
 #else
 		if (!this->isNot0()) {
 			return false;
@@ -290,7 +290,7 @@ extern const Bitboard InFrontMask[ColorNum][RankNum];
 
 inline Bitboard fileMask(const File f) { return FileMask[f]; }
 template <File F> inline Bitboard fileMask() {
-	static_assert(FileI <= F && F <= FileA, "");
+	STATIC_ASSERT(FileI <= F && F <= FileA);
 	return (F == FileI ? FileIMask
 			: F == FileH ? FileHMask
 			: F == FileG ? FileGMask
@@ -304,7 +304,7 @@ template <File F> inline Bitboard fileMask() {
 
 inline Bitboard rankMask(const Rank r) { return RankMask[r]; }
 template <Rank R> inline Bitboard rankMask() {
-	static_assert(Rank9 <= R && R <= Rank1, "");
+	STATIC_ASSERT(Rank9 <= R && R <= Rank1);
 	return (R == Rank9 ? Rank9Mask
 			: R == Rank8 ? Rank8Mask
 			: R == Rank7 ? Rank7Mask
@@ -350,8 +350,8 @@ const Bitboard InFrontOfRank9White = InFrontOfRank8White | rankMask<Rank8>();
 
 inline Bitboard inFrontMask(const Color c, const Rank r) { return InFrontMask[c][r]; }
 template <Color C, Rank R> inline Bitboard inFrontMask() {
-	static_assert(C == Black || C == White, "");
-	static_assert(Rank9 <= R && R <= Rank1, "");
+	STATIC_ASSERT(C == Black || C == White);
+	STATIC_ASSERT(Rank9 <= R && R <= Rank1);
 	return (C == Black ? (R == Rank9 ? InFrontOfRank9Black
 						  : R == Rank8 ? InFrontOfRank8Black
 						  : R == Rank7 ? InFrontOfRank7Black
@@ -508,4 +508,4 @@ template <typename T> FORCE_INLINE void foreachBB(Bitboard& bb, Square& sq, T t)
 	}
 }
 
-#endif // #ifndef APERY_BITBOARD_HPP
+#endif // #ifndef BITBOARD_HPP

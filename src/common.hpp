@@ -1,8 +1,20 @@
-#ifndef APERY_COMMON_HPP
-#define APERY_COMMON_HPP
+﻿#ifndef COMMON_HPP
+#define COMMON_HPP
+
+#if defined(_MSC_VER) && !defined(__INTEL_COMPILER)
+#include <inttypes.h>
+// #define INT64_C(val) val##i64
+// #define UINT64_C(val) val##ui64
+#elif defined(__INTEL_COMPILER)
+#include <inttypes.h>
+#define INT64_C(val) val##ll
+#define UINT64_C(val) val##ull
+#else
+#include <cinttypes>
+#endif
 
 #include "ifdef.hpp"
-#include <cinttypes>
+
 #include <iostream>
 #include <iomanip>
 #include <sstream>
@@ -12,8 +24,6 @@
 #include <algorithm>
 #include <iterator>
 #include <map>
-#include <set>
-#include <unordered_map>
 #include <random>
 #include <thread>
 #include <mutex>
@@ -30,6 +40,8 @@
 #include <cmath>
 #include <cstddef>
 
+#define STATIC_ASSERT(x) static_assert(x, "")
+
 #if defined HAVE_BMI2
 #include <immintrin.h>
 #endif
@@ -38,6 +50,10 @@
 #include <smmintrin.h>
 #elif defined (HAVE_SSE2)
 #include <emmintrin.h>
+#endif
+
+#if defined(_WIN64)
+#  define IS_64BIT
 #endif
 
 #if !defined(NDEBUG)
@@ -64,6 +80,17 @@
 #define FORCE_INLINE inline
 #endif
 
+#if defined(_MSC_VER) && !defined(__INTEL_COMPILER)
+#define CONSTEXPR
+#elif defined(__INTEL_COMPILER)
+#define CONSTEXPR constexpr
+#elif defined(__GNUC__)
+#define CONSTEXPR constexpr
+#else
+#define CONSTEXPR constexpr
+#endif
+
+
 // インラインアセンブリのコメントを使用することで、
 // C++ コードのどの部分がアセンブラのどの部分に対応するかを
 // 分り易くする。
@@ -82,14 +109,14 @@
 #define DEBUGCERR(x) std::cerr << #x << " = " << (x) << " (L" << __LINE__ << ")" << " " << __FILE__ << std::endl;
 
 // bit幅を指定する必要があるときは、以下の型を使用する。
-using s8  =  int8_t;
-using u8  = uint8_t;
-using s16 =  int16_t;
-using u16 = uint16_t;
-using s32 =  int32_t;
-using u32 = uint32_t;
-using s64 =  int64_t;
-using u64 = uint64_t;
+typedef  int8_t  s8;
+typedef uint8_t  u8;
+typedef  int16_t s16;
+typedef uint16_t u16;
+typedef  int32_t s32;
+typedef uint32_t u32;
+typedef  int64_t s64;
+typedef uint64_t u64;
 
 // Binary表記
 // Binary<11110>::value とすれば、30 となる。
@@ -112,7 +139,7 @@ FORCE_INLINE int firstOneFromLSB(const u64 b) {
 FORCE_INLINE int firstOneFromMSB(const u64 b) {
 	unsigned long index;
 	_BitScanReverse64(&index, b);
-	return 63 - index;
+	return 63 - index; // __builtin_clzllに動作を合わせる
 }
 #elif defined(__GNUC__) && ( defined(__i386__) || defined(__x86_64__) )
 FORCE_INLINE int firstOneFromLSB(const u64 b) {
@@ -188,15 +215,6 @@ std::ostream& operator << (std::ostream& os, SyncCout sc);
 #define SYNCCOUT std::cout << IOLock
 #define SYNCENDL std::endl << IOUnlock
 
-#if defined LEARN
-#undef SYNCCOUT
-#undef SYNCENDL
-class Eraser {};
-extern Eraser SYNCCOUT;
-extern Eraser SYNCENDL;
-template <typename T> Eraser& operator << (Eraser& temp, const T&) { return temp; }
-#endif
-
 // N 回ループを展開させる。t は lambda で書くと良い。
 // こんな感じに書くと、lambda がテンプレート引数の数値の分だけ繰り返し生成される。
 // Unroller<5>()([&](const int i){std::cout << i << std::endl;});
@@ -207,13 +225,14 @@ template <int N> struct Unroller {
 	}
 };
 template <> struct Unroller<0> {
-	template <typename T> FORCE_INLINE void operator () (T) {}
+	template <typename T> FORCE_INLINE void operator () (T t) {}
 };
 
 const size_t CacheLineSize = 64; // 64byte
 
 // Stockfish ほとんどそのまま
 template <typename T> inline void prefetch(T* addr) {
+// SSE が使えない時は、_mm_prefetch() とかが使えないので、prefetch無しにする。
 #if defined HAVE_SSE2 || defined HAVE_SSE4
 #if defined(__INTEL_COMPILER)
 	// これでプリフェッチが最適化で消えるのを防げるらしい。
@@ -237,13 +256,10 @@ template <typename T> inline void prefetch(T* addr) {
 			charAddr += CacheLineSize;
 		});
 #endif
-#else
-	// SSE が使えない時は、_mm_prefetch() とかが使えないので、prefetch無しにする。
-	addr = addr; // warning 対策
 #endif
 }
 
-using Key = u64;
+typedef u64 Key;
 
 // Size は 2のべき乗であること。
 template <typename T, size_t Size>
@@ -252,7 +268,7 @@ struct HashTable {
 	T* operator [] (const Key k) { return &entries_[static_cast<size_t>(k) & (Size-1)]; }
 	void clear() { std::fill(std::begin(entries_), std::end(entries_), T()); }
 	// Size が 2のべき乗であることのチェック
-	static_assert((Size & (Size-1)) == 0, "");
+	STATIC_ASSERT((Size & (Size-1)) == 0);
 
 private:
 	std::vector<T> entries_;
@@ -265,7 +281,7 @@ public:
 	int elapsed() const {
 		using std::chrono::duration_cast;
 		using std::chrono::milliseconds;
-		return static_cast<int>(duration_cast<milliseconds>(std::chrono::system_clock::now() - t_).count());
+		return static_cast<int>( duration_cast<milliseconds>(std::chrono::system_clock::now() - t_).count());
 	}
 	static Time currentTime() {
 		Time t;
@@ -290,4 +306,4 @@ template <typename T> inline void reverseEndian(T& r) {
 }
 #endif
 
-#endif // #ifndef APERY_COMMON_HPP
+#endif // #ifndef COMMON_HPP

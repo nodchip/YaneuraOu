@@ -1,4 +1,4 @@
-#include "common.hpp"
+﻿#include "common.hpp"
 #include "piece.hpp"
 #include "hand.hpp"
 

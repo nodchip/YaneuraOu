@@ -1,4 +1,4 @@
-#include "common.hpp"
+﻿#include "common.hpp"
 #include "bitboard.hpp"
 
 const Bitboard SetMaskBB[SquareNum] = {

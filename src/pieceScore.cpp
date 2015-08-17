@@ -1,4 +1,4 @@
-#include "piece.hpp"
+﻿#include "piece.hpp"
 #include "pieceScore.hpp"
 
 const Score PieceScore[PieceNone] = {

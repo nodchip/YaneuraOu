@@ -1,5 +1,5 @@
-#ifndef APERY_MT64BIT_HPP
-#define APERY_MT64BIT_HPP
+﻿#ifndef MT64BIT_HPP
+#define MT64BIT_HPP
 
 #include "common.hpp"
 
@@ -18,4 +18,4 @@ public:
 
 extern MT64bit g_mt64bit;
 
-#endif // #ifndef APERY_MT64BIT_HPP
+#endif // #ifndef MT64BIT_HPP

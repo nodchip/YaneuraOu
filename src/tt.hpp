@@ -1,5 +1,5 @@
-#ifndef APERY_TT_HPP
-#define APERY_TT_HPP
+﻿#ifndef TT_HPP
+#define TT_HPP
 
 #include "common.hpp"
 #include "move.hpp"
@@ -50,7 +50,7 @@ private:
 };
 
 const int ClusterSize = CacheLineSize / sizeof(TTEntry);
-static_assert(0 < ClusterSize, "");
+STATIC_ASSERT(0 < ClusterSize);
 
 struct TTCluster {
 	TTEntry data[ClusterSize];
@@ -109,4 +109,4 @@ inline void TranspositionTable::newSearch() {
 	++generation_;
 }
 
-#endif // #ifndef APERY_TT_HPP
+#endif // #ifndef TT_HPP

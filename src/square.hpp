@@ -1,5 +1,5 @@
-#ifndef APERY_SQUARE_HPP
-#define APERY_SQUARE_HPP
+﻿#ifndef SQUARE_HPP
+#define SQUARE_HPP
 
 #include "overloadEnumOperators.hpp"
 #include "common.hpp"
@@ -97,7 +97,7 @@ inline bool isInSquare(const Square s) { return (0 <= s) && (s < SquareNum); }
 inline bool isInSquare(const File f, const Rank r) { return isInFile(f) && isInRank(r); }
 
 // 速度が必要な場面で使用するなら、テーブル引きの方が有効だと思う。
-inline constexpr Square makeSquare(const File f, const Rank r) {
+inline Square makeSquare(const File f, const Rank r) {
 	return static_cast<Square>(static_cast<int>(f) * 9 + static_cast<int>(r));
 }
 
@@ -151,11 +151,8 @@ OverloadEnumOperators(Direction);
 
 // 2つの位置関係のテーブル
 extern Direction SquareRelation[SquareNum][SquareNum];
-inline Direction squareRelation(const Square sq1, const Square sq2) { return SquareRelation[sq1][sq2]; }
 
-// 何かの駒で一手で行ける位置関係についての距離のテーブル。桂馬の位置は距離1とする。
-extern int SquareDistance[SquareNum][SquareNum];
-inline int squareDistance(const Square sq1, const Square sq2) { return SquareDistance[sq1][sq2]; }
+inline Direction squareRelation(const Square sq1, const Square sq2) { return SquareRelation[sq1][sq2]; }
 
 // from, to, ksq が 縦横斜めの同一ライン上にあれば true を返す。
 template <bool FROM_KSQ_NEVER_BE_DIRECMISC>
@@ -173,14 +170,14 @@ inline bool isAligned(const Square from, const Square to, const Square ksq) {
 inline char fileToCharUSI(const File f) { return '1' + f; }
 // todo: アルファベットが辞書順に並んでいない処理系があるなら対応すること。
 inline char rankToCharUSI(const Rank r) {
-	static_assert('a' + 1 == 'b', "");
-	static_assert('a' + 2 == 'c', "");
-	static_assert('a' + 3 == 'd', "");
-	static_assert('a' + 4 == 'e', "");
-	static_assert('a' + 5 == 'f', "");
-	static_assert('a' + 6 == 'g', "");
-	static_assert('a' + 7 == 'h', "");
-	static_assert('a' + 8 == 'i', "");
+	STATIC_ASSERT('a' + 1 == 'b');
+	STATIC_ASSERT('a' + 2 == 'c');
+	STATIC_ASSERT('a' + 3 == 'd');
+	STATIC_ASSERT('a' + 4 == 'e');
+	STATIC_ASSERT('a' + 5 == 'f');
+	STATIC_ASSERT('a' + 6 == 'g');
+	STATIC_ASSERT('a' + 7 == 'h');
+	STATIC_ASSERT('a' + 8 == 'i');
 	return 'a' + r;
 }
 inline std::string squareToStringUSI(const Square sq) {
@@ -205,25 +202,23 @@ inline File charUSIToFile(const char c) { return static_cast<File>(c - '1'); }
 inline Rank charUSIToRank(const char c) { return static_cast<Rank>(c - 'a'); }
 
 // 後手の位置を先手の位置へ変換
-inline constexpr Square inverse(const Square sq) { return SquareNum - 1 - sq; }
+inline Square inverse(const Square sq) { return SquareNum - 1 - sq; }
 // 左右変換
-inline constexpr File inverse(const File f) { return FileNum - 1 - f; }
+inline File inverse(const File f) { return FileNum - 1 - f; }
 // 上下変換
-inline constexpr Rank inverse(const Rank r) { return RankNum - 1 - r; }
+inline Rank inverse(const Rank r) { return RankNum - 1 - r; }
 // Square の左右だけ変換
 inline Square inverseFile(const Square sq) { return makeSquare(inverse(makeFile(sq)), makeRank(sq)); }
 
-inline constexpr Square inverseIfWhite(const Color c, const Square sq) { return (c == Black ? sq : inverse(sq)); }
-
 inline bool canPromote(const Color c, const Rank fromOrToRank) {
 #if 1
-	static_assert(Black == 0, "");
-	static_assert(Rank9 == 0, "");
-	return static_cast<bool>(0x1c00007u & (1u << ((c << 4) + fromOrToRank)));
+	STATIC_ASSERT(Black == 0);
+	STATIC_ASSERT(Rank9 == 0);
+	return (0x1c00007u & (1u << ((c << 4) + fromOrToRank))) != 0;
 #else
 	// 同じ意味。
 	return (c == Black ? isInFrontOf<Black, Rank6, Rank4>(fromOrToRank) : isInFrontOf<White, Rank6, Rank4>(fromOrToRank));
 #endif
 }
 
-#endif // #ifndef APERY_SQUARE_HPP
+#endif // #ifndef SQUARE_HPP

@@ -1,11 +1,10 @@
-#include "common.hpp"
+﻿#include "common.hpp"
 #include "bitboard.hpp"
 #include "init.hpp"
 #include "position.hpp"
 #include "usi.hpp"
 #include "thread.hpp"
 #include "tt.hpp"
-#include "search.hpp"
 
 #if defined FIND_MAGIC
 // Magic Bitboard の Magic Number を求める為のソフト
@@ -33,14 +32,17 @@ int main() {
 #else
 // 将棋を指すソフト
 int main(int argc, char* argv[]) {
+	
+	std::cout << engine_name() << std::endl;
+
 	initTable();
 	Position::initZobrist();
-	auto s = std::unique_ptr<Searcher>(new Searcher);
-	s->init();
-	// 一時オブジェクトの生成と破棄
-	std::unique_ptr<Evaluater>(new Evaluater)->init(s->options["Eval_Dir"], true);
-	s->doUSICommandLoop(argc, argv);
-	s->threads.exit();
+	g_threads.init();
+	Searcher::tt.setSize(g_options["USI_Hash"]);
+
+	doUSICommandLoop(argc, argv);
+
+	g_threads.exit(); // main関数が終わるまでにスレッドは終了させる
 }
 
 #endif

@@ -1,6 +1,6 @@
 COMPILER = g++
 #COMPILER = mpicxx
-CFLAGS   = -std=c++11 -fno-exceptions -fno-rtti -Wextra -Ofast -MMD -MP -fopenmp
+CFLAGS   = -std=c++11 -fno-exceptions -fno-rtti -m32 -Wextra -Ofast #-MMD -MP
 LDFLAGS  = -lpthread #-lboost_mpi -lboost_serialization
 LIBS     =
 INCLUDE  = #-I../include
@@ -40,9 +40,6 @@ sse:
 sse41:
 	$(MAKE) CFLAGS='$(CFLAGS) -DNDEBUG -DHAVE_SSE4 -msse4.1' LDFLAGS='$(LDFLAGS) -flto' $(TARGET)
 
-sse2:
-	$(MAKE) CFLAGS='$(CFLAGS) -DNDEBUG -DHAVE_SSE2 -msse2' LDFLAGS='$(LDFLAGS) -flto' $(TARGET)
-
 nosse:
 	$(MAKE) CFLAGS='$(CFLAGS) -DNDEBUG' LDFLAGS='$(LDFLAGS) -flto' $(TARGET)
 
@@ -58,7 +55,7 @@ profuse:
 pgo:
 	$(MAKE) profgen
 	@./$(TARGET) bench
-	@touch $(SOURCES)
+	@touch *.[ch]pp
 	$(MAKE) profuse
 
 clean:

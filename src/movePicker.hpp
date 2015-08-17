@@ -1,5 +1,5 @@
-#ifndef APERY_MOVEPICKER_HPP
-#define APERY_MOVEPICKER_HPP
+﻿#ifndef MOVEPICKER_HPP
+#define MOVEPICKER_HPP
 
 #include "move.hpp"
 #include "position.hpp"
@@ -57,4 +57,4 @@ private:
 	MoveStack legalMoves_[MaxLegalMoves];
 };
 
-#endif // #ifndef APERY_MOVEPICKER_HPP
+#endif // #ifndef MOVEPICKER_HPP

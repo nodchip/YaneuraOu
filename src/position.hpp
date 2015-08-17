@@ -1,5 +1,5 @@
-#ifndef APERY_POSITION_HPP
-#define APERY_POSITION_HPP
+﻿#ifndef POSITION_HPP
+#define POSITION_HPP
 
 #include "piece.hpp"
 #include "common.hpp"
@@ -59,24 +59,21 @@ struct StateInfo : public StateInfoMin {
 	Key key() const { return boardKey + handKey; }
 };
 
-using StateStackPtr = std::unique_ptr<std::stack<StateInfo> >;
+typedef std::unique_ptr<std::stack<StateInfo> > StateStackPtr;
 
 class Move;
 struct Thread;
-struct Searcher;
 
 class Position {
 public:
 	Position() {}
-	explicit Position(Searcher* s) : searcher_(s) {}
 	Position(const Position& pos) { *this = pos; }
 	Position(const Position& pos, Thread* th) {
 		*this = pos;
 		thisThread_ = th;
 	}
-	Position(const std::string& sfen, Thread* th, Searcher* s) {
+	Position(const std::string& sfen, Thread* th) {
 		set(sfen, th);
-		setSearcher(s);
 	}
 
 	Position& operator = (const Position& pos);
@@ -168,25 +165,25 @@ public:
 	// 利きの生成
 
 	// 任意の occupied に対する利きを生成する。
-	template <PieceType PT> static Bitboard attacksFrom(const Color c, const Square sq, const Bitboard& occupied);
+	template <PieceType PT> Bitboard attacksFrom(const Color c, const Square sq, const Bitboard& occupied) const;
 	// 任意の occupied に対する利きを生成する。
 	template <PieceType PT> Bitboard attacksFrom(const Square sq, const Bitboard& occupied) const {
-		static_assert(PT == Bishop || PT == Rook || PT == Horse || PT == Dragon, "");
+		STATIC_ASSERT(PT == Bishop || PT == Rook || PT == Horse || PT == Dragon);
 		// Color は何でも良い。
 		return attacksFrom<PT>(ColorNum, sq, occupied);
 	}
 
 	template <PieceType PT> Bitboard attacksFrom(const Color c, const Square sq) const {
-		static_assert(PT == Gold, ""); // Gold 以外は template 特殊化する。
+		STATIC_ASSERT(PT == Gold); // Gold 以外は template 特殊化する。
 		return goldAttack(c, sq);
 	}
 	template <PieceType PT> Bitboard attacksFrom(const Square sq) const {
-		static_assert(PT == Bishop || PT == Rook || PT == King || PT == Horse || PT == Dragon, "");
+		STATIC_ASSERT(PT == Bishop || PT == Rook || PT == King || PT == Horse || PT == Dragon);
 		// Color は何でも良い。
 		return attacksFrom<PT>(ColorNum, sq);
 	}
 	Bitboard attacksFrom(const PieceType pt, const Color c, const Square sq) const { return attacksFrom(pt, c, sq, occupiedBB()); }
-	static Bitboard attacksFrom(const PieceType pt, const Color c, const Square sq, const Bitboard& occupied);
+	Bitboard attacksFrom(const PieceType pt, const Color c, const Square sq, const Bitboard& occupied) const;
 
 	// 次の手番
 	Color turn() const { return turn_; }
@@ -224,7 +221,7 @@ public:
 	Key getKey() const          { return st_->key(); }
 	Key getExclusionKey() const { return st_->key() ^ zobExclusion_; }
 	Key getKeyExcludeTurn() const {
-		static_assert(zobTurn_ == 1, "");
+		STATIC_ASSERT(zobTurn_ == 1);
 		return getKey() >> 1;
 	}
 	void print() const;
@@ -237,7 +234,7 @@ public:
 
 	void setStartPosPly(const Ply ply) { gamePly_ = ply; }
 
-	static constexpr int nlist() { return EvalList::ListSize; }
+	static CONSTEXPR int nlist() { return EvalList::ListSize; }
 	int list0(const int index) const { return evalList_.list0[index]; }
 	int list1(const int index) const { return evalList_.list1[index]; }
 	int squareHandToList(const Square sq) const { return evalList_.squareHandToList[sq]; }
@@ -247,10 +244,6 @@ public:
 	const int* cplist0() const { return &evalList_.list0[0]; }
 	const int* cplist1() const { return &evalList_.list1[0]; }
 	const ChangedLists& cl() const { return st_->cl; }
-
-	const Searcher* csearcher() const { return searcher_; }
-	Searcher* searcher() const { return searcher_; }
-	void setSearcher(Searcher* s) { searcher_ = s; }
 
 #if !defined NDEBUG
 	// for debug
@@ -324,7 +317,7 @@ private:
 
 			// pin する遠隔駒と玉の間にある駒が1つで、かつ、引数の色のとき、その駒は(を) pin されて(して)いる。
 			if (between.isNot0()
-				&& between.isOneBit<false>()
+				&& between.isOneBit()
 				&& between.andIsNot0(bbOf(BetweenIsUs ? us : them)))
 			{
 				result |= between;
@@ -372,29 +365,27 @@ private:
 	Thread* thisThread_;
 	u64 nodes_;
 
-	Searcher* searcher_;
-
 	static Key zobrist_[PieceTypeNum][SquareNum][ColorNum];
 	static const Key zobTurn_ = 1;
 	static Key zobHand_[HandPieceNum][ColorNum];
 	static Key zobExclusion_; // todo: これが必要か、要検討
 };
 
-template <> inline Bitboard Position::attacksFrom<Lance >(const Color c, const Square sq, const Bitboard& occupied) { return  lanceAttack(c, sq, occupied); }
-template <> inline Bitboard Position::attacksFrom<Bishop>(const Color  , const Square sq, const Bitboard& occupied) { return bishopAttack(   sq, occupied); }
-template <> inline Bitboard Position::attacksFrom<Rook  >(const Color  , const Square sq, const Bitboard& occupied) { return   rookAttack(   sq, occupied); }
-template <> inline Bitboard Position::attacksFrom<Horse >(const Color  , const Square sq, const Bitboard& occupied) { return  horseAttack(   sq, occupied); }
-template <> inline Bitboard Position::attacksFrom<Dragon>(const Color  , const Square sq, const Bitboard& occupied) { return dragonAttack(   sq, occupied); }
+template <> inline Bitboard Position::attacksFrom<Lance >(const Color c, const Square sq, const Bitboard& occupied) const { return  lanceAttack(c, sq, occupied); }
+template <> inline Bitboard Position::attacksFrom<Bishop>(const Color c, const Square sq, const Bitboard& occupied) const { return bishopAttack(   sq, occupied); }
+template <> inline Bitboard Position::attacksFrom<Rook  >(const Color c, const Square sq, const Bitboard& occupied) const { return   rookAttack(   sq, occupied); }
+template <> inline Bitboard Position::attacksFrom<Horse >(const Color c, const Square sq, const Bitboard& occupied) const { return  horseAttack(   sq, occupied); }
+template <> inline Bitboard Position::attacksFrom<Dragon>(const Color c, const Square sq, const Bitboard& occupied) const { return dragonAttack(   sq, occupied); }
 
 template <> inline Bitboard Position::attacksFrom<Pawn  >(const Color c, const Square sq) const { return   pawnAttack(c, sq              ); }
 template <> inline Bitboard Position::attacksFrom<Lance >(const Color c, const Square sq) const { return  lanceAttack(c, sq, occupiedBB()); }
 template <> inline Bitboard Position::attacksFrom<Knight>(const Color c, const Square sq) const { return knightAttack(c, sq              ); }
 template <> inline Bitboard Position::attacksFrom<Silver>(const Color c, const Square sq) const { return silverAttack(c, sq              ); }
-template <> inline Bitboard Position::attacksFrom<Bishop>(const Color  , const Square sq) const { return bishopAttack(   sq, occupiedBB()); }
-template <> inline Bitboard Position::attacksFrom<Rook  >(const Color  , const Square sq) const { return   rookAttack(   sq, occupiedBB()); }
-template <> inline Bitboard Position::attacksFrom<King  >(const Color  , const Square sq) const { return   kingAttack(   sq              ); }
-template <> inline Bitboard Position::attacksFrom<Horse >(const Color  , const Square sq) const { return  horseAttack(   sq, occupiedBB()); }
-template <> inline Bitboard Position::attacksFrom<Dragon>(const Color  , const Square sq) const { return dragonAttack(   sq, occupiedBB()); }
+template <> inline Bitboard Position::attacksFrom<Bishop>(const Color c, const Square sq) const { return bishopAttack(   sq, occupiedBB()); }
+template <> inline Bitboard Position::attacksFrom<Rook  >(const Color c, const Square sq) const { return   rookAttack(   sq, occupiedBB()); }
+template <> inline Bitboard Position::attacksFrom<King  >(const Color c, const Square sq) const { return   kingAttack(   sq              ); }
+template <> inline Bitboard Position::attacksFrom<Horse >(const Color c, const Square sq) const { return  horseAttack(   sq, occupiedBB()); }
+template <> inline Bitboard Position::attacksFrom<Dragon>(const Color c, const Square sq) const { return dragonAttack(   sq, occupiedBB()); }
 
 // position sfen R8/2K1S1SSk/4B4/9/9/9/9/9/1L1L1L3 b PLNSGBR17p3n3g 1
 // の局面が最大合法手局面で 593 手。番兵の分、+ 1 しておく。
@@ -417,4 +408,4 @@ public:
 };
 extern const CharToPieceUSI g_charToPieceUSI;
 
-#endif // #ifndef APERY_POSITION_HPP
+#endif // #ifndef POSITION_HPP

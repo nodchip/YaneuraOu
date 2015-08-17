@@ -1,4 +1,4 @@
-#include "tt.hpp"
+﻿#include "tt.hpp"
 
 void TranspositionTable::setSize(const size_t mbSize) { // Mega Byte 指定
 	// 確保する要素数を取得する。

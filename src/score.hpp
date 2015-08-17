@@ -1,10 +1,10 @@
-#ifndef APERY_SCORE_HPP
-#define APERY_SCORE_HPP
+﻿#ifndef SCORE_HPP
+#define SCORE_HPP
 
 #include "overloadEnumOperators.hpp"
 #include "common.hpp"
 
-using Ply = int;
+typedef int Ply;
 
 const Ply MaxPly = 128;
 const Ply MaxPlyPlus2 = MaxPly + 2;
@@ -34,7 +34,6 @@ enum Score {
 	ScoreMateInMaxPly  = ScoreMate0Ply - MaxPly,
 	ScoreMatedInMaxPly = -ScoreMateInMaxPly,
 	ScoreInfinite      = 32601,
-	ScoreNotEvaluated  = INT_MAX,
 	ScoreNone          = 32602
 };
 OverloadEnumOperators(Score);
@@ -46,4 +45,4 @@ inline Score matedIn(const Ply ply) {
 	return -ScoreMate0Ply + static_cast<Score>(ply);
 }
 
-#endif // #ifndef APERY_SCORE_HPP
+#endif // #ifndef SCORE_HPP

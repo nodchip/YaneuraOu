@@ -1,5 +1,5 @@
-#ifndef APERY_PIECE_HPP
-#define APERY_PIECE_HPP
+﻿#ifndef PIECE_HPP
+#define PIECE_HPP
 
 #include "common.hpp"
 #include "overloadEnumOperators.hpp"
@@ -14,9 +14,7 @@ enum PieceType {
 	Occupied = 0, // 各 PieceType の or をとったもの。
 	Pawn, Lance, Knight, Silver, Bishop, Rook, Gold, King,
 	ProPawn, ProLance, ProKnight, ProSilver, Horse, Dragon,
-	PieceTypeNum,
-
-	GoldHorseDragon // 単にtemnplate引数として使用
+	PieceTypeNum
 };
 OverloadEnumOperators(PieceType);
 
@@ -64,4 +62,4 @@ const HandPiece PieceTypeToHandPieceTable[PieceTypeNum] = {
 };
 inline HandPiece pieceTypeToHandPiece(const PieceType pt) { return PieceTypeToHandPieceTable[pt]; }
 
-#endif // #ifndef APERY_PIECE_HPP
+#endif // #ifndef PIECE_HPP

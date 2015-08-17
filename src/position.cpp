@@ -1,4 +1,4 @@
-#include "position.hpp"
+﻿#include "position.hpp"
 #include "move.hpp"
 #include "mt64bit.hpp"
 #include "generateMoves.hpp"
@@ -46,7 +46,7 @@ CheckInfo::CheckInfo(const Position& pos) {
 	checkBB[Dragon   ] = checkBB[Rook  ] | pos.attacksFrom<King>(ksq);
 }
 
-Bitboard Position::attacksFrom(const PieceType pt, const Color c, const Square sq, const Bitboard& occupied) {
+Bitboard Position::attacksFrom(const PieceType pt, const Color c, const Square sq, const Bitboard& occupied) const {
 	switch (pt) {
 	case Occupied:  return allZeroBB();
 	case Pawn:      return pawnAttack(c, sq);
@@ -65,8 +65,6 @@ Bitboard Position::attacksFrom(const PieceType pt, const Color c, const Square s
 	case Dragon:    return dragonAttack(sq, occupied);
 	default:        UNREACHABLE;
 	}
-	UNREACHABLE;
-	return allOneBB();
 }
 
 // 実際に指し手が合法手かどうか判定
@@ -253,7 +251,7 @@ void Position::doMove(const Move move, StateInfo& newSt, const CheckInfo& ci, co
 		handKey -= zobHand(hpTo, us);
 		boardKey += zobrist(ptTo, to, us);
 
-		prefetch(csearcher()->tt.firstEntry(boardKey + handKey));
+		prefetch(Searcher::tt.firstEntry(boardKey + handKey));
 
 		const int handnum = hand(us).numOf(hpTo);
 		const int listIndex = evalList_.squareHandToList[HandPieceToSquareHand[us][hpTo] + handnum];
@@ -327,7 +325,7 @@ void Position::doMove(const Move move, StateInfo& newSt, const CheckInfo& ci, co
 
 			st_->material += (us == Black ? capturePieceScore(ptCaptured) : -capturePieceScore(ptCaptured));
 		}
-		prefetch(csearcher()->tt.firstEntry(boardKey + handKey));
+		prefetch(Searcher::tt.firstEntry(boardKey + handKey));
 		// Occupied は to, from の位置のビットを操作するよりも、
 		// Black と White の or を取る方が速いはず。
 		byTypeBB_[Occupied] = bbOf(Black) | bbOf(White);
@@ -545,8 +543,8 @@ namespace {
 		}
 		return nextAttacker<SEENextPieceType<PT>::value>(pos, to, opponentAttackers, occupied, attackers, turn);
 	}
-	template <> FORCE_INLINE PieceType nextAttacker<King>(const Position&, const Square, const Bitboard&,
-														  Bitboard&, Bitboard&, const Color)
+	template <> FORCE_INLINE PieceType nextAttacker<King>(const Position& pos, const Square to, const Bitboard& opponentAttackers,
+														  Bitboard& occupied, Bitboard& attackers, const Color turn)
 	{
 		return King;
 	}
@@ -1773,9 +1771,7 @@ void Position::set(const std::string& sfen, Thread* th) {
 	char token;
 	Square sq = A9;
 
-	Searcher* s = std::move(searcher_);
 	clear();
-	setSearcher(s);
 
 	// 盤上の駒
 	while (ss.get(token) && token != ' ') {

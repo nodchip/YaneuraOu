@@ -1,5 +1,5 @@
-#ifndef APERY_BOOK_HPP
-#define APERY_BOOK_HPP
+﻿#ifndef BOOK_HPP
+#define BOOK_HPP
 
 #include "position.hpp"
 #include "mt64bit.hpp"
@@ -14,9 +14,9 @@ struct BookEntry {
 class Book : private std::ifstream {
 public:
 	Book() : random_(std::chrono::system_clock::now().time_since_epoch().count()) {}
-	std::tuple<Move, Score> probe(const Position& pos, const std::string& fName, const bool pickBest);
+	std::tuple<Move, Score> probe(const Position& pos, const std::string& fName, const bool pickBest, const bool inaniwaBook);
 	static void init();
-	static Key bookKey(const Position& pos);
+	static Key bookKey(const Position& pos, const bool inaniwaBook);
 
 private:
 	bool open(const char* fName);
@@ -32,6 +32,7 @@ private:
 	static Key ZobTurn;
 };
 
-void makeBook(Position& pos, std::istringstream& ssCmd);
+void makeBook(Position& pos, const bool inaniwaBook = false);
+void makeBookCSA1Line(Position& pos, const bool inaniwaBook = false);
 
-#endif // #ifndef APERY_BOOK_HPP
+#endif // #ifndef BOOK_HPP

@@ -1,5 +1,5 @@
-#ifndef APERY_HAND_HPP
-#define APERY_HAND_HPP
+﻿#ifndef HAND_HPP
+#define HAND_HPP
 
 #include "common.hpp"
 #include "piece.hpp"
@@ -101,4 +101,4 @@ private:
 	u32 value_;
 };
 
-#endif // #ifndef APERY_HAND_HPP
+#endif // #ifndef HAND_HPP
