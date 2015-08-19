@@ -37,7 +37,7 @@ bool csa::toSfen(const std::string& filepath, std::vector<std::string>& sfen) {
 
     stateInfos.push_back(StateInfo());
     position.doMove(move, stateInfos.back());
-    position.print();
+    //position.print();
 
     sfen.push_back(move.toUSI());
   }
