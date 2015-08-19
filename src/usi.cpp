@@ -317,6 +317,7 @@ void setPosition(Position& pos, std::istringstream& ssCmd) {
 	if (token == "startpos") {
 		sfen = DefaultStartPositionSFEN;
 		ssCmd >> token; // "moves" が入力されるはず。
+    assert(token == "moves");
 	}
 	else if (token == "sfen") {
 		while (ssCmd >> token && token != "moves") {

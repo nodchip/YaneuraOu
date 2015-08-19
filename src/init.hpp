@@ -5,7 +5,7 @@
 #include "common.hpp"
 #include "bitboard.hpp"
 
-void initTable();
+void initTable(bool initializeFv = true);
 
 #if defined FIND_MAGIC
 u64 findMagic(const Square sqare, const bool isBishop);

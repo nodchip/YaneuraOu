@@ -178,7 +178,7 @@ FORCE_INLINE int firstOneFromMSB(const u64 b) {
 #if defined(HAVE_SSE42)
 #include <nmmintrin.h>
 inline int count1s(u64 x) {
-	return _mm_popcnt_u64(x);
+	return (int)_mm_popcnt_u64(x);
 }
 #else
 inline int count1s(u64 x) //任意の値の1のビットの数を数える。( x is not a const value.)

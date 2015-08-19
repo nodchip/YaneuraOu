@@ -36,10 +36,16 @@ namespace {
 		Score sum = kkp(sq_bk, sq_wk, index[0]);
 		const auto* pkppb = KPP[sq_bk         ][index[0]];
 		const auto* pkppw = KPP[inverse(sq_wk)][index[1]];
+    //int add = 0;
+    //int sub = 0;
+    //for (int i = 0; i < pos.nlist(); ++i) {
+    //  add += pkppb[list0[i]];
+    //  sub -= pkppw[list1[i]];
+    //}
+    //sum += add;
+    //sum -= sub;
     for (int i = 0; i < pos.nlist(); ++i) {
       sum += pkppb[list0[i]];
-    }
-    for (int i = 0; i < pos.nlist(); ++i) {
       sum -= pkppw[list1[i]];
     }
 
@@ -193,11 +199,19 @@ namespace {
 			const int k1 = list1[i];
 			const auto* pkppb = ppkppb[k0];
 			const auto* pkppw = ppkppw[k1];
+      //int add = 0;
+      //int sub = 0;
+      //for (int j = 0; j < i; ++j) {
+      //  add += pkppb[list0[j]];
+      //  sub -= pkppw[list1[j]];
+      //}
+      //score += add;
+      //score += sub;
       for (int j = 0; j < i; ++j) {
-        score += pkppb[list0[j]];
-      }
-      for (int j = 0; j < i; ++j) {
-        score -= pkppw[list1[j]];
+        const int l0 = list0[j];
+        const int l1 = list1[j];
+        score += pkppb[l0];
+        score -= pkppw[l1];
       }
       score += KKP[sq_bk][sq_wk][k0];
 		}
