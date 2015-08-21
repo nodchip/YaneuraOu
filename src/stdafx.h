@@ -69,4 +69,6 @@
 #include <cwchar>
 #include <cwctype>
 
+#include <filesystem>
+
 #endif

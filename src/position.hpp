@@ -199,9 +199,9 @@ public:
 	bool pseudoLegalMoveIsEvasion(const Move move, const Bitboard& pinned) const;
 	// checkPawnDrop : 二歩と打ち歩詰めも調べるなら true
 	bool moveIsPseudoLegal(const Move move, const bool checkPawnDrop = false) const;
-//#if !defined NDEBUG
+#if !defined NDEBUG
 	bool moveIsLegal(const Move move) const;
-//#endif
+#endif
 
 	void doMove(const Move move, StateInfo& newSt);
 	void doMove(const Move move, StateInfo& newSt, const CheckInfo& ci, const bool moveIsCheck);

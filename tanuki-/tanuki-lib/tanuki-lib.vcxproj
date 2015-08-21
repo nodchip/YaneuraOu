@@ -89,10 +89,9 @@
       <PrecompiledHeader>Use</PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
-      <PreprocessorDefinitions>_DEBUG;_LIB;HAVE_SSE2;HAVE_SSE4;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_DEBUG;_LIB;HAVE_SSE2;HAVE_SSE4;HAVE_SSE42;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <SDLCheck>true</SDLCheck>
       <ForcedIncludeFiles>stdafx.h</ForcedIncludeFiles>
-      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -120,13 +119,13 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
-      <PrecompiledHeader>
-      </PrecompiledHeader>
+      <PrecompiledHeader>Use</PrecompiledHeader>
       <Optimization>MaxSpeed</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <PreprocessorDefinitions>NDEBUG;_LIB;HAVE_SSE2;HAVE_SSE4;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>NDEBUG;_LIB;HAVE_SSE2;HAVE_SSE4;HAVE_SSE42;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <SDLCheck>true</SDLCheck>
+      <ForcedIncludeFiles>stdafx.h</ForcedIncludeFiles>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -149,6 +148,7 @@
     <ClInclude Include="..\..\src\evaluate.hpp" />
     <ClInclude Include="..\..\src\generateMoves.hpp" />
     <ClInclude Include="..\..\src\hand.hpp" />
+    <ClInclude Include="..\..\src\hayabusa.hpp" />
     <ClInclude Include="..\..\src\ifdef.hpp" />
     <ClInclude Include="..\..\src\init.hpp" />
     <ClInclude Include="..\..\src\learner.hpp" />
@@ -178,6 +178,7 @@
     <ClCompile Include="..\..\src\evaluate.cpp" />
     <ClCompile Include="..\..\src\generateMoves.cpp" />
     <ClCompile Include="..\..\src\hand.cpp" />
+    <ClCompile Include="..\..\src\hayabusa.cpp" />
     <ClCompile Include="..\..\src\init.cpp" />
     <ClCompile Include="..\..\src\move.cpp" />
     <ClCompile Include="..\..\src\movePicker.cpp" />
@@ -188,6 +189,7 @@
     <ClCompile Include="..\..\src\square.cpp" />
     <ClCompile Include="..\..\src\stdafx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="..\..\src\thread.cpp" />
     <ClCompile Include="..\..\src\timeManager.cpp" />

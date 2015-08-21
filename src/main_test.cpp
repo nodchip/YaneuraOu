@@ -8,7 +8,7 @@ int main(int argc, char **argv) {
 
   std::cout << engine_name() << std::endl;
 
-  initTable(false);
+  initTable(true);
   Position::initZobrist();
   g_threads.init();
   Searcher::tt.setSize(g_options["USI_Hash"]);

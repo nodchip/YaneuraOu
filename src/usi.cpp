@@ -9,6 +9,7 @@
 #include "thread.hpp"
 #include "benchmark.hpp"
 #include "learner.hpp"
+#include "hayabusa.hpp"
 
 OptionsMap g_options;
 
@@ -414,9 +415,9 @@ void measureGenerateMoves(const Position& pos) {
 #endif
 
 #ifdef NDEBUG
-const std::string MyName = "Apery";
+const std::string MyName = "tanuki-";
 #else
-const std::string MyName = "Apery Debug Build";
+const std::string MyName = "tanuki- Debug Build";
 #endif
 
 void doUSICommandLoop(int argc, char* argv[]) {
@@ -491,6 +492,7 @@ void doUSICommandLoop(int argc, char* argv[]) {
 		else if (token == "b"        ) { makeBookCSA1Line(pos); }
 		else if (token == "i"        ) { makeBookCSA1Line(pos, true); }
 		else if (token == "bsfen"    ) { makeBook(pos); }
+    else if (token == "hayabusa_create_cache") { hayabusa::createEvaluationCache(); }
 #endif
 		else                           { SYNCCOUT << "unknown command: " << cmd << SYNCENDL; }
 	} while (token != "quit" && argc == 1);

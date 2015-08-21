@@ -1,3 +1,4 @@
+#include <filesystem>
 #include <fstream>
 #include "csa.hpp"
 #include "thread.hpp"
@@ -5,14 +6,14 @@
 
 using namespace std;
 
-bool csa::toSfen(const std::string& filepath, std::vector<std::string>& sfen) {
+bool csa::toSfen(const std::tr2::sys::path& filepath, std::vector<std::string>& sfen) {
   sfen.clear();
   sfen.push_back("startpos");
   sfen.push_back("moves");
 
   Position position(DefaultStartPositionSFEN, g_threads.mainThread());
 
-  ifstream ifs(filepath.c_str());
+  ifstream ifs(filepath);
   if (!ifs.is_open()) {
     cout << "!!! Failed to open a CSA file." << endl;
     return false;
@@ -30,10 +31,13 @@ bool csa::toSfen(const std::string& filepath, std::vector<std::string>& sfen) {
 
     string csaMove = line.substr(1);
     Move move = csaToMove(position, csaMove);
+
+#if !defined NDEBUG
     if (!position.moveIsLegal(move)) {
       cout << "!!! Found an illegal move." << endl;
       break;
     }
+#endif
 
     stateInfos.push_back(StateInfo());
     position.doMove(move, stateInfos.back());
