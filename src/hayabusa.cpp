@@ -9,8 +9,8 @@
 using namespace std;
 using namespace std::tr2::sys;
 
-const std::tr2::sys::path hayabusa::DEFAULT_INPUT_DIRECTORY_PATH("../../../wdoor2015/2015");
-const std::tr2::sys::path hayabusa::DEFAULT_OUTPUT_DIRECTORY_PATH("../../../cache/hayabusa/evaluation");
+const std::tr2::sys::path hayabusa::DEFAULT_INPUT_CSA_DIRECTORY_PATH("../../../wdoor2015/2015");
+const std::tr2::sys::path hayabusa::DEFAULT_OUTPUT_TEACHER_FILE_PATH("../../hayabusa.teacherdata");
 
 void setPosition(Position& pos, std::istringstream& ssCmd);
 void go(const Position& pos, std::istringstream& ssCmd);
@@ -25,32 +25,32 @@ static void concat(const vector<string>& words, string& out) {
   }
 }
 
-bool hayabusa::createEvaluationCache(
-  const std::tr2::sys::path& inputDirectoryPath,
-  const std::tr2::sys::path& outputDirectoryPath,
+bool hayabusa::createTeacherData(
+  const std::tr2::sys::path& inputCsaDirectoryPath,
+  const std::tr2::sys::path& outputTeacherFilePath,
   int maxNumberOfPlays) {
-  create_directories(DEFAULT_OUTPUT_DIRECTORY_PATH);
+  FILE* file = fopen(outputTeacherFilePath.string().c_str(), "wb");
+  if (!file) {
+    cout << "!!! Failed to create an output file: outputTeacherFilePath="
+      << outputTeacherFilePath
+      << endl;
+    return false;
+  }
+  setvbuf(file, nullptr, _IOFBF, 1024 * 1024);
+
+  int numberOfFiles = distance(directory_iterator(inputCsaDirectoryPath),
+    directory_iterator());
 
   int plays = 0;
-  for (auto it = directory_iterator(inputDirectoryPath); it != directory_iterator(); ++it) {
+  int fileIndex = 0;
+  for (auto it = directory_iterator(inputCsaDirectoryPath); it != directory_iterator(); ++it) {
     const auto& inputFilePath = *it;
-    cout << inputFilePath << endl;
-
-    path outputFilePath = outputDirectoryPath / inputFilePath.path().filename();
-    // 出力ファイルが既に存在していたらスキップ
-    if (is_regular_file(outputFilePath)) {
-      continue;
-    }
+    cout << "(" << fileIndex++ << "/" << numberOfFiles << ") "
+      << inputFilePath << endl;
 
     vector<string> sfen;
     if (!csa::toSfen(inputFilePath, sfen)) {
       cout << "!!! Failed to create an evaluation cache: inputFilePath=" << inputFilePath << endl;
-      return false;
-    }
-
-    ofstream ofs(outputFilePath);
-    if (!ofs.is_open()) {
-      cout << "!!! Failed to create an output file: outputFilPath=" << outputFilePath << endl;
       return false;
     }
 
@@ -70,13 +70,26 @@ bool hayabusa::createEvaluationCache(
       searchStack[1].staticEvalRaw = (Score)INT_MAX;
 
       Score score = evaluate(pos, &searchStack[1]);
+      if (pos.turn() == White) {
+        score = -score;
+      }
 
-      ofs << score << endl;
+      TeacherData teacherData;
+      memcpy(teacherData.list0, pos.cplist0(), sizeof(teacherData.list0));
+      memcpy(teacherData.list1, pos.cplist1(), sizeof(teacherData.list1));
+      teacherData.teacher = score;
+
+      int writeSize = fwrite(&teacherData, sizeof(TeacherData), 1, file);
+      assert(writeSize == 1);
 
       if (++plays >= maxNumberOfPlays) {
         break;
       }
     }
   }
+
+  fclose(file);
+  file = nullptr;
+
   return true;
 }

@@ -17,7 +17,7 @@ private:
 };
 
 TEST_F(CsaTest, toPositions_convertCsaFileToPositions) {
-  string filepath = "../../testdata/wdoor+floodgate-600-10+01WishBlue_07+Apery_i5-4670+20150415003002.csa";
+  string filepath = "../../testdata/csa/wdoor+floodgate-600-10+01WishBlue_07+Apery_i5-4670+20150415003002.csa";
 
   vector<string> sfen;
   EXPECT_TRUE(csa::toSfen(filepath, sfen));

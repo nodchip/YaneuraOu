@@ -492,7 +492,7 @@ void doUSICommandLoop(int argc, char* argv[]) {
 		else if (token == "b"        ) { makeBookCSA1Line(pos); }
 		else if (token == "i"        ) { makeBookCSA1Line(pos, true); }
 		else if (token == "bsfen"    ) { makeBook(pos); }
-    else if (token == "hayabusa_create_cache") { hayabusa::createEvaluationCache(); }
+    else if (token == "hayabusa_create_teacher_data") { hayabusa::createTeacherData(); }
 #endif
 		else                           { SYNCCOUT << "unknown command: " << cmd << SYNCENDL; }
 	} while (token != "quit" && argc == 1);
