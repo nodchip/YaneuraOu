@@ -29,7 +29,7 @@ namespace hayabusa {
   // HAYABUSA学習メソッドで重みを調整する
   bool adjustWeights(
     const std::tr2::sys::path& inputTeacherFilePath = DEFAULT_INPUT_TEACHER_DATA_FILE_PATH,
-    int numberOfIterations = 100);
+    int numberOfIterations = 10);
 }
 
 #endif

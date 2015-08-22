@@ -14,7 +14,7 @@ const std::tr2::sys::path hayabusa::DEFAULT_INPUT_CSA_DIRECTORY_PATH("../../../w
 const std::tr2::sys::path hayabusa::DEFAULT_OUTPUT_TEACHER_DATA_FILE_PATH("../../hayabusa.teacherdata");
 const std::tr2::sys::path hayabusa::DEFAULT_INPUT_TEACHER_DATA_FILE_PATH("../../hayabusa.teacherdata");
 
-static const float ALPHA = 1e-2;
+static const float ALPHA = pow(10.0, -6.5);
 
 void setPosition(Position& pos, std::istringstream& ssCmd);
 void go(const Position& pos, std::istringstream& ssCmd);
@@ -49,9 +49,10 @@ bool hayabusa::createTeacherData(
   int plays = 0;
   int fileIndex = 0;
   for (auto it = directory_iterator(inputCsaDirectoryPath); it != directory_iterator(); ++it) {
+    if (++fileIndex % 1000 == 0) {
+      printf("(%d/%d)\n", fileIndex, numberOfFiles);
+    }
     const auto& inputFilePath = *it;
-    cout << "(" << fileIndex++ << "/" << numberOfFiles << ") "
-      << inputFilePath << endl;
 
     vector<string> sfen;
     if (!csa::toSfen(inputFilePath, sfen)) {
@@ -125,8 +126,8 @@ bool hayabusa::adjustWeights(
     double eps2 = 0.0;
     int teacherDataIndex = 0;
     while (fread(&teacherData, sizeof(teacherData), 1, file) == 1) {
-      if (++teacherDataIndex % 10000 == 0) {
-        cout << "(" << teacherDataIndex << "/" << numberOfTeacherData << ")" << endl;
+      if (++teacherDataIndex % 1000000 == 0) {
+        printf("(%d/%d)\n", teacherDataIndex, numberOfTeacherData);
       }
 
       Square sq_bk = teacherData.squareBlackKing;
