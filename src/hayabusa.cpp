@@ -13,12 +13,14 @@ using namespace std::tr2::sys;
 const std::tr2::sys::path hayabusa::DEFAULT_INPUT_CSA_DIRECTORY_PATH("../../wdoor2015/2015");
 const std::tr2::sys::path hayabusa::DEFAULT_OUTPUT_TEACHER_DATA_FILE_PATH("../hayabusa.teacherdata");
 const std::tr2::sys::path hayabusa::DEFAULT_INPUT_TEACHER_DATA_FILE_PATH("../hayabusa.teacherdata");
+const std::tr2::sys::path hayabusa::DEFAULT_INPUT_SHOGIDOKORO_CSA_DIRECTORY_PATH("../../Shogidokoro/csa");
 
 static const float ALPHA = pow(10.0, -6.5);
 
 void setPosition(Position& pos, std::istringstream& ssCmd);
 void go(const Position& pos, std::istringstream& ssCmd);
 
+// 文字列の配列をスペース区切りで結合する
 static void concat(const vector<string>& words, string& out) {
   out.clear();
   for (const auto& word : words) {
@@ -27,6 +29,59 @@ static void concat(const vector<string>& words, string& out) {
     }
     out += word;
   }
+}
+
+// CSAファイルを教師データに変換する
+// csaFilePath CSAファイルパス
+// maxNumberOfPlays 処理する最大局面数
+// teacherDatas 教師データ
+// plays 現在までに処理した局面数
+static bool converCsaToTeacherData(
+  const path& csaFilePath,
+  int maxNumberOfPlays,
+  vector<hayabusa::TeacherData>& teacherDatas,
+  int& plays) {
+  vector<string> sfen;
+  if (!csa::toSfen(csaFilePath, sfen)) {
+    cout << "!!! Failed to convert CSA to teacher data: csaFilePath=" << csaFilePath << endl;
+    return false;
+  }
+
+  int numberOfPlays = sfen.size() - 2;
+  for (int play = 1; play <= numberOfPlays; ++play) {
+    string subSfen;
+    concat(vector<string>(sfen.begin(), sfen.begin() + play + 2), subSfen);
+
+    std::istringstream ss_sfen(subSfen);
+    Position pos(DefaultStartPositionSFEN, g_threads.mainThread());
+    setPosition(pos, ss_sfen);
+
+    SearchStack searchStack[MaxPlyPlus2];
+    memset(searchStack, 0, sizeof(searchStack));
+    searchStack[0].currentMove = Move::moveNull(); // skip update gains
+    searchStack[0].staticEvalRaw = (Score)INT_MAX;
+    searchStack[1].staticEvalRaw = (Score)INT_MAX;
+
+    Score score = evaluate(pos, &searchStack[1]);
+    if (pos.turn() == White) {
+      score = -score;
+    }
+
+    hayabusa::TeacherData teacherData;
+    teacherData.squareBlackKing = pos.kingSquare(Black);
+    teacherData.squareWhiteKing = pos.kingSquare(White);
+    memcpy(teacherData.list0, pos.cplist0(), sizeof(teacherData.list0));
+    memcpy(teacherData.list1, pos.cplist1(), sizeof(teacherData.list1));
+    teacherData.material = pos.material();
+    teacherData.teacher = score;
+    teacherDatas.push_back(teacherData);
+
+    if (++plays >= maxNumberOfPlays) {
+      return true;
+    }
+  }
+
+  return true;
 }
 
 bool hayabusa::createTeacherData(
@@ -52,48 +107,85 @@ bool hayabusa::createTeacherData(
     if (++fileIndex % 1000 == 0) {
       printf("(%d/%d)\n", fileIndex, numberOfFiles);
     }
-    const auto& inputFilePath = *it;
 
-    vector<string> sfen;
-    if (!csa::toSfen(inputFilePath, sfen)) {
-      cout << "!!! Failed to create an evaluation cache: inputFilePath=" << inputFilePath << endl;
+    const auto& csaFilePath = *it;
+    vector<TeacherData> teacherDatas;
+    if (!converCsaToTeacherData(csaFilePath, maxNumberOfPlays, teacherDatas, plays)) {
+      cout << "!!! Failed to create teacher data: csaFilePath=" << csaFilePath << endl;
       return false;
     }
 
-    int numberOfPlays = sfen.size() - 2;
-    for (int play = 1; play <= numberOfPlays; ++play) {
-      string subSfen;
-      concat(vector<string>(sfen.begin(), sfen.begin() + play + 2), subSfen);
+    int writeSize = fwrite(&teacherDatas, sizeof(TeacherData), teacherDatas.size(), file);
+    assert(writeSize == teacherDatas.size());
 
-      std::istringstream ss_sfen(subSfen);
-      Position pos(DefaultStartPositionSFEN, g_threads.mainThread());
-      setPosition(pos, ss_sfen);
+    if (++plays >= maxNumberOfPlays) {
+      break;
+    }
+  }
 
-      SearchStack searchStack[MaxPlyPlus2];
-      memset(searchStack, 0, sizeof(searchStack));
-      searchStack[0].currentMove = Move::moveNull(); // skip update gains
-      searchStack[0].staticEvalRaw = (Score)INT_MAX;
-      searchStack[1].staticEvalRaw = (Score)INT_MAX;
+  fclose(file);
+  file = nullptr;
 
-      Score score = evaluate(pos, &searchStack[1]);
-      if (pos.turn() == White) {
-        score = -score;
+  return true;
+}
+
+bool hayabusa::addTeacherData(
+  const std::tr2::sys::path& inputShogidokoroCsaDirectoryPath,
+  const std::tr2::sys::path& outputTeacherFilePath,
+  int maxNumberOfPlays) {
+  FILE* file = fopen(outputTeacherFilePath.string().c_str(), "ab");
+  if (!file) {
+    cout << "!!! Failed to open an output file: outputTeacherFilePath="
+      << outputTeacherFilePath
+      << endl;
+    return false;
+  }
+  setvbuf(file, nullptr, _IOFBF, 1024 * 1024);
+
+  int plays = 0;
+  int fileIndex = 0;
+  for (auto it = directory_iterator(inputShogidokoroCsaDirectoryPath); it != directory_iterator(); ++it) {
+    const auto& csaFilePath = *it;
+    if (csaFilePath.path().extension() != ".csa") {
+      continue;
+    }
+
+    cout << csaFilePath.path().filename() << endl;
+
+    if (!csa::isFinished(csaFilePath)) {
+      continue;
+    }
+
+    vector<TeacherData> teacherDatas;
+    if (!converCsaToTeacherData(csaFilePath, maxNumberOfPlays, teacherDatas, plays)) {
+      cout << "!!! Failed to create teacher data: csaFilePath=" << csaFilePath << endl;
+      return false;
+    }
+
+    bool tanukIsBlack = csa::isTanukiBlack(csaFilePath);
+    bool blackIsWin = csa::isBlackWin(csaFilePath);
+
+    if (tanukIsBlack && !blackIsWin) {
+      // tanuki-が先手で負けた
+      // 先手の教師信号を下げる
+      for (int i = 0; i < teacherDatas.size(); i += 2) {
+        teacherDatas[i].teacher -= PawnScore;
       }
+    }
 
-      TeacherData teacherData;
-      teacherData.squareBlackKing = pos.kingSquare(Black);
-      teacherData.squareWhiteKing = pos.kingSquare(White);
-      memcpy(teacherData.list0, pos.cplist0(), sizeof(teacherData.list0));
-      memcpy(teacherData.list1, pos.cplist1(), sizeof(teacherData.list1));
-      teacherData.material = pos.material();
-      teacherData.teacher = score;
-
-      int writeSize = fwrite(&teacherData, sizeof(TeacherData), 1, file);
-      assert(writeSize == 1);
-
-      if (++plays >= maxNumberOfPlays) {
-        break;
+    if (!tanukIsBlack && blackIsWin) {
+      // tanuki-が後手で負けた
+      // 後手の教師信号を下げる
+      for (int i = 1; i < teacherDatas.size(); i += 2) {
+        teacherDatas[i].teacher -= PawnScore;
       }
+    }
+
+    int writeSize = fwrite(&teacherDatas[0], sizeof(TeacherData), teacherDatas.size(), file);
+    assert(writeSize == teacherDatas.size());
+
+    if (++plays >= maxNumberOfPlays) {
+      break;
     }
   }
 

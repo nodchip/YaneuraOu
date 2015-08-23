@@ -25,6 +25,12 @@ bool csa::toSfen(const std::tr2::sys::path& filepath, std::vector<std::string>& 
 
   string line;
   while (getline(ifs, line)) {
+    // «ŠûŠ‚Ìo—Í‚·‚éCSA‚Ìw‚µè‚Ì––”ö‚É",T1"‚È‚Ç‚Æ‚Â‚­‚½‚ß
+    // ","ˆÈ~‚ğíœ‚·‚é
+    if (line.find(',') != string::npos) {
+      line = line.substr(0, line.find(','));
+    }
+
     if (line.size() != 7 || (line[0] != '+' && line[0] != '-')) {
       continue;
     }
@@ -106,5 +112,5 @@ bool csa::isBlackWin(const std::tr2::sys::path& filepath) {
     }
   }
 
-  assert(false);
+  throw exception("Failed to detect if black is win.");
 }

@@ -25,6 +25,15 @@ TEST_F(CsaTest, toPositions_convertCsaFileToPositions) {
   EXPECT_EQ(136, sfen.size());
 }
 
+TEST_F(CsaTest, toPositions_convertShogidokoroCsaFileToPositions) {
+  string filepath = "../src/testdata/shogidokoro/csa/20150823_214751 tanuki- sse4.2 msvc  vs Apery sse4.2 msvc .csa";
+
+  vector<string> sfen;
+  EXPECT_TRUE(csa::toSfen(filepath, sfen));
+
+  EXPECT_EQ(134, sfen.size());
+}
+
 TEST_F(CsaTest, isFinished_returnTrueIfFinished) {
   string filepath = "../src/testdata/shogidokoro/csa/20150823_214751 tanuki- sse4.2 msvc  vs Apery sse4.2 msvc .csa";
 
