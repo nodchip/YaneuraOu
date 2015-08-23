@@ -24,3 +24,39 @@ TEST_F(CsaTest, toPositions_convertCsaFileToPositions) {
 
   EXPECT_EQ(136, sfen.size());
 }
+
+TEST_F(CsaTest, isFinished_returnTrueIfFinished) {
+  string filepath = "../src/testdata/shogidokoro/csa/20150823_214751 tanuki- sse4.2 msvc  vs Apery sse4.2 msvc .csa";
+
+  EXPECT_TRUE(csa::isFinished(filepath));
+}
+
+TEST_F(CsaTest, isFinished_returnFalseIfNotFinished) {
+  string filepath = "../src/testdata/shogidokoro/csa/not_finished.csa";
+
+  EXPECT_FALSE(csa::isFinished(filepath));
+}
+
+TEST_F(CsaTest, isTanukiBlack_returnTrueIfTanikiIsBlack) {
+  string filepath = "../src/testdata/shogidokoro/csa/20150823_214751 tanuki- sse4.2 msvc  vs Apery sse4.2 msvc .csa";
+
+  EXPECT_TRUE(csa::isTanukiBlack(filepath));
+}
+
+TEST_F(CsaTest, isTanukiBlack_returnFalseIfTanikiIsWhite) {
+  string filepath = "../src/testdata/shogidokoro/csa/20150823_215301 Apery sse4.2 msvc  vs tanuki- sse4.2 msvc .csa";
+
+  EXPECT_FALSE(csa::isTanukiBlack(filepath));
+}
+
+TEST_F(CsaTest, isBlackWin_returnTrueIfBlackIsWin) {
+  string filepath = "../src/testdata/shogidokoro/csa/20150823_215301 Apery sse4.2 msvc  vs tanuki- sse4.2 msvc .csa";
+
+  EXPECT_TRUE(csa::isBlackWin(filepath));
+}
+
+TEST_F(CsaTest, isBlackWin_returnTrueIfWhiteIsWin) {
+  string filepath = "../src/testdata/shogidokoro/csa/20150823_214751 tanuki- sse4.2 msvc  vs Apery sse4.2 msvc .csa";
+
+  EXPECT_FALSE(csa::isBlackWin(filepath));
+}
