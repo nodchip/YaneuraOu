@@ -448,7 +448,7 @@ namespace {
 #undef FVS
 
 	void initFV() {
-		std::ifstream ifs("../../bin/20141122/fv38.bin", std::ios::binary);
+		std::ifstream ifs("../bin/20141122/fv38.bin", std::ios::binary);
     assert(ifs.is_open());
 		std::vector<s16> kpptmp(Bonanza::SquareNum * Bonanza::pos_n);
 		std::vector<s32> kkptmp(Bonanza::SquareNum * Bonanza::SquareNum * Bonanza::fe_end);

@@ -6,9 +6,9 @@
 using namespace std;
 using namespace std::tr2::sys;
 
-static const path TEST_INPUT_CSA_DIRECTORY_PATH = "../../testdata/csa";
-static const path TEST_OUTPUT_TEACHER_DATA_FILE_PATH = "../../test.teacherdata";
-static const path TEST_INPUT_TEACHER_DATA_FILE_PATH = "../../testdata/teacherdata/test.teacherdata";
+static const path TEST_INPUT_CSA_DIRECTORY_PATH = "../src/testdata/csa";
+static const path TEST_OUTPUT_TEACHER_DATA_FILE_PATH = "../test.teacherdata";
+static const path TEST_INPUT_TEACHER_DATA_FILE_PATH = "../src/testdata/teacherdata/test.teacherdata";
 
 class HayabusaTest : public testing::Test {
 public:

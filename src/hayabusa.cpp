@@ -10,9 +10,9 @@
 using namespace std;
 using namespace std::tr2::sys;
 
-const std::tr2::sys::path hayabusa::DEFAULT_INPUT_CSA_DIRECTORY_PATH("../../../wdoor2015/2015");
-const std::tr2::sys::path hayabusa::DEFAULT_OUTPUT_TEACHER_DATA_FILE_PATH("../../hayabusa.teacherdata");
-const std::tr2::sys::path hayabusa::DEFAULT_INPUT_TEACHER_DATA_FILE_PATH("../../hayabusa.teacherdata");
+const std::tr2::sys::path hayabusa::DEFAULT_INPUT_CSA_DIRECTORY_PATH("../../wdoor2015/2015");
+const std::tr2::sys::path hayabusa::DEFAULT_OUTPUT_TEACHER_DATA_FILE_PATH("../hayabusa.teacherdata");
+const std::tr2::sys::path hayabusa::DEFAULT_INPUT_TEACHER_DATA_FILE_PATH("../hayabusa.teacherdata");
 
 static const float ALPHA = pow(10.0, -6.5);
 

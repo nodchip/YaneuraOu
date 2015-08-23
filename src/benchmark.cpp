@@ -14,7 +14,7 @@ void benchmark(Position& pos) {
 
 	g_options["Threads"] = std::string("1");
 
-	std::ifstream ifs("../../src/benchmark.sfen");
+	std::ifstream ifs("../src/benchmark.sfen");
   assert(ifs.is_open());
 	std::string sfen;
 	while (std::getline(ifs, sfen)) {

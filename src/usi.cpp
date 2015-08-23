@@ -473,7 +473,7 @@ void doUSICommandLoop(int argc, char* argv[]) {
 			for (int i = 0; i < 100; ++i) g_randomTimeSeed(); // 最初は乱数に偏りがあるかも。少し回しておく。
 		}
 		else if (token == "usi"      ) { SYNCCOUT << "id name " << engine_name()
-												  << "\nid author Hiraoka Takuya"
+												  << "\nid author nodchip"
 												  << "\n" << g_options
 												  << "\nusiok" << SYNCENDL; }
 		else if (token == "go"       ) { go(pos, ssCmd); }
