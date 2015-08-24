@@ -68,6 +68,7 @@ static bool converCsaToTeacherData(
     }
 
     hayabusa::TeacherData teacherData;
+    memset(&teacherData, 0, sizeof(hayabusa::TeacherData));
     teacherData.squareBlackKing = pos.kingSquare(Black);
     teacherData.squareWhiteKing = pos.kingSquare(White);
     memcpy(teacherData.list0, pos.cplist0(), sizeof(teacherData.list0));
@@ -88,6 +89,8 @@ bool hayabusa::createTeacherData(
   const std::tr2::sys::path& inputCsaDirectoryPath,
   const std::tr2::sys::path& outputTeacherFilePath,
   int maxNumberOfPlays) {
+  cout << "hayabusa::createTeacherData()" << endl;
+
   ofstream teacherFile(outputTeacherFilePath, std::ios::out | std::ios::binary);
   if (!teacherFile.is_open()) {
     cout << "!!! Failed to create an output file: outputTeacherFilePath="
@@ -128,7 +131,9 @@ bool hayabusa::addTeacherData(
   const std::tr2::sys::path& inputShogidokoroCsaDirectoryPath,
   const std::tr2::sys::path& outputTeacherFilePath,
   int maxNumberOfPlays) {
-  ofstream teacherFile(outputTeacherFilePath, std::ios::app | std::ios::app);
+  cout << "hayabusa::addTeacherData()" << endl;
+
+  ofstream teacherFile(outputTeacherFilePath, std::ios::app | std::ios::binary);
   if (!teacherFile.is_open()) {
     cout << "!!! Failed to open an output file: outputTeacherFilePath="
       << outputTeacherFilePath
@@ -188,6 +193,8 @@ bool hayabusa::addTeacherData(
 bool hayabusa::adjustWeights(
   const std::tr2::sys::path& inputTeacherFilePath,
   int numberOfIterations) {
+  cout << "hayabusa::adjustWeights()" << endl;
+
   int numberOfTeacherData = file_size(inputTeacherFilePath) / sizeof(TeacherData);
   float alpha = ALPHA / numberOfTeacherData;
   double prevEps2 = 1e100;
@@ -206,20 +213,20 @@ bool hayabusa::adjustWeights(
       return false;
     }
 
-    TeacherData teacherData;
+    vector<TeacherData> teacherDatas(numberOfTeacherData);
+    teacherFile.read((char*)&teacherDatas[0], sizeof(TeacherData) * numberOfTeacherData);
+
     double eps2 = 0.0;
     int teacherDataIndex = 0;
-    while (!teacherFile.eof()) {
-      teacherFile.read((char*)&teacherData, sizeof(TeacherData));
-
+    for (const auto& teacherData : teacherDatas) {
       if (++teacherDataIndex % 1000000 == 0) {
         printf("(%d/%d)\n", teacherDataIndex, numberOfTeacherData);
       }
 
       Square sq_bk = teacherData.squareBlackKing;
       Square sq_wk = teacherData.squareWhiteKing;
-      int* list0 = teacherData.list0;
-      int* list1 = teacherData.list1;
+      const int* list0 = teacherData.list0;
+      const int* list1 = teacherData.list1;
       int material = teacherData.material;
       Score teacher = teacherData.teacher * Apery::FVScale;
 

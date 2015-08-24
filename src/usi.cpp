@@ -10,6 +10,7 @@
 #include "benchmark.hpp"
 #include "learner.hpp"
 #include "hayabusa.hpp"
+#include "init.hpp"
 
 OptionsMap g_options;
 
@@ -494,7 +495,10 @@ void doUSICommandLoop(int argc, char* argv[]) {
 		else if (token == "bsfen"    ) { makeBook(pos); }
     else if (token == "hayabusa_create_teacher_data") { hayabusa::createTeacherData(); }
     else if (token == "hayabusa_adjust_weights") { hayabusa::adjustWeights(); }
-    else if (token == "hayabusa_add_teacher_data") { hayabusa::addTeacherData(); }
+    else if (token == "hayabusa_add_teacher_data") {
+      hayabusa::addTeacherData();
+      writeTable();
+    }
 #endif
 		else                           { SYNCCOUT << "unknown command: " << cmd << SYNCENDL; }
 	} while (token != "quit" && argc == 1);

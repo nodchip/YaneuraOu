@@ -447,162 +447,169 @@ namespace {
 	};
 #undef FVS
 
-	void initFV() {
-		std::ifstream ifs("../bin/20141122/fv38.bin", std::ios::binary);
-    assert(ifs.is_open());
-		std::vector<s16> kpptmp(Bonanza::SquareNum * Bonanza::pos_n);
-		std::vector<s32> kkptmp(Bonanza::SquareNum * Bonanza::SquareNum * Bonanza::fe_end);
-		s32 k00sumtmp[Bonanza::SquareNum][Bonanza::SquareNum];
-
-		ifs.read(reinterpret_cast<char*>(&kpptmp[0]),
-				 sizeof(s16) * static_cast<int>(Bonanza::SquareNum * Bonanza::pos_n));
-		ifs.read(reinterpret_cast<char*>(&kkptmp[0])  ,
-				 sizeof(s32) * static_cast<int>(Bonanza::SquareNum * Bonanza::SquareNum * Bonanza::fe_end));
-		ifs.read(reinterpret_cast<char*>(&k00sumtmp[0][0]), sizeof(k00sumtmp));
-
-		for (Bonanza::Square sqb1 = Bonanza::A9; sqb1 < Bonanza::SquareNum; ++sqb1) {
-			for (Bonanza::Square sqb2 = Bonanza::A9; sqb2 < Bonanza::SquareNum; ++sqb2) {
-				// ここから持ち駒
-				// sqb2 は持ち駒の枚数を表す。
-				if (static_cast<int>(sqb2) <= 18) {
-					kppBonanzaToApery(kpptmp, sqb1, sqb2, Apery::f_hand_pawn  , Bonanza::f_hand_pawn  );
-					kppBonanzaToApery(kpptmp, sqb1, sqb2, Apery::e_hand_pawn  , Bonanza::e_hand_pawn  );
-				}
-				if (static_cast<int>(sqb2) <= 4) {
-					kppBonanzaToApery(kpptmp, sqb1, sqb2, Apery::f_hand_lance , Bonanza::f_hand_lance );
-					kppBonanzaToApery(kpptmp, sqb1, sqb2, Apery::e_hand_lance , Bonanza::e_hand_lance );
-					kppBonanzaToApery(kpptmp, sqb1, sqb2, Apery::f_hand_knight, Bonanza::f_hand_knight);
-					kppBonanzaToApery(kpptmp, sqb1, sqb2, Apery::e_hand_knight, Bonanza::e_hand_knight);
-					kppBonanzaToApery(kpptmp, sqb1, sqb2, Apery::f_hand_silver, Bonanza::f_hand_silver);
-					kppBonanzaToApery(kpptmp, sqb1, sqb2, Apery::e_hand_silver, Bonanza::e_hand_silver);
-					kppBonanzaToApery(kpptmp, sqb1, sqb2, Apery::f_hand_gold  , Bonanza::f_hand_gold  );
-					kppBonanzaToApery(kpptmp, sqb1, sqb2, Apery::e_hand_gold  , Bonanza::e_hand_gold  );
-				}
-				if (static_cast<int>(sqb2) <= 2) {
-					kppBonanzaToApery(kpptmp, sqb1, sqb2, Apery::f_hand_bishop, Bonanza::f_hand_bishop);
-					kppBonanzaToApery(kpptmp, sqb1, sqb2, Apery::e_hand_bishop, Bonanza::e_hand_bishop);
-					kppBonanzaToApery(kpptmp, sqb1, sqb2, Apery::f_hand_rook  , Bonanza::f_hand_rook  );
-					kppBonanzaToApery(kpptmp, sqb1, sqb2, Apery::e_hand_rook  , Bonanza::e_hand_rook  );
-				}
-
-				// ここから盤上の駒
-				// sqb2 は Bonanza 方式での盤上の位置を表す
-				if (Bonanza::A8 <= sqb2) {
-					kppBonanzaToApery(kpptmp, sqb1, sqb2, Apery::f_pawn  , Bonanza::f_pawn  );
-					kppBonanzaToApery(kpptmp, sqb1, sqb2, Apery::f_lance , Bonanza::f_lance );
-				}
-				if (sqb2 <= Bonanza::I2) {
-					kppBonanzaToApery(kpptmp, sqb1, sqb2, Apery::e_pawn  , Bonanza::e_pawn  );
-					kppBonanzaToApery(kpptmp, sqb1, sqb2, Apery::e_lance , Bonanza::e_lance );
-				}
-				if (Bonanza::A7 <= sqb2) {
-					kppBonanzaToApery(kpptmp, sqb1, sqb2, Apery::f_knight, Bonanza::f_knight);
-				}
-				if (sqb2 <= Bonanza::I3) {
-					kppBonanzaToApery(kpptmp, sqb1, sqb2, Apery::e_knight, Bonanza::e_knight);
-				}
-				kppBonanzaToApery(kpptmp, sqb1, sqb2, Apery::f_silver, Bonanza::f_silver);
-				kppBonanzaToApery(kpptmp, sqb1, sqb2, Apery::e_silver, Bonanza::e_silver);
-				kppBonanzaToApery(kpptmp, sqb1, sqb2, Apery::f_gold  , Bonanza::f_gold  );
-				kppBonanzaToApery(kpptmp, sqb1, sqb2, Apery::e_gold  , Bonanza::e_gold  );
-				kppBonanzaToApery(kpptmp, sqb1, sqb2, Apery::f_bishop, Bonanza::f_bishop);
-				kppBonanzaToApery(kpptmp, sqb1, sqb2, Apery::e_bishop, Bonanza::e_bishop);
-				kppBonanzaToApery(kpptmp, sqb1, sqb2, Apery::f_horse , Bonanza::f_horse );
-				kppBonanzaToApery(kpptmp, sqb1, sqb2, Apery::e_horse , Bonanza::e_horse );
-				kppBonanzaToApery(kpptmp, sqb1, sqb2, Apery::f_rook  , Bonanza::f_rook  );
-				kppBonanzaToApery(kpptmp, sqb1, sqb2, Apery::e_rook  , Bonanza::e_rook  );
-				kppBonanzaToApery(kpptmp, sqb1, sqb2, Apery::f_dragon, Bonanza::f_dragon);
-				kppBonanzaToApery(kpptmp, sqb1, sqb2, Apery::e_dragon, Bonanza::e_dragon);
-			}
-		}
-
-		// kkp の Square 変換
-		for (Bonanza::Square sqb1 = Bonanza::A9; sqb1 < Bonanza::SquareNum; ++sqb1) {
-			const Square sq1 = squareBonanzaToApery(sqb1);
-			for (Bonanza::Square sqb2 = Bonanza::A9; sqb2 < Bonanza::SquareNum; ++sqb2) {
-				const Square sq2 = squareBonanzaToApery(sqb2);
-
-				K00Sum[sq1][sq2] = k00sumtmp[sqb1][sqb2];
-#if defined USE_KING_SQUARE_SCORE
-				K00Sum[sq1][sq2] += KingSquareScore[sq1] - KingSquareScore[inverse(sq2)];
-#endif
-
-				for (Bonanza::Square sqb3 = Bonanza::A9; sqb3 < Bonanza::SquareNum; ++sqb3) {
-					const Square sq3 = squareBonanzaToApery(sqb3);
-
-					// ここから持ち駒
-					// sqb3 は持ち駒の枚数を表す。
-					if (static_cast<int>(sqb3) <= 18) {
-						KKP[sq1][sq2][Apery::f_hand_pawn   + sqb3] = kkptmp[(sqb1 * Bonanza::SquareNum + sqb2) * Bonanza::fe_end + (Bonanza::f_hand_pawn   + sqb3)];
-
-						KKP[sq1][sq2][Apery::e_hand_pawn   + sqb3] = kkptmp[(sqb1 * Bonanza::SquareNum + sqb2) * Bonanza::fe_end + (Bonanza::e_hand_pawn   + sqb3)];
-					}
-					if (static_cast<int>(sqb3) <= 4) {
-						KKP[sq1][sq2][Apery::f_hand_lance  + sqb3] = kkptmp[(sqb1 * Bonanza::SquareNum + sqb2) * Bonanza::fe_end + (Bonanza::f_hand_lance  + sqb3)];
-						KKP[sq1][sq2][Apery::f_hand_knight + sqb3] = kkptmp[(sqb1 * Bonanza::SquareNum + sqb2) * Bonanza::fe_end + (Bonanza::f_hand_knight + sqb3)];
-						KKP[sq1][sq2][Apery::f_hand_silver + sqb3] = kkptmp[(sqb1 * Bonanza::SquareNum + sqb2) * Bonanza::fe_end + (Bonanza::f_hand_silver + sqb3)];
-						KKP[sq1][sq2][Apery::f_hand_gold   + sqb3] = kkptmp[(sqb1 * Bonanza::SquareNum + sqb2) * Bonanza::fe_end + (Bonanza::f_hand_gold   + sqb3)];
-
-						KKP[sq1][sq2][Apery::e_hand_lance  + sqb3] = kkptmp[(sqb1 * Bonanza::SquareNum + sqb2) * Bonanza::fe_end + (Bonanza::e_hand_lance  + sqb3)];
-						KKP[sq1][sq2][Apery::e_hand_knight + sqb3] = kkptmp[(sqb1 * Bonanza::SquareNum + sqb2) * Bonanza::fe_end + (Bonanza::e_hand_knight + sqb3)];
-						KKP[sq1][sq2][Apery::e_hand_silver + sqb3] = kkptmp[(sqb1 * Bonanza::SquareNum + sqb2) * Bonanza::fe_end + (Bonanza::e_hand_silver + sqb3)];
-						KKP[sq1][sq2][Apery::e_hand_gold   + sqb3] = kkptmp[(sqb1 * Bonanza::SquareNum + sqb2) * Bonanza::fe_end + (Bonanza::e_hand_gold   + sqb3)];
-					}
-					if (static_cast<int>(sqb3) <= 2) {
-						KKP[sq1][sq2][Apery::f_hand_bishop + sqb3] = kkptmp[(sqb1 * Bonanza::SquareNum + sqb2) * Bonanza::fe_end + (Bonanza::f_hand_bishop + sqb3)];
-						KKP[sq1][sq2][Apery::f_hand_rook   + sqb3] = kkptmp[(sqb1 * Bonanza::SquareNum + sqb2) * Bonanza::fe_end + (Bonanza::f_hand_rook   + sqb3)];
-
-						KKP[sq1][sq2][Apery::e_hand_bishop + sqb3] = kkptmp[(sqb1 * Bonanza::SquareNum + sqb2) * Bonanza::fe_end + (Bonanza::e_hand_bishop + sqb3)];
-						KKP[sq1][sq2][Apery::e_hand_rook   + sqb3] = kkptmp[(sqb1 * Bonanza::SquareNum + sqb2) * Bonanza::fe_end + (Bonanza::e_hand_rook   + sqb3)];
-					}
-
-					// ここから盤上の駒
-					// sqb3 は Bonanza 方式での盤上の位置を表す
-					if (Bonanza::A8 <= sqb3) {
-						KKP[sq1][sq2][Apery::f_pawn   + sq3] = kkptmp[(sqb1 * Bonanza::SquareNum + sqb2) * Bonanza::fe_end + (Bonanza::f_pawn   + sqb3)];
-						KKP[sq1][sq2][Apery::f_lance  + sq3] = kkptmp[(sqb1 * Bonanza::SquareNum + sqb2) * Bonanza::fe_end + (Bonanza::f_lance  + sqb3)];
-					}
-					if (Bonanza::A8 <= inverse(sqb3)) {
-						KKP[sq1][sq2][Apery::e_pawn   + sq3] = kkptmp[(sqb1 * Bonanza::SquareNum + sqb2) * Bonanza::fe_end + (Bonanza::e_pawn   + sqb3)];
-						KKP[sq1][sq2][Apery::e_lance  + sq3] = kkptmp[(sqb1 * Bonanza::SquareNum + sqb2) * Bonanza::fe_end + (Bonanza::e_lance  + sqb3)];
-					}
-					if (Bonanza::A7 <= sqb3) {
-						KKP[sq1][sq2][Apery::f_knight + sq3] = kkptmp[(sqb1 * Bonanza::SquareNum + sqb2) * Bonanza::fe_end + (Bonanza::f_knight + sqb3)];
-					}
-					if (Bonanza::A7 <= inverse(sqb3)) {
-						KKP[sq1][sq2][Apery::e_knight + sq3] = kkptmp[(sqb1 * Bonanza::SquareNum + sqb2) * Bonanza::fe_end + (Bonanza::e_knight + sqb3)];
-					}
-					KKP[sq1][sq2][Apery::f_silver + sq3] = kkptmp[(sqb1 * Bonanza::SquareNum + sqb2) * Bonanza::fe_end + (Bonanza::f_silver + sqb3)];
-					KKP[sq1][sq2][Apery::f_gold   + sq3] = kkptmp[(sqb1 * Bonanza::SquareNum + sqb2) * Bonanza::fe_end + (Bonanza::f_gold   + sqb3)];
-					KKP[sq1][sq2][Apery::f_bishop + sq3] = kkptmp[(sqb1 * Bonanza::SquareNum + sqb2) * Bonanza::fe_end + (Bonanza::f_bishop + sqb3)];
-					KKP[sq1][sq2][Apery::f_horse  + sq3] = kkptmp[(sqb1 * Bonanza::SquareNum + sqb2) * Bonanza::fe_end + (Bonanza::f_horse  + sqb3)];
-					KKP[sq1][sq2][Apery::f_rook   + sq3] = kkptmp[(sqb1 * Bonanza::SquareNum + sqb2) * Bonanza::fe_end + (Bonanza::f_rook   + sqb3)];
-					KKP[sq1][sq2][Apery::f_dragon + sq3] = kkptmp[(sqb1 * Bonanza::SquareNum + sqb2) * Bonanza::fe_end + (Bonanza::f_dragon + sqb3)];
-
-					KKP[sq1][sq2][Apery::e_silver + sq3] = kkptmp[(sqb1 * Bonanza::SquareNum + sqb2) * Bonanza::fe_end + (Bonanza::e_silver + sqb3)];
-					KKP[sq1][sq2][Apery::e_gold   + sq3] = kkptmp[(sqb1 * Bonanza::SquareNum + sqb2) * Bonanza::fe_end + (Bonanza::e_gold   + sqb3)];
-					KKP[sq1][sq2][Apery::e_bishop + sq3] = kkptmp[(sqb1 * Bonanza::SquareNum + sqb2) * Bonanza::fe_end + (Bonanza::e_bishop + sqb3)];
-					KKP[sq1][sq2][Apery::e_horse  + sq3] = kkptmp[(sqb1 * Bonanza::SquareNum + sqb2) * Bonanza::fe_end + (Bonanza::e_horse  + sqb3)];
-					KKP[sq1][sq2][Apery::e_rook   + sq3] = kkptmp[(sqb1 * Bonanza::SquareNum + sqb2) * Bonanza::fe_end + (Bonanza::e_rook   + sqb3)];
-					KKP[sq1][sq2][Apery::e_dragon + sq3] = kkptmp[(sqb1 * Bonanza::SquareNum + sqb2) * Bonanza::fe_end + (Bonanza::e_dragon + sqb3)];
-				}
-			}
-		}
-#if 0
-		// fv_apery.bin を生成したければ、ここでファイルに出力する。
-		std::ofstream ofs("../bin/fv_apery.bin", std::ios::binary);
-		ofs.write(reinterpret_cast<char*>(&KPP[0][0][0]), sizeof(KPP   ));
-		ofs.write(reinterpret_cast<char*>(&KKP[0][0][0]), sizeof(KKP   ));
-		ofs.write(reinterpret_cast<char*>(&K00Sum[0][0]), sizeof(K00Sum));
-#endif
-	}
-
 //	void initFV() {
-//		std::ifstream ifs("../bin/fv_apery.bin", std::ios::binary);
-//		ifs.read(reinterpret_cast<char*>(&KPP[0][0][0]), sizeof(KPP   ));
-//		ifs.read(reinterpret_cast<char*>(&KKP[0][0][0]), sizeof(KKP   ));
-//		ifs.read(reinterpret_cast<char*>(&K00Sum[0][0]), sizeof(K00Sum));
+//		std::ifstream ifs("../bin/20141122/fv38.bin", std::ios::binary);
+//    assert(ifs.is_open());
+//		std::vector<s16> kpptmp(Bonanza::SquareNum * Bonanza::pos_n);
+//		std::vector<s32> kkptmp(Bonanza::SquareNum * Bonanza::SquareNum * Bonanza::fe_end);
+//		s32 k00sumtmp[Bonanza::SquareNum][Bonanza::SquareNum];
+//
+//		ifs.read(reinterpret_cast<char*>(&kpptmp[0]),
+//				 sizeof(s16) * static_cast<int>(Bonanza::SquareNum * Bonanza::pos_n));
+//		ifs.read(reinterpret_cast<char*>(&kkptmp[0])  ,
+//				 sizeof(s32) * static_cast<int>(Bonanza::SquareNum * Bonanza::SquareNum * Bonanza::fe_end));
+//		ifs.read(reinterpret_cast<char*>(&k00sumtmp[0][0]), sizeof(k00sumtmp));
+//
+//		for (Bonanza::Square sqb1 = Bonanza::A9; sqb1 < Bonanza::SquareNum; ++sqb1) {
+//			for (Bonanza::Square sqb2 = Bonanza::A9; sqb2 < Bonanza::SquareNum; ++sqb2) {
+//				// ここから持ち駒
+//				// sqb2 は持ち駒の枚数を表す。
+//				if (static_cast<int>(sqb2) <= 18) {
+//					kppBonanzaToApery(kpptmp, sqb1, sqb2, Apery::f_hand_pawn  , Bonanza::f_hand_pawn  );
+//					kppBonanzaToApery(kpptmp, sqb1, sqb2, Apery::e_hand_pawn  , Bonanza::e_hand_pawn  );
+//				}
+//				if (static_cast<int>(sqb2) <= 4) {
+//					kppBonanzaToApery(kpptmp, sqb1, sqb2, Apery::f_hand_lance , Bonanza::f_hand_lance );
+//					kppBonanzaToApery(kpptmp, sqb1, sqb2, Apery::e_hand_lance , Bonanza::e_hand_lance );
+//					kppBonanzaToApery(kpptmp, sqb1, sqb2, Apery::f_hand_knight, Bonanza::f_hand_knight);
+//					kppBonanzaToApery(kpptmp, sqb1, sqb2, Apery::e_hand_knight, Bonanza::e_hand_knight);
+//					kppBonanzaToApery(kpptmp, sqb1, sqb2, Apery::f_hand_silver, Bonanza::f_hand_silver);
+//					kppBonanzaToApery(kpptmp, sqb1, sqb2, Apery::e_hand_silver, Bonanza::e_hand_silver);
+//					kppBonanzaToApery(kpptmp, sqb1, sqb2, Apery::f_hand_gold  , Bonanza::f_hand_gold  );
+//					kppBonanzaToApery(kpptmp, sqb1, sqb2, Apery::e_hand_gold  , Bonanza::e_hand_gold  );
+//				}
+//				if (static_cast<int>(sqb2) <= 2) {
+//					kppBonanzaToApery(kpptmp, sqb1, sqb2, Apery::f_hand_bishop, Bonanza::f_hand_bishop);
+//					kppBonanzaToApery(kpptmp, sqb1, sqb2, Apery::e_hand_bishop, Bonanza::e_hand_bishop);
+//					kppBonanzaToApery(kpptmp, sqb1, sqb2, Apery::f_hand_rook  , Bonanza::f_hand_rook  );
+//					kppBonanzaToApery(kpptmp, sqb1, sqb2, Apery::e_hand_rook  , Bonanza::e_hand_rook  );
+//				}
+//
+//				// ここから盤上の駒
+//				// sqb2 は Bonanza 方式での盤上の位置を表す
+//				if (Bonanza::A8 <= sqb2) {
+//					kppBonanzaToApery(kpptmp, sqb1, sqb2, Apery::f_pawn  , Bonanza::f_pawn  );
+//					kppBonanzaToApery(kpptmp, sqb1, sqb2, Apery::f_lance , Bonanza::f_lance );
+//				}
+//				if (sqb2 <= Bonanza::I2) {
+//					kppBonanzaToApery(kpptmp, sqb1, sqb2, Apery::e_pawn  , Bonanza::e_pawn  );
+//					kppBonanzaToApery(kpptmp, sqb1, sqb2, Apery::e_lance , Bonanza::e_lance );
+//				}
+//				if (Bonanza::A7 <= sqb2) {
+//					kppBonanzaToApery(kpptmp, sqb1, sqb2, Apery::f_knight, Bonanza::f_knight);
+//				}
+//				if (sqb2 <= Bonanza::I3) {
+//					kppBonanzaToApery(kpptmp, sqb1, sqb2, Apery::e_knight, Bonanza::e_knight);
+//				}
+//				kppBonanzaToApery(kpptmp, sqb1, sqb2, Apery::f_silver, Bonanza::f_silver);
+//				kppBonanzaToApery(kpptmp, sqb1, sqb2, Apery::e_silver, Bonanza::e_silver);
+//				kppBonanzaToApery(kpptmp, sqb1, sqb2, Apery::f_gold  , Bonanza::f_gold  );
+//				kppBonanzaToApery(kpptmp, sqb1, sqb2, Apery::e_gold  , Bonanza::e_gold  );
+//				kppBonanzaToApery(kpptmp, sqb1, sqb2, Apery::f_bishop, Bonanza::f_bishop);
+//				kppBonanzaToApery(kpptmp, sqb1, sqb2, Apery::e_bishop, Bonanza::e_bishop);
+//				kppBonanzaToApery(kpptmp, sqb1, sqb2, Apery::f_horse , Bonanza::f_horse );
+//				kppBonanzaToApery(kpptmp, sqb1, sqb2, Apery::e_horse , Bonanza::e_horse );
+//				kppBonanzaToApery(kpptmp, sqb1, sqb2, Apery::f_rook  , Bonanza::f_rook  );
+//				kppBonanzaToApery(kpptmp, sqb1, sqb2, Apery::e_rook  , Bonanza::e_rook  );
+//				kppBonanzaToApery(kpptmp, sqb1, sqb2, Apery::f_dragon, Bonanza::f_dragon);
+//				kppBonanzaToApery(kpptmp, sqb1, sqb2, Apery::e_dragon, Bonanza::e_dragon);
+//			}
+//		}
+//
+//		// kkp の Square 変換
+//		for (Bonanza::Square sqb1 = Bonanza::A9; sqb1 < Bonanza::SquareNum; ++sqb1) {
+//			const Square sq1 = squareBonanzaToApery(sqb1);
+//			for (Bonanza::Square sqb2 = Bonanza::A9; sqb2 < Bonanza::SquareNum; ++sqb2) {
+//				const Square sq2 = squareBonanzaToApery(sqb2);
+//
+//				K00Sum[sq1][sq2] = k00sumtmp[sqb1][sqb2];
+//#if defined USE_KING_SQUARE_SCORE
+//				K00Sum[sq1][sq2] += KingSquareScore[sq1] - KingSquareScore[inverse(sq2)];
+//#endif
+//
+//				for (Bonanza::Square sqb3 = Bonanza::A9; sqb3 < Bonanza::SquareNum; ++sqb3) {
+//					const Square sq3 = squareBonanzaToApery(sqb3);
+//
+//					// ここから持ち駒
+//					// sqb3 は持ち駒の枚数を表す。
+//					if (static_cast<int>(sqb3) <= 18) {
+//						KKP[sq1][sq2][Apery::f_hand_pawn   + sqb3] = kkptmp[(sqb1 * Bonanza::SquareNum + sqb2) * Bonanza::fe_end + (Bonanza::f_hand_pawn   + sqb3)];
+//
+//						KKP[sq1][sq2][Apery::e_hand_pawn   + sqb3] = kkptmp[(sqb1 * Bonanza::SquareNum + sqb2) * Bonanza::fe_end + (Bonanza::e_hand_pawn   + sqb3)];
+//					}
+//					if (static_cast<int>(sqb3) <= 4) {
+//						KKP[sq1][sq2][Apery::f_hand_lance  + sqb3] = kkptmp[(sqb1 * Bonanza::SquareNum + sqb2) * Bonanza::fe_end + (Bonanza::f_hand_lance  + sqb3)];
+//						KKP[sq1][sq2][Apery::f_hand_knight + sqb3] = kkptmp[(sqb1 * Bonanza::SquareNum + sqb2) * Bonanza::fe_end + (Bonanza::f_hand_knight + sqb3)];
+//						KKP[sq1][sq2][Apery::f_hand_silver + sqb3] = kkptmp[(sqb1 * Bonanza::SquareNum + sqb2) * Bonanza::fe_end + (Bonanza::f_hand_silver + sqb3)];
+//						KKP[sq1][sq2][Apery::f_hand_gold   + sqb3] = kkptmp[(sqb1 * Bonanza::SquareNum + sqb2) * Bonanza::fe_end + (Bonanza::f_hand_gold   + sqb3)];
+//
+//						KKP[sq1][sq2][Apery::e_hand_lance  + sqb3] = kkptmp[(sqb1 * Bonanza::SquareNum + sqb2) * Bonanza::fe_end + (Bonanza::e_hand_lance  + sqb3)];
+//						KKP[sq1][sq2][Apery::e_hand_knight + sqb3] = kkptmp[(sqb1 * Bonanza::SquareNum + sqb2) * Bonanza::fe_end + (Bonanza::e_hand_knight + sqb3)];
+//						KKP[sq1][sq2][Apery::e_hand_silver + sqb3] = kkptmp[(sqb1 * Bonanza::SquareNum + sqb2) * Bonanza::fe_end + (Bonanza::e_hand_silver + sqb3)];
+//						KKP[sq1][sq2][Apery::e_hand_gold   + sqb3] = kkptmp[(sqb1 * Bonanza::SquareNum + sqb2) * Bonanza::fe_end + (Bonanza::e_hand_gold   + sqb3)];
+//					}
+//					if (static_cast<int>(sqb3) <= 2) {
+//						KKP[sq1][sq2][Apery::f_hand_bishop + sqb3] = kkptmp[(sqb1 * Bonanza::SquareNum + sqb2) * Bonanza::fe_end + (Bonanza::f_hand_bishop + sqb3)];
+//						KKP[sq1][sq2][Apery::f_hand_rook   + sqb3] = kkptmp[(sqb1 * Bonanza::SquareNum + sqb2) * Bonanza::fe_end + (Bonanza::f_hand_rook   + sqb3)];
+//
+//						KKP[sq1][sq2][Apery::e_hand_bishop + sqb3] = kkptmp[(sqb1 * Bonanza::SquareNum + sqb2) * Bonanza::fe_end + (Bonanza::e_hand_bishop + sqb3)];
+//						KKP[sq1][sq2][Apery::e_hand_rook   + sqb3] = kkptmp[(sqb1 * Bonanza::SquareNum + sqb2) * Bonanza::fe_end + (Bonanza::e_hand_rook   + sqb3)];
+//					}
+//
+//					// ここから盤上の駒
+//					// sqb3 は Bonanza 方式での盤上の位置を表す
+//					if (Bonanza::A8 <= sqb3) {
+//						KKP[sq1][sq2][Apery::f_pawn   + sq3] = kkptmp[(sqb1 * Bonanza::SquareNum + sqb2) * Bonanza::fe_end + (Bonanza::f_pawn   + sqb3)];
+//						KKP[sq1][sq2][Apery::f_lance  + sq3] = kkptmp[(sqb1 * Bonanza::SquareNum + sqb2) * Bonanza::fe_end + (Bonanza::f_lance  + sqb3)];
+//					}
+//					if (Bonanza::A8 <= inverse(sqb3)) {
+//						KKP[sq1][sq2][Apery::e_pawn   + sq3] = kkptmp[(sqb1 * Bonanza::SquareNum + sqb2) * Bonanza::fe_end + (Bonanza::e_pawn   + sqb3)];
+//						KKP[sq1][sq2][Apery::e_lance  + sq3] = kkptmp[(sqb1 * Bonanza::SquareNum + sqb2) * Bonanza::fe_end + (Bonanza::e_lance  + sqb3)];
+//					}
+//					if (Bonanza::A7 <= sqb3) {
+//						KKP[sq1][sq2][Apery::f_knight + sq3] = kkptmp[(sqb1 * Bonanza::SquareNum + sqb2) * Bonanza::fe_end + (Bonanza::f_knight + sqb3)];
+//					}
+//					if (Bonanza::A7 <= inverse(sqb3)) {
+//						KKP[sq1][sq2][Apery::e_knight + sq3] = kkptmp[(sqb1 * Bonanza::SquareNum + sqb2) * Bonanza::fe_end + (Bonanza::e_knight + sqb3)];
+//					}
+//					KKP[sq1][sq2][Apery::f_silver + sq3] = kkptmp[(sqb1 * Bonanza::SquareNum + sqb2) * Bonanza::fe_end + (Bonanza::f_silver + sqb3)];
+//					KKP[sq1][sq2][Apery::f_gold   + sq3] = kkptmp[(sqb1 * Bonanza::SquareNum + sqb2) * Bonanza::fe_end + (Bonanza::f_gold   + sqb3)];
+//					KKP[sq1][sq2][Apery::f_bishop + sq3] = kkptmp[(sqb1 * Bonanza::SquareNum + sqb2) * Bonanza::fe_end + (Bonanza::f_bishop + sqb3)];
+//					KKP[sq1][sq2][Apery::f_horse  + sq3] = kkptmp[(sqb1 * Bonanza::SquareNum + sqb2) * Bonanza::fe_end + (Bonanza::f_horse  + sqb3)];
+//					KKP[sq1][sq2][Apery::f_rook   + sq3] = kkptmp[(sqb1 * Bonanza::SquareNum + sqb2) * Bonanza::fe_end + (Bonanza::f_rook   + sqb3)];
+//					KKP[sq1][sq2][Apery::f_dragon + sq3] = kkptmp[(sqb1 * Bonanza::SquareNum + sqb2) * Bonanza::fe_end + (Bonanza::f_dragon + sqb3)];
+//
+//					KKP[sq1][sq2][Apery::e_silver + sq3] = kkptmp[(sqb1 * Bonanza::SquareNum + sqb2) * Bonanza::fe_end + (Bonanza::e_silver + sqb3)];
+//					KKP[sq1][sq2][Apery::e_gold   + sq3] = kkptmp[(sqb1 * Bonanza::SquareNum + sqb2) * Bonanza::fe_end + (Bonanza::e_gold   + sqb3)];
+//					KKP[sq1][sq2][Apery::e_bishop + sq3] = kkptmp[(sqb1 * Bonanza::SquareNum + sqb2) * Bonanza::fe_end + (Bonanza::e_bishop + sqb3)];
+//					KKP[sq1][sq2][Apery::e_horse  + sq3] = kkptmp[(sqb1 * Bonanza::SquareNum + sqb2) * Bonanza::fe_end + (Bonanza::e_horse  + sqb3)];
+//					KKP[sq1][sq2][Apery::e_rook   + sq3] = kkptmp[(sqb1 * Bonanza::SquareNum + sqb2) * Bonanza::fe_end + (Bonanza::e_rook   + sqb3)];
+//					KKP[sq1][sq2][Apery::e_dragon + sq3] = kkptmp[(sqb1 * Bonanza::SquareNum + sqb2) * Bonanza::fe_end + (Bonanza::e_dragon + sqb3)];
+//				}
+//			}
+//		}
+//#if 0
+//		// fv_apery.bin を生成したければ、ここでファイルに出力する。
+//		std::ofstream ofs("../bin/fv_apery.bin", std::ios::binary);
+//		ofs.write(reinterpret_cast<char*>(&KPP[0][0][0]), sizeof(KPP   ));
+//		ofs.write(reinterpret_cast<char*>(&KKP[0][0][0]), sizeof(KKP   ));
+//		ofs.write(reinterpret_cast<char*>(&K00Sum[0][0]), sizeof(K00Sum));
+//#endif
 //	}
+
+	void initFV() {
+		std::ifstream ifs("../bin/fv_apery.bin", std::ios::binary);
+		ifs.read(reinterpret_cast<char*>(&KPP[0][0][0]), sizeof(KPP   ));
+		ifs.read(reinterpret_cast<char*>(&KKP[0][0][0]), sizeof(KKP   ));
+		ifs.read(reinterpret_cast<char*>(&K00Sum[0][0]), sizeof(K00Sum));
+	}
+}
+
+void writeTable() {
+  std::ofstream ofs("../bin/fv_apery.bin", std::ios::binary);
+  ofs.write(reinterpret_cast<char*>(&KPP[0][0][0]), sizeof(KPP));
+  ofs.write(reinterpret_cast<char*>(&KKP[0][0][0]), sizeof(KKP));
+  ofs.write(reinterpret_cast<char*>(&K00Sum[0][0]), sizeof(K00Sum));
 }
 
 void initTable(bool initializeFv) {
