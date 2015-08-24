@@ -88,14 +88,13 @@ bool hayabusa::createTeacherData(
   const std::tr2::sys::path& inputCsaDirectoryPath,
   const std::tr2::sys::path& outputTeacherFilePath,
   int maxNumberOfPlays) {
-  FILE* file = fopen(outputTeacherFilePath.string().c_str(), "wb");
-  if (!file) {
+  ofstream teacherFile(outputTeacherFilePath, std::ios::out | std::ios::binary);
+  if (!teacherFile.is_open()) {
     cout << "!!! Failed to create an output file: outputTeacherFilePath="
       << outputTeacherFilePath
       << endl;
     return false;
   }
-  setvbuf(file, nullptr, _IOFBF, 1024 * 1024);
 
   int numberOfFiles = distance(
     directory_iterator(inputCsaDirectoryPath),
@@ -115,16 +114,12 @@ bool hayabusa::createTeacherData(
       return false;
     }
 
-    int writeSize = fwrite(&teacherDatas, sizeof(TeacherData), teacherDatas.size(), file);
-    assert(writeSize == teacherDatas.size());
+    teacherFile.write((char*)&teacherDatas[0], sizeof(TeacherData) * teacherDatas.size());
 
     if (++plays >= maxNumberOfPlays) {
       break;
     }
   }
-
-  fclose(file);
-  file = nullptr;
 
   return true;
 }
@@ -133,14 +128,13 @@ bool hayabusa::addTeacherData(
   const std::tr2::sys::path& inputShogidokoroCsaDirectoryPath,
   const std::tr2::sys::path& outputTeacherFilePath,
   int maxNumberOfPlays) {
-  FILE* file = fopen(outputTeacherFilePath.string().c_str(), "ab");
-  if (!file) {
+  ofstream teacherFile(outputTeacherFilePath, std::ios::app | std::ios::app);
+  if (!teacherFile.is_open()) {
     cout << "!!! Failed to open an output file: outputTeacherFilePath="
       << outputTeacherFilePath
       << endl;
     return false;
   }
-  setvbuf(file, nullptr, _IOFBF, 1024 * 1024);
 
   int plays = 0;
   int fileIndex = 0;
@@ -181,16 +175,12 @@ bool hayabusa::addTeacherData(
       }
     }
 
-    int writeSize = fwrite(&teacherDatas[0], sizeof(TeacherData), teacherDatas.size(), file);
-    assert(writeSize == teacherDatas.size());
+    teacherFile.write((char*)&teacherDatas[0], sizeof(TeacherData) * teacherDatas.size());
 
     if (++plays >= maxNumberOfPlays) {
       break;
     }
   }
-
-  fclose(file);
-  file = nullptr;
 
   return true;
 }
@@ -210,14 +200,18 @@ bool hayabusa::adjustWeights(
     memset(kpp, 0, sizeof(kpp));
     memset(kkp, 0, sizeof(kkp));
 
-    FILE* file = fopen(inputTeacherFilePath.string().c_str(), "rb");
-    assert(file);
-    setvbuf(file, nullptr, _IOFBF, 1024 * 1024);
+    ifstream teacherFile(inputTeacherFilePath, std::ios::in | std::ios::binary);
+    if (!teacherFile.is_open()) {
+      cout << "!!! Failed to open a teacher file: inputTeacherFilePath=" << inputTeacherFilePath << endl;
+      return false;
+    }
 
     TeacherData teacherData;
     double eps2 = 0.0;
     int teacherDataIndex = 0;
-    while (fread(&teacherData, sizeof(teacherData), 1, file) == 1) {
+    while (!teacherFile.eof()) {
+      teacherFile.read((char*)&teacherData, sizeof(TeacherData));
+
       if (++teacherDataIndex % 1000000 == 0) {
         printf("(%d/%d)\n", teacherDataIndex, numberOfTeacherData);
       }
@@ -265,9 +259,6 @@ bool hayabusa::adjustWeights(
 
       eps2 += delta * delta;
     }
-
-    fclose(file);
-    file = nullptr;
 
     // d‚Ý‚ðXV‚·‚é
     for (int i = 0; i < SquareNum; ++i) {
