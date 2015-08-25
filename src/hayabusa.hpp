@@ -44,7 +44,7 @@ namespace hayabusa {
   // numberOfIterations 
   bool adjustWeights(
     const std::tr2::sys::path& inputTeacherFilePath = DEFAULT_INPUT_TEACHER_DATA_FILE_PATH,
-    int numberOfIterations = 10);
+    int numberOfIterations = 20);
 }
 
 #endif

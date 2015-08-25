@@ -89,13 +89,13 @@ bool csa::isTanukiBlack(const std::tr2::sys::path& filepath) {
   return false;
 }
 
-bool csa::isBlackWin(const std::tr2::sys::path& filepath) {
+Color csa::getWinner(const std::tr2::sys::path& filepath) {
   assert(isFinished(filepath));
 
   ifstream ifs(filepath);
   if (!ifs.is_open()) {
     cout << "!!! Failed to open a CSA file." << endl;
-    return false;
+    return ColorNum;
   }
 
   char turn = 0;
@@ -108,9 +108,9 @@ bool csa::isBlackWin(const std::tr2::sys::path& filepath) {
       turn = line[0];
     }
     if (line.find("%TORYO") == 0) {
-      return turn == '+';
+      return turn == '+' ? Black : White;
     }
   }
 
-  throw exception("Failed to detect if black is win.");
+  throw exception("Failed to detect which player is win.");
 }

@@ -16,8 +16,9 @@ namespace csa {
   // CSAファイル中でtanuki-が先手かどうかを返す
   bool isTanukiBlack(const std::tr2::sys::path& filepath);
 
-  // CSAファイル中で先手が勝ったかどうかを返す
-  bool isBlackWin(const std::tr2::sys::path& filepath);
+  // CSAファイル中でどちらが勝ったかを返す
+  // 引き分けの場合はColorNumを返す
+  Color getWinner(const std::tr2::sys::path& filepath);
 }
 
 #endif

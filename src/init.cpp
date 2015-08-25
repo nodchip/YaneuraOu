@@ -588,7 +588,7 @@ namespace {
 //				}
 //			}
 //		}
-//#if 0
+//#if 1
 //		// fv_apery.bin を生成したければ、ここでファイルに出力する。
 //		std::ofstream ofs("../bin/fv_apery.bin", std::ios::binary);
 //		ofs.write(reinterpret_cast<char*>(&KPP[0][0][0]), sizeof(KPP   ));

@@ -162,21 +162,21 @@ bool hayabusa::addTeacherData(
     }
 
     bool tanukIsBlack = csa::isTanukiBlack(csaFilePath);
-    bool blackIsWin = csa::isBlackWin(csaFilePath);
+    Color winner = csa::getWinner(csaFilePath);
 
-    if (tanukIsBlack && !blackIsWin) {
+    if (tanukIsBlack && winner == White) {
       // tanuki-‚ªæè‚Å•‰‚¯‚½
       // æè‚Ì‹³tM†‚ğ‰º‚°‚é
       for (int i = 0; i < teacherDatas.size(); i += 2) {
-        teacherDatas[i].teacher -= PawnScore;
+        teacherDatas[i].teacher -= 512;
       }
     }
 
-    if (!tanukIsBlack && blackIsWin) {
+    if (!tanukIsBlack && winner == White) {
       // tanuki-‚ªŒãè‚Å•‰‚¯‚½
       // Œãè‚Ì‹³tM†‚ğ‰º‚°‚é
       for (int i = 1; i < teacherDatas.size(); i += 2) {
-        teacherDatas[i].teacher -= PawnScore;
+        teacherDatas[i].teacher -= 512;
       }
     }
 

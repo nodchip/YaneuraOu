@@ -61,11 +61,11 @@ TEST_F(CsaTest, isTanukiBlack_returnFalseIfTanikiIsWhite) {
 TEST_F(CsaTest, isBlackWin_returnTrueIfBlackIsWin) {
   string filepath = "../src/testdata/shogidokoro/csa/20150823_215301 Apery sse4.2 msvc  vs tanuki- sse4.2 msvc .csa";
 
-  EXPECT_TRUE(csa::isBlackWin(filepath));
+  EXPECT_EQ(Black, csa::getWinner(filepath));
 }
 
 TEST_F(CsaTest, isBlackWin_returnTrueIfWhiteIsWin) {
   string filepath = "../src/testdata/shogidokoro/csa/20150823_214751 tanuki- sse4.2 msvc  vs Apery sse4.2 msvc .csa";
 
-  EXPECT_FALSE(csa::isBlackWin(filepath));
+  EXPECT_EQ(White, csa::getWinner(filepath));
 }
