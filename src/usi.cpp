@@ -176,6 +176,9 @@ void go(const Position& pos, std::istringstream& ssCmd) {
 			ssCmd >> limits.moveTime;
 			if (limits.moveTime != 0) { limits.moveTime -= 500; }
 		}
+    else if (token == "depth") {
+      ssCmd >> limits.depth;
+    }
 	}
 	Searcher::searchMoves = searchMoves;
 	g_threads.startThinking(pos, limits, searchMoves, std::move(SetUpStates));
