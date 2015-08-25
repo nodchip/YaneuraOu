@@ -36,6 +36,8 @@ InaniwaFlag g_inaniwaFlag;
 
 Position g_rootPosition;
 
+bool showInfo = true;
+
 namespace {
 	// true にすると、シングルスレッドで動作する。デバッグ用。
 	const bool FakeSplit = false;
@@ -577,7 +579,9 @@ void Searcher::idLoop(Position& pos) {
 					&& (depth < 10 || lastInfoTime + 200 < Searcher::searchTimer.elapsed()))
 				{
 					lastInfoTime = Searcher::searchTimer.elapsed();
-					SYNCCOUT << pvInfoToUSI(pos, depth, alpha, beta) << SYNCENDL;
+          if (showInfo) {
+            SYNCCOUT << pvInfoToUSI(pos, depth, alpha, beta) << SYNCENDL;
+          }
 				}
 
 				// fail high/low のとき、aspiration window を広げる。
@@ -607,7 +611,9 @@ void Searcher::idLoop(Position& pos) {
 				&& (depth < 10 || lastInfoTime + 200 < Searcher::searchTimer.elapsed()))
 			{
 				lastInfoTime = Searcher::searchTimer.elapsed();
-				SYNCCOUT << pvInfoToUSI(pos, depth, alpha, beta) << SYNCENDL;
+        if (showInfo) {
+          SYNCCOUT << pvInfoToUSI(pos, depth, alpha, beta) << SYNCENDL;
+        }
 			}
 		}
 
@@ -671,7 +677,9 @@ void Searcher::idLoop(Position& pos) {
 		}
 	}
 	skill.swapIfEnabled();
-	SYNCCOUT << pvInfoToUSI(pos, depth-1, alpha, beta) << SYNCENDL;
+  if (showInfo) {
+    SYNCCOUT << pvInfoToUSI(pos, depth - 1, alpha, beta) << SYNCENDL;
+  }
 }
 
 #if defined INANIWA_SHIFT
@@ -1511,7 +1519,9 @@ void Searcher::think() {
 		}
 	}
 #endif
-	SYNCCOUT << "info string book_ply " << book_ply << SYNCENDL;
+  if (showInfo) {
+    SYNCCOUT << "info string book_ply " << book_ply << SYNCENDL;
+  }
 	if (g_options["OwnBook"] && pos.gamePly() <= book_ply) {
 		const std::tuple<Move, Score> bookMoveScore = book.probe(pos, g_options["Book_File"], g_options["Best_Book_Move"], false);
 		if (!std::get<0>(bookMoveScore).isNone() && std::find(Searcher::rootMoves.begin(),
@@ -1548,25 +1558,29 @@ void Searcher::think() {
 
 finalize:
 
-	SYNCCOUT << "info nodes " << pos.nodesSearched()
-			 << " time " << Searcher::searchTimer.elapsed() << SYNCENDL;
+  if (showInfo) {
+    SYNCCOUT << "info nodes " << pos.nodesSearched()
+      << " time " << Searcher::searchTimer.elapsed() << SYNCENDL;
+  }
 
 	if (!Searcher::signals.stop && (Searcher::limits.ponder || Searcher::limits.infinite)) {
 		Searcher::signals.stopOnPonderHit = true;
 		pos.thisThread()->waitFor(Searcher::signals.stop);
 	}
 
-	if (nyugyokuWin) {
-		SYNCCOUT << "bestmove win" << SYNCENDL;
-	}
-	else if (Searcher::rootMoves[0].pv_[0].isNone()) {
-		SYNCCOUT << "bestmove resign" << SYNCENDL;
-	}
-	else {
-		SYNCCOUT << "bestmove " << Searcher::rootMoves[0].pv_[0].toUSI()
-				 << " ponder " << Searcher::rootMoves[0].pv_[1].toUSI()
-				 << SYNCENDL;
-	}
+  if (showInfo) {
+    if (nyugyokuWin) {
+      SYNCCOUT << "bestmove win" << SYNCENDL;
+    }
+    else if (Searcher::rootMoves[0].pv_[0].isNone()) {
+      SYNCCOUT << "bestmove resign" << SYNCENDL;
+    }
+    else {
+      SYNCCOUT << "bestmove " << Searcher::rootMoves[0].pv_[0].toUSI()
+        << " ponder " << Searcher::rootMoves[0].pv_[1].toUSI()
+        << SYNCENDL;
+    }
+  }
 }
 
 void checkTime() {

@@ -1,9 +1,11 @@
 #include "csa.hpp"
+#include "generateMoves.hpp"
 #include "hayabusa.hpp"
 #include "thread.hpp"
 #include "usi.hpp"
 #include "search.hpp"
 #include "square.hpp"
+#include "thread.hpp"
 #include <filesystem>
 #include <iostream>
 
@@ -16,6 +18,7 @@ const std::tr2::sys::path hayabusa::DEFAULT_INPUT_TEACHER_DATA_FILE_PATH("../hay
 const std::tr2::sys::path hayabusa::DEFAULT_INPUT_SHOGIDOKORO_CSA_DIRECTORY_PATH("../../Shogidokoro/csa");
 
 static const float ALPHA = pow(10.0, -6.5);
+extern bool showInfo;
 
 void setPosition(Position& pos, std::istringstream& ssCmd);
 void go(const Position& pos, std::istringstream& ssCmd);
@@ -61,11 +64,25 @@ static bool converCsaToTeacherData(
     searchStack[0].currentMove = Move::moveNull(); // skip update gains
     searchStack[0].staticEvalRaw = (Score)INT_MAX;
     searchStack[1].staticEvalRaw = (Score)INT_MAX;
+    
+    Searcher::searchMoves.clear();
+    for (MoveList<Legal> ml(pos); !ml.end(); ++ml) {
+      Searcher::rootMoves.push_back(RootMove(ml.move()));
+    }
 
-    Score score = evaluate(pos, &searchStack[1]);
+    std::istringstream ss_go("depth 6");
+    go(pos, ss_go);
+    g_threads.waitForThinkFinished();
+
+    Score score = Searcher::rootMoves[0].score_;
+    //Score score = evaluate(pos, &searchStack[1]);
     if (pos.turn() == White) {
       score = -score;
     }
+
+#ifdef _DEBUG
+    cout << "play=" << play << " score=" << score << endl;
+#endif
 
     hayabusa::TeacherData teacherData;
     memset(&teacherData, 0, sizeof(hayabusa::TeacherData));
@@ -91,6 +108,9 @@ bool hayabusa::createTeacherData(
   int maxNumberOfPlays) {
   cout << "hayabusa::createTeacherData()" << endl;
 
+  showInfo = false;
+  g_options["Threads"] = "8";
+
   ofstream teacherFile(outputTeacherFilePath, std::ios::out | std::ios::binary);
   if (!teacherFile.is_open()) {
     cout << "!!! Failed to create an output file: outputTeacherFilePath="
@@ -105,9 +125,13 @@ bool hayabusa::createTeacherData(
 
   int plays = 0;
   int fileIndex = 0;
+  time_t startTime = time(nullptr);
   for (auto it = directory_iterator(inputCsaDirectoryPath); it != directory_iterator(); ++it) {
-    if (++fileIndex % 1000 == 0) {
-      printf("(%d/%d)\n", fileIndex, numberOfFiles);
+    if (++fileIndex % 1 == 0) {
+      time_t currentTime = time(nullptr);
+      int remainingSec = (currentTime - startTime) * (numberOfFiles - fileIndex) / fileIndex;
+
+      printf("(%d/%d) %d:%02d:%02d\n", fileIndex, numberOfFiles, remainingSec / 3600, remainingSec / 60 % 60, remainingSec % 60);
     }
 
     const auto& csaFilePath = *it;
