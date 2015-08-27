@@ -11,6 +11,7 @@
 #include "learner.hpp"
 #include "hayabusa.hpp"
 #include "init.hpp"
+#include "csa.hpp"
 
 OptionsMap g_options;
 
@@ -496,12 +497,16 @@ void doUSICommandLoop(int argc, char* argv[]) {
 		else if (token == "b"        ) { makeBookCSA1Line(pos); }
 		else if (token == "i"        ) { makeBookCSA1Line(pos, true); }
 		else if (token == "bsfen"    ) { makeBook(pos); }
-    else if (token == "hayabusa_create_teacher_data") { hayabusa::createTeacherData(); }
-    else if (token == "hayabusa_adjust_weights") { hayabusa::adjustWeights(); }
-    else if (token == "hayabusa_add_teacher_data") {
-      hayabusa::addTeacherData();
+    else if (token == "convert_csa_1line_to_sfen") { csa::convertCsa1LineToSfen(); }
+    else if (token == "convert_sfen_to_teacherData") { hayabusa::convertSfenToTeacherData(); }
+    else if (token == "adjust_weights") {
+      hayabusa::adjustWeights();
       writeTable();
     }
+    //else if (token == "hayabusa_add_teacher_data") {
+    //  hayabusa::addTeacherData();
+    //  writeTable();
+    //}
 #endif
 		else                           { SYNCCOUT << "unknown command: " << cmd << SYNCENDL; }
 	} while (token != "quit" && argc == 1);

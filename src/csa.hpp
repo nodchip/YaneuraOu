@@ -7,6 +7,9 @@
 #include "position.hpp"
 
 namespace csa {
+  extern const std::tr2::sys::path DEFAULT_INPUT_CSA1_FILE_PATH;
+  extern const std::tr2::sys::path DEFAULT_OUTPUT_SFEN_FILE_PATH;
+
   // CSAファイルをsfen形式へ変換する
   bool toSfen(const std::tr2::sys::path& filepath, std::vector<std::string>& sfen);
 
@@ -27,8 +30,8 @@ namespace csa {
 
   // 2chkifu.csa1をSFEN形式へ変換する
   bool convertCsa1LineToSfen(
-    const std::tr2::sys::path& inputFilePath,
-    const std::tr2::sys::path& outputFilePath);
+    const std::tr2::sys::path& inputFilePath = DEFAULT_INPUT_CSA1_FILE_PATH,
+    const std::tr2::sys::path& outputFilePath = DEFAULT_OUTPUT_SFEN_FILE_PATH);
 }
 
 #endif

@@ -7,6 +7,9 @@
 using namespace std;
 using namespace std::tr2::sys;
 
+const std::tr2::sys::path csa::DEFAULT_INPUT_CSA1_FILE_PATH = "../2chkifu_csa/2chkifu.csa1";
+const std::tr2::sys::path csa::DEFAULT_OUTPUT_SFEN_FILE_PATH = "../bin/kifu.sfen";
+
 bool csa::toSfen(const std::tr2::sys::path& filepath, std::vector<std::string>& sfen) {
   sfen.clear();
   sfen.push_back("startpos");
@@ -237,4 +240,6 @@ bool csa::convertCsa1LineToSfen(
 
     ofs << endl;
   }
+
+  return true;
 }

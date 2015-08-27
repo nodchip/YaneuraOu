@@ -20,13 +20,14 @@ namespace hayabusa {
   extern const std::tr2::sys::path DEFAULT_OUTPUT_TEACHER_DATA_FILE_PATH;
   extern const std::tr2::sys::path DEFAULT_INPUT_TEACHER_DATA_FILE_PATH;
   extern const std::tr2::sys::path DEFAULT_INPUT_SHOGIDOKORO_CSA_DIRECTORY_PATH;
+  extern const std::tr2::sys::path DEFAULT_INPUT_SFEN_FILE_PATH;
 
-  // HAYABUSA学習メソッドで使用する教師データを作成する
-  // inputCsaDirectoryPath CSAファイルが含まれたディレクトリパス
+  // SFENファイルを線形回帰モデルの教師データに変換する
+  // inputSfenFilePath SFENファイルパス
   // outputTeacherDataFilePath 教師データファイルパス
   // maxNumberOfPlays 処理する最大局面数
-  bool createTeacherData(
-    const std::tr2::sys::path& inputCsaDirectoryPath = DEFAULT_INPUT_CSA_DIRECTORY_PATH,
+  bool convertSfenToTeacherData(
+    const std::tr2::sys::path& inputSfenFilePath = DEFAULT_INPUT_SFEN_FILE_PATH,
     const std::tr2::sys::path& outputTeacherDataFilePath = DEFAULT_OUTPUT_TEACHER_DATA_FILE_PATH,
     int maxNumberOfPlays = INT_MAX);
 
@@ -34,10 +35,10 @@ namespace hayabusa {
   // inputShogidokoroCsaDirectoryPath 将棋所の出力したCSAファイルが含まれたディレクトリパス
   // outputTeacherFilePath 更新される教師データファイルパス
   // maxNumberOfPlays 処理する最大局面数
-  bool addTeacherData(
-    const std::tr2::sys::path& inputShogidokoroCsaDirectoryPath = DEFAULT_INPUT_SHOGIDOKORO_CSA_DIRECTORY_PATH,
-    const std::tr2::sys::path& outputTeacherFilePath = DEFAULT_OUTPUT_TEACHER_DATA_FILE_PATH,
-    int maxNumberOfPlays = INT_MAX);
+  //bool addTeacherData(
+  //  const std::tr2::sys::path& inputShogidokoroCsaDirectoryPath = DEFAULT_INPUT_SHOGIDOKORO_CSA_DIRECTORY_PATH,
+  //  const std::tr2::sys::path& outputTeacherFilePath = DEFAULT_OUTPUT_TEACHER_DATA_FILE_PATH,
+  //  int maxNumberOfPlays = INT_MAX);
 
   // HAYABUSA学習メソッドで重みを調整する
   // inputTeacherFilePath 教師データファイルパス
