@@ -7,6 +7,8 @@
 // 定跡生成時に探索を行い、score を得る為に必要。
 void go(const Position& pos, std::istringstream& ssCmd);
 
+extern bool showInfo;
+
 MT64bit Book::mt64bit_; // 定跡のhash生成用なので、seedは固定でデフォルト値を使う。
 Key Book::ZobPiece[PieceNone][SquareNum];
 Key Book::ZobHand[HandPieceNum][19]; // 持ち駒の同一種類の駒の数ごと
@@ -249,10 +251,23 @@ void makeBookCSA1Line(Position& pos, const bool inaniwaBook) {
 	std::string line;
 	std::map<Key, std::vector<BookEntry> > bookMap;
 
-	while (std::getline(ifs, line)) {
+  showInfo = false;
+
+  time_t startTime = time(nullptr);
+  int numberOfKifus = 58936;
+  while (std::getline(ifs, line)) {
+    int kifuIndex;
 		std::string elem;
 		std::stringstream ss(line);
-		ss >> elem; // 棋譜番号を飛ばす。
+		ss >> kifuIndex;
+
+    // 進捗状況表示
+    if (kifuIndex % 10 == 0) {
+      time_t currentTime = time(nullptr);
+      int remainingSec = (currentTime - startTime) * (numberOfKifus - kifuIndex) / kifuIndex;
+      printf("(%d/%d) %d:%02d:%02d\n", kifuIndex, numberOfKifus, remainingSec / 3600, remainingSec / 60 % 60, remainingSec % 60);
+    }
+
 		ss >> elem; // 対局日を飛ばす。
 		ss >> elem; // 先手
 		const std::string sente = elem;
@@ -304,7 +319,7 @@ void makeBookCSA1Line(Position& pos, const bool inaniwaBook) {
 					SetUpStates->push(StateInfo());
 					pos.doMove(move, SetUpStates->top());
 
-					std::istringstream ssCmd("byoyomi 1000");
+					std::istringstream ssCmd("depth 6");
 					go(pos, ssCmd);
 					g_threads.waitForThinkFinished();
 
