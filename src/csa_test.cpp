@@ -93,3 +93,20 @@ TEST_F(CsaTest, convertCsaToSfen_convertCsaToSfen) {
   EXPECT_TRUE(getline(ifs, line));
   EXPECT_FALSE(getline(ifs, line));
 }
+
+TEST_F(CsaTest, convertCsa1LineToSfen_convert) {
+  path inputFilePath = "../src/testdata/csa1line/utf82chkifu.csa";
+  path outputFilePath = TEMP_OUTPUT_DIRECTORY_PATH / "temp.sfen";
+
+  EXPECT_TRUE(csa::convertCsa1LineToSfen(
+    inputFilePath,
+    outputFilePath));
+
+  ifstream ifs(outputFilePath);
+  EXPECT_TRUE(ifs.is_open());
+  string line;
+  EXPECT_TRUE(getline(ifs, line));
+  EXPECT_TRUE(getline(ifs, line));
+  EXPECT_TRUE(getline(ifs, line));
+  EXPECT_FALSE(getline(ifs, line));
+}

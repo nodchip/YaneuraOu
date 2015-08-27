@@ -174,5 +174,67 @@ bool csa::convertCsaToSfen(
 bool csa::convertCsa1LineToSfen(
   const std::tr2::sys::path& inputFilePath,
   const std::tr2::sys::path& outputFilePath) {
-  return false;
+  std::ifstream ifs(inputFilePath);
+  if (!ifs.is_open()) {
+    cout << "!!! Failed to open the input file: inputFilePath="
+      << inputFilePath
+      << endl;
+    return false;
+  }
+
+  ofstream ofs(outputFilePath, std::ios::out);
+  if (!ofs.is_open()) {
+    cout << "!!! Failed to create an output file: outputTeacherFilePath="
+      << outputFilePath
+      << endl;
+    return false;
+  }
+
+  std::string line;
+  while (std::getline(ifs, line)) {
+    int kifuIndex;
+    std::stringstream ss(line);
+    ss >> kifuIndex;
+
+    // i’»ó‹µ•\¦
+    if (kifuIndex % 1000 == 0) {
+      cout << kifuIndex << endl;
+    }
+
+    std::string elem;
+    ss >> elem; // ‘Î‹Ç“ú‚ğ”ò‚Î‚·B
+    ss >> elem; // æè
+    const std::string sente = elem;
+    ss >> elem; // Œãè
+    const std::string gote = elem;
+    ss >> elem; // (0:ˆø‚«•ª‚¯,1:æè‚ÌŸ‚¿,2:Œãè‚ÌŸ‚¿)
+
+    if (!std::getline(ifs, line)) {
+      std::cout << "!!! header only !!!" << std::endl;
+      return false;
+    }
+
+    ofs << "startpos moves";
+
+    Position pos;
+    pos.set(DefaultStartPositionSFEN, g_threads.mainThread());
+    StateStackPtr SetUpStates = StateStackPtr(new std::stack<StateInfo>());
+    while (!line.empty()) {
+      const std::string moveStrCSA = line.substr(0, 6);
+      const Move move = csaToMove(pos, moveStrCSA);
+      if (move.isNone()) {
+        pos.print();
+        std::cout << "!!! Illegal move = " << moveStrCSA << " !!!" << std::endl;
+        break;
+      }
+      line.erase(0, 6); // æ“ª‚©‚ç6•¶šíœ
+
+      ofs << " " << move.toUSI();
+
+      SetUpStates->push(StateInfo());
+      pos.doMove(move, SetUpStates->top());
+    }
+
+    ofs << endl;
+  }
 }
