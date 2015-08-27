@@ -498,7 +498,7 @@ void doUSICommandLoop(int argc, char* argv[]) {
 		else if (token == "i"        ) { makeBookCSA1Line(pos, true); }
 		else if (token == "bsfen"    ) { makeBook(pos); }
     else if (token == "convert_csa_1line_to_sfen") { csa::convertCsa1LineToSfen(); }
-    else if (token == "convert_sfen_to_teacherData") { hayabusa::convertSfenToTeacherData(); }
+    else if (token == "convert_sfen_to_teacher_data") { hayabusa::convertSfenToTeacherData(); }
     else if (token == "adjust_weights") {
       hayabusa::adjustWeights();
       writeTable();
