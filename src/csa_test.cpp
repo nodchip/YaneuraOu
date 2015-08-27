@@ -1,3 +1,4 @@
+#include <filesystem>
 #include <string>
 #include <vector>
 #include <gtest/gtest.h>
@@ -5,19 +6,27 @@
 #include "thread.hpp"
 
 using namespace std;
+using namespace std::tr2::sys;
+
+static const path TEMP_OUTPUT_DIRECTORY_PATH = "../temp";
 
 class CsaTest : public testing::Test {
 public:
   CsaTest() {}
   virtual ~CsaTest() {}
 protected:
-  virtual void SetUp() {}
-  virtual void TearDown() {}
+  virtual void SetUp() {
+    remove_all(TEMP_OUTPUT_DIRECTORY_PATH);
+    create_directories(TEMP_OUTPUT_DIRECTORY_PATH);
+  }
+  virtual void TearDown() {
+    remove_all(TEMP_OUTPUT_DIRECTORY_PATH);
+  }
 private:
 };
 
 TEST_F(CsaTest, toPositions_convertCsaFileToPositions) {
-  string filepath = "../src/testdata/csa/wdoor+floodgate-600-10+01WishBlue_07+Apery_i5-4670+20150415003002.csa";
+  path filepath = "../src/testdata/csa/wdoor+floodgate-600-10+01WishBlue_07+Apery_i5-4670+20150415003002.csa";
 
   vector<string> sfen;
   EXPECT_TRUE(csa::toSfen(filepath, sfen));
@@ -26,7 +35,7 @@ TEST_F(CsaTest, toPositions_convertCsaFileToPositions) {
 }
 
 TEST_F(CsaTest, toPositions_convertShogidokoroCsaFileToPositions) {
-  string filepath = "../src/testdata/shogidokoro/csa/20150823_214751 tanuki- sse4.2 msvc  vs Apery sse4.2 msvc .csa";
+  path filepath = "../src/testdata/shogidokoro/csa/20150823_214751 tanuki- sse4.2 msvc  vs Apery sse4.2 msvc .csa";
 
   vector<string> sfen;
   EXPECT_TRUE(csa::toSfen(filepath, sfen));
@@ -35,37 +44,52 @@ TEST_F(CsaTest, toPositions_convertShogidokoroCsaFileToPositions) {
 }
 
 TEST_F(CsaTest, isFinished_returnTrueIfFinished) {
-  string filepath = "../src/testdata/shogidokoro/csa/20150823_214751 tanuki- sse4.2 msvc  vs Apery sse4.2 msvc .csa";
+  path filepath = "../src/testdata/shogidokoro/csa/20150823_214751 tanuki- sse4.2 msvc  vs Apery sse4.2 msvc .csa";
 
   EXPECT_TRUE(csa::isFinished(filepath));
 }
 
 TEST_F(CsaTest, isFinished_returnFalseIfNotFinished) {
-  string filepath = "../src/testdata/shogidokoro/csa/not_finished.csa";
+  path filepath = "../src/testdata/shogidokoro/csa/not_finished.csa";
 
   EXPECT_FALSE(csa::isFinished(filepath));
 }
 
 TEST_F(CsaTest, isTanukiBlack_returnTrueIfTanikiIsBlack) {
-  string filepath = "../src/testdata/shogidokoro/csa/20150823_214751 tanuki- sse4.2 msvc  vs Apery sse4.2 msvc .csa";
+  path filepath = "../src/testdata/shogidokoro/csa/20150823_214751 tanuki- sse4.2 msvc  vs Apery sse4.2 msvc .csa";
 
   EXPECT_TRUE(csa::isTanukiBlack(filepath));
 }
 
 TEST_F(CsaTest, isTanukiBlack_returnFalseIfTanikiIsWhite) {
-  string filepath = "../src/testdata/shogidokoro/csa/20150823_215301 Apery sse4.2 msvc  vs tanuki- sse4.2 msvc .csa";
+  path filepath = "../src/testdata/shogidokoro/csa/20150823_215301 Apery sse4.2 msvc  vs tanuki- sse4.2 msvc .csa";
 
   EXPECT_FALSE(csa::isTanukiBlack(filepath));
 }
 
 TEST_F(CsaTest, isBlackWin_returnTrueIfBlackIsWin) {
-  string filepath = "../src/testdata/shogidokoro/csa/20150823_215301 Apery sse4.2 msvc  vs tanuki- sse4.2 msvc .csa";
+  path filepath = "../src/testdata/shogidokoro/csa/20150823_215301 Apery sse4.2 msvc  vs tanuki- sse4.2 msvc .csa";
 
   EXPECT_EQ(Black, csa::getWinner(filepath));
 }
 
 TEST_F(CsaTest, isBlackWin_returnTrueIfWhiteIsWin) {
-  string filepath = "../src/testdata/shogidokoro/csa/20150823_214751 tanuki- sse4.2 msvc  vs Apery sse4.2 msvc .csa";
+  path filepath = "../src/testdata/shogidokoro/csa/20150823_214751 tanuki- sse4.2 msvc  vs Apery sse4.2 msvc .csa";
 
   EXPECT_EQ(White, csa::getWinner(filepath));
+}
+
+TEST_F(CsaTest, convertCsaToSfen_convertCsaToSfen) {
+  path inputDirectoryPath = "../src/testdata/csa";
+  path outputFilePath = TEMP_OUTPUT_DIRECTORY_PATH / "temp.sfen";
+
+  EXPECT_TRUE(csa::convertCsaToSfen(
+    inputDirectoryPath,
+    outputFilePath));
+
+  ifstream ifs(outputFilePath);
+  EXPECT_TRUE(ifs.is_open());
+  string line;
+  EXPECT_TRUE(getline(ifs, line));
+  EXPECT_FALSE(getline(ifs, line));
 }

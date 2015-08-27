@@ -19,6 +19,16 @@ namespace csa {
   // CSAファイル中でどちらが勝ったかを返す
   // 引き分けの場合はColorNumを返す
   Color getWinner(const std::tr2::sys::path& filepath);
+
+  // floodgateのCSAファイルをSFEN形式へ変換する
+  bool convertCsaToSfen(
+    const std::tr2::sys::path& inputDirectoryPath,
+    const std::tr2::sys::path& outputFilePath);
+
+  // 2chkifu.csa1をSFEN形式へ変換する
+  bool convertCsa1LineToSfen(
+    const std::tr2::sys::path& inputFilePath,
+    const std::tr2::sys::path& outputFilePath);
 }
 
 #endif

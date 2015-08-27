@@ -5,6 +5,7 @@
 #include "usi.hpp"
 
 using namespace std;
+using namespace std::tr2::sys;
 
 bool csa::toSfen(const std::tr2::sys::path& filepath, std::vector<std::string>& sfen) {
   sfen.clear();
@@ -113,4 +114,65 @@ Color csa::getWinner(const std::tr2::sys::path& filepath) {
   }
 
   throw exception("Failed to detect which player is win.");
+}
+
+// 文字列の配列をスペース区切りで結合する
+static void concat(const vector<string>& words, string& out) {
+  out.clear();
+  for (const auto& word : words) {
+    if (!out.empty()) {
+      out += " ";
+    }
+    out += word;
+  }
+}
+
+bool csa::convertCsaToSfen(
+  const std::tr2::sys::path& inputDirectoryPath,
+  const std::tr2::sys::path& outputFilePath) {
+  if (!is_directory(inputDirectoryPath)) {
+    cout << "!!! Failed to open the input directory: inputDirectoryPath="
+      << inputDirectoryPath
+      << endl;
+    return false;
+  }
+
+  ofstream ofs(outputFilePath, std::ios::out);
+  if (!ofs.is_open()) {
+    cout << "!!! Failed to create an output file: outputTeacherFilePath="
+      << outputFilePath
+      << endl;
+    return false;
+  }
+
+  int numberOfFiles = distance(
+    directory_iterator(inputDirectoryPath),
+    directory_iterator());
+  int fileIndex = 0;
+  for (auto it = directory_iterator(inputDirectoryPath); it != directory_iterator(); ++it) {
+    if (++fileIndex % 1000 == 0) {
+      printf("(%d/%d)\n", fileIndex, numberOfFiles);
+    }
+
+    const auto& inputFilePath = *it;
+    vector<string> sfen;
+    if (!toSfen(inputFilePath, sfen)) {
+      cout << "!!! Failed to convert the input csa file to SFEN: inputFilePath="
+        << inputFilePath
+        << endl;
+      continue;
+    }
+
+    string line;
+    concat(sfen, line);
+    ofs << line << endl;
+  }
+
+  return true;
+}
+
+bool csa::convertCsa1LineToSfen(
+  const std::tr2::sys::path& inputFilePath,
+  const std::tr2::sys::path& outputFilePath) {
+  return false;
 }
