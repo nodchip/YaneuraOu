@@ -13,13 +13,15 @@ using namespace std;
 using namespace std::tr2::sys;
 
 const std::tr2::sys::path hayabusa::DEFAULT_INPUT_CSA_DIRECTORY_PATH("../../wdoor2015/2015");
-const std::tr2::sys::path hayabusa::DEFAULT_OUTPUT_TEACHER_DATA_FILE_PATH("../hayabusa.teacherdata");
-const std::tr2::sys::path hayabusa::DEFAULT_INPUT_TEACHER_DATA_FILE_PATH("../hayabusa.teacherdata");
+const std::tr2::sys::path hayabusa::DEFAULT_OUTPUT_TEACHER_DATA_FILE_PATH("../bin/hayabusa.teacherdata");
+const std::tr2::sys::path hayabusa::DEFAULT_INPUT_TEACHER_DATA_FILE_PATH("../bin/hayabusa.teacherdata");
 const std::tr2::sys::path hayabusa::DEFAULT_INPUT_SHOGIDOKORO_CSA_DIRECTORY_PATH("../../Shogidokoro/csa");
 const std::tr2::sys::path hayabusa::DEFAULT_INPUT_SFEN_FILE_PATH("../bin/kifu.sfen");
 
-static const float ALPHA = pow(10.0, -7.0);
+static const float ALPHA = pow(2.0, -18.0);
 extern bool showInfo;
+
+static const Score LOSE_PENARTY = RookScore;
 
 void setPosition(Position& pos, std::istringstream& ssCmd);
 void go(const Position& pos, std::istringstream& ssCmd);
@@ -67,11 +69,19 @@ static bool converSfenToTeacherData(
     Position pos(DefaultStartPositionSFEN, g_threads.mainThread());
     setPosition(pos, ss_sfen);
 
-    std::istringstream ss_go("depth 6");
-    go(pos, ss_go);
-    g_threads.waitForThinkFinished();
+    SearchStack searchStack[MaxPlyPlus2];
+    memset(searchStack, 0, sizeof(searchStack));
+    searchStack[0].currentMove = Move::moveNull(); // skip update gains
+    searchStack[0].staticEvalRaw = (Score)INT_MAX;
+    searchStack[1].staticEvalRaw = (Score)INT_MAX;
 
-    Score score = Searcher::rootMoves[0].score_;
+    Score score = evaluate(pos, &searchStack[1]);
+
+    //std::istringstream ss_go("depth 6");
+    //go(pos, ss_go);
+    //g_threads.waitForThinkFinished();
+    //Score score = Searcher::rootMoves[0].score_;
+
     if (pos.turn() == White) {
       score = -score;
     }
@@ -140,7 +150,7 @@ bool hayabusa::convertSfenToTeacherData(
   string line;
   while (getline(ifs, line)) {
     // êiíªèÛãµï\é¶
-    if (++fileIndex % 1 == 0) {
+    if (++fileIndex % 1000 == 0) {
       time_t currentTime = time(nullptr);
       int remainingSec = (currentTime - startTime) * (numberOfKifus- fileIndex) / fileIndex;
       printf("(%d/%d) %d:%02d:%02d\n", fileIndex, numberOfKifus, remainingSec / 3600, remainingSec / 60 % 60, remainingSec % 60);
@@ -162,68 +172,77 @@ bool hayabusa::convertSfenToTeacherData(
   return true;
 }
 
-//bool hayabusa::addTeacherData(
-//  const std::tr2::sys::path& inputShogidokoroCsaDirectoryPath,
-//  const std::tr2::sys::path& outputTeacherFilePath,
-//  int maxNumberOfPlays) {
-//  cout << "hayabusa::addTeacherData()" << endl;
-//
-//  ofstream teacherFile(outputTeacherFilePath, std::ios::app | std::ios::binary);
-//  if (!teacherFile.is_open()) {
-//    cout << "!!! Failed to open an output file: outputTeacherFilePath="
-//      << outputTeacherFilePath
-//      << endl;
-//    return false;
-//  }
-//
-//  int plays = 0;
-//  int fileIndex = 0;
-//  for (auto it = directory_iterator(inputShogidokoroCsaDirectoryPath); it != directory_iterator(); ++it) {
-//    const auto& csaFilePath = *it;
-//    if (csaFilePath.path().extension() != ".csa") {
-//      continue;
-//    }
-//
-//    cout << csaFilePath.path().filename() << endl;
-//
-//    if (!csa::isFinished(csaFilePath)) {
-//      continue;
-//    }
-//
-//    vector<TeacherData> teacherDatas;
-//    if (!converSfenToTeacherData(csaFilePath, maxNumberOfPlays, teacherDatas, plays)) {
-//      cout << "!!! Failed to create teacher data: csaFilePath=" << csaFilePath << endl;
-//      return false;
-//    }
-//
-//    bool tanukIsBlack = csa::isTanukiBlack(csaFilePath);
-//    Color winner = csa::getWinner(csaFilePath);
-//
-//    if (tanukIsBlack && winner == White) {
-//      // tanuki-Ç™êÊéËÇ≈ïâÇØÇΩ
-//      // êÊéËÇÃã≥étêMçÜÇâ∫Ç∞ÇÈ
-//      for (int i = 0; i < teacherDatas.size(); i += 2) {
-//        teacherDatas[i].teacher -= 512;
-//      }
-//    }
-//
-//    if (!tanukIsBlack && winner == White) {
-//      // tanuki-Ç™å„éËÇ≈ïâÇØÇΩ
-//      // å„éËÇÃã≥étêMçÜÇâ∫Ç∞ÇÈ
-//      for (int i = 1; i < teacherDatas.size(); i += 2) {
-//        teacherDatas[i].teacher -= 512;
-//      }
-//    }
-//
-//    teacherFile.write((char*)&teacherDatas[0], sizeof(TeacherData) * teacherDatas.size());
-//
-//    if (++plays >= maxNumberOfPlays) {
-//      break;
-//    }
-//  }
-//
-//  return true;
-//}
+bool hayabusa::addTeacherData(
+  const std::tr2::sys::path& inputShogidokoroCsaDirectoryPath,
+  const std::tr2::sys::path& outputTeacherFilePath,
+  int maxNumberOfPlays) {
+  cout << "hayabusa::addTeacherData()" << endl;
+
+  ofstream teacherFile(outputTeacherFilePath, std::ios::app | std::ios::binary);
+  if (!teacherFile.is_open()) {
+    cout << "!!! Failed to open an output file: outputTeacherFilePath="
+      << outputTeacherFilePath
+      << endl;
+    return false;
+  }
+
+  int plays = 0;
+  int fileIndex = 0;
+  for (auto it = directory_iterator(inputShogidokoroCsaDirectoryPath); it != directory_iterator(); ++it) {
+    const auto& csaFilePath = *it;
+    if (csaFilePath.path().extension() != ".csa") {
+      continue;
+    }
+
+    cout << csaFilePath.path().filename() << endl;
+
+    if (!csa::isFinished(csaFilePath)) {
+      continue;
+    }
+
+    vector<string> words;
+    if (!csa::toSfen(csaFilePath.path(), words)) {
+      cout << "!!! Failed to convert a CSA file to SFEN: csaFilePath="
+        << csaFilePath.path()
+        << endl;
+      continue;
+    }
+
+    string sfen;
+    concat(words, sfen);
+
+    vector<TeacherData> teacherDatas;
+    if (!converSfenToTeacherData(sfen, maxNumberOfPlays, teacherDatas, plays)) {
+      cout << "!!! Failed to create teacher data: csaFilePath=" << csaFilePath << endl;
+      return false;
+    }
+
+    bool tanukIsBlack = csa::isTanukiBlack(csaFilePath);
+    Color winner = csa::getWinner(csaFilePath);
+
+    if (tanukIsBlack && winner == White) {
+      // tanuki-Ç™êÊéËÇ≈ïâÇØÇΩ
+      // êÊéËÇÃã≥étêMçÜÇâ∫Ç∞ÇÈ
+      for (int i = 0; i < teacherDatas.size(); i += 2) {
+        teacherDatas[i].teacher -= LOSE_PENARTY;
+      }
+    } else if (!tanukIsBlack && winner == Black) {
+      // tanuki-Ç™å„éËÇ≈ïâÇØÇΩ
+      // å„éËÇÃã≥étêMçÜÇè„Ç∞ÇÈ
+      for (int i = 1; i < teacherDatas.size(); i += 2) {
+        teacherDatas[i].teacher += LOSE_PENARTY;
+      }
+    }
+
+    teacherFile.write((char*)&teacherDatas[0], sizeof(TeacherData) * teacherDatas.size());
+
+    if (++plays >= maxNumberOfPlays) {
+      break;
+    }
+  }
+
+  return true;
+}
 
 bool hayabusa::adjustWeights(
   const std::tr2::sys::path& inputTeacherFilePath,

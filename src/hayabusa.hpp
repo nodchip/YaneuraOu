@@ -35,10 +35,10 @@ namespace hayabusa {
   // inputShogidokoroCsaDirectoryPath 将棋所の出力したCSAファイルが含まれたディレクトリパス
   // outputTeacherFilePath 更新される教師データファイルパス
   // maxNumberOfPlays 処理する最大局面数
-  //bool addTeacherData(
-  //  const std::tr2::sys::path& inputShogidokoroCsaDirectoryPath = DEFAULT_INPUT_SHOGIDOKORO_CSA_DIRECTORY_PATH,
-  //  const std::tr2::sys::path& outputTeacherFilePath = DEFAULT_OUTPUT_TEACHER_DATA_FILE_PATH,
-  //  int maxNumberOfPlays = INT_MAX);
+  bool addTeacherData(
+    const std::tr2::sys::path& inputShogidokoroCsaDirectoryPath = DEFAULT_INPUT_SHOGIDOKORO_CSA_DIRECTORY_PATH,
+    const std::tr2::sys::path& outputTeacherFilePath = DEFAULT_OUTPUT_TEACHER_DATA_FILE_PATH,
+    int maxNumberOfPlays = INT_MAX);
 
   // HAYABUSA学習メソッドで重みを調整する
   // inputTeacherFilePath 教師データファイルパス

@@ -421,6 +421,7 @@ void measureGenerateMoves(const Position& pos) {
 
 #ifdef NDEBUG
 const std::string MyName = "tanuki-";
+//const std::string MyName = "tanukibase";
 #else
 const std::string MyName = "tanuki- Debug Build";
 #endif
@@ -503,10 +504,9 @@ void doUSICommandLoop(int argc, char* argv[]) {
       hayabusa::adjustWeights();
       writeTable();
     }
-    //else if (token == "hayabusa_add_teacher_data") {
-    //  hayabusa::addTeacherData();
-    //  writeTable();
-    //}
+    else if (token == "add_teacher_data") {
+      hayabusa::addTeacherData();
+    }
 #endif
 		else                           { SYNCCOUT << "unknown command: " << cmd << SYNCENDL; }
 	} while (token != "quit" && argc == 1);
