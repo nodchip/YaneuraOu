@@ -18,10 +18,10 @@ const std::tr2::sys::path hayabusa::DEFAULT_INPUT_TEACHER_DATA_FILE_PATH("../bin
 const std::tr2::sys::path hayabusa::DEFAULT_INPUT_SHOGIDOKORO_CSA_DIRECTORY_PATH("../../Shogidokoro/csa");
 const std::tr2::sys::path hayabusa::DEFAULT_INPUT_SFEN_FILE_PATH("../bin/kifu.sfen");
 
-static const float ALPHA = pow(2.0, -18.0);
+static const double ALPHA = pow(2.0, -4.0);
 extern bool showInfo;
 
-static const Score LOSE_PENARTY = RookScore;
+static const Score LOSE_PENARTY = PawnScore * 1000;
 
 void setPosition(Position& pos, std::istringstream& ssCmd);
 void go(const Position& pos, std::istringstream& ssCmd);
@@ -150,7 +150,7 @@ bool hayabusa::convertSfenToTeacherData(
   string line;
   while (getline(ifs, line)) {
     // 進捗状況表示
-    if (++fileIndex % 1000 == 0) {
+    if (++fileIndex % 1 == 0) {
       time_t currentTime = time(nullptr);
       int remainingSec = (currentTime - startTime) * (numberOfKifus- fileIndex) / fileIndex;
       printf("(%d/%d) %d:%02d:%02d\n", fileIndex, numberOfKifus, remainingSec / 3600, remainingSec / 60 % 60, remainingSec % 60);
@@ -222,15 +222,16 @@ bool hayabusa::addTeacherData(
 
     if (tanukIsBlack && winner == White) {
       // tanuki-が先手で負けた
-      // 先手の教師信号を下げる
-      for (int i = 0; i < teacherDatas.size(); i += 2) {
-        teacherDatas[i].teacher -= LOSE_PENARTY;
+      // 教師信号を下げる
+      for (auto& teacherData : teacherDatas) {
+        teacherData.teacher += LOSE_PENARTY;
       }
-    } else if (!tanukIsBlack && winner == Black) {
+    }
+    else if (!tanukIsBlack && winner == Black) {
       // tanuki-が後手で負けた
-      // 後手の教師信号を上げる
-      for (int i = 1; i < teacherDatas.size(); i += 2) {
-        teacherDatas[i].teacher += LOSE_PENARTY;
+      // 教師信号を上げる
+      for (auto& teacherData : teacherDatas) {
+        teacherData.teacher -= LOSE_PENARTY;
       }
     }
 
@@ -250,18 +251,41 @@ bool hayabusa::adjustWeights(
   cout << "hayabusa::adjustWeights()" << endl;
 
   int numberOfTeacherData = file_size(inputTeacherFilePath) / sizeof(TeacherData);
-  float alpha = ALPHA / numberOfTeacherData;
-  double prevEps2 = 1e100;
+  double alpha = ALPHA / numberOfTeacherData;
+
+  // 重みを更新する
+  vector<vector<double> > k00sum(SquareNum, vector<double>(SquareNum));
+  vector<vector<vector<double> > > kpp(SquareNum, vector<vector<double> >(Apery::fe_end, vector<double>(Apery::fe_end)));
+  vector<vector<vector<double> > > kkp(SquareNum, vector<vector<double> >(SquareNum, vector<double>(Apery::fe_end)));
+  for (int i = 0; i < SquareNum; ++i) {
+    for (int j = 0; j < SquareNum; ++j) {
+      k00sum[i][j] = K00Sum[i][j];
+    }
+  }
+  for (int i = 0; i < SquareNum; ++i) {
+    for (int j = 0; j < Apery::fe_end; ++j) {
+      for (int k = 0; k < Apery::fe_end; ++k) {
+        kpp[i][j][k] = KPP[i][j][k];
+      }
+    }
+  }
+  for (int i = 0; i < SquareNum; ++i) {
+    for (int j = 0; j < SquareNum; ++j) {
+      for (int k = 0; k < Apery::fe_end; ++k) {
+        kkp[i][j][k] = KKP[i][j][k];
+      }
+    }
+  }
+
   for (int iteration = 0; iteration < numberOfIterations; ++iteration) {
     cout << "iteration " << (iteration + 1) << "/" << numberOfIterations << endl;
 
     // 最急降下法を使用して重みを調整する
-    static float k00sum[SquareNum][SquareNum];
-    static float kpp[SquareNum][Apery::fe_end][Apery::fe_end];
-    static float kkp[SquareNum][SquareNum][Apery::fe_end];
-    memset(k00sum, 0, sizeof(k00sum));
-    memset(kpp, 0, sizeof(kpp));
-    memset(kkp, 0, sizeof(kkp));
+    // こういう書き方すると心が荒む
+    vector<vector<double> > k00sumDelta(SquareNum, vector<double>(SquareNum));
+    vector<vector<vector<double> > > kppDelta(SquareNum, vector<vector<double> >(Apery::fe_end, vector<double>(Apery::fe_end)));
+    vector<vector<vector<double> > > kkpDelta(SquareNum, vector<vector<double> >(SquareNum, vector<double>(Apery::fe_end)));
+    // TODO(nodchip): バイアスhを加える
 
     ifstream teacherFile(inputTeacherFilePath, std::ios::in | std::ios::binary);
     if (!teacherFile.is_open()) {
@@ -272,7 +296,7 @@ bool hayabusa::adjustWeights(
     vector<TeacherData> teacherDatas(numberOfTeacherData);
     teacherFile.read((char*)&teacherDatas[0], sizeof(TeacherData) * numberOfTeacherData);
 
-    double eps2 = 0.0;
+    double delta2 = 0.0;
     int teacherDataIndex = 0;
     for (const auto& teacherData : teacherDatas) {
       if (++teacherDataIndex % 1000000 == 0) {
@@ -287,69 +311,109 @@ bool hayabusa::adjustWeights(
       Score teacher = teacherData.teacher * Apery::FVScale;
 
       // 実際の信号を計算する
-      Score y = static_cast<Score>(K00Sum[sq_bk][sq_wk]);
+      double y = k00sum[sq_bk][sq_wk];
       for (int i = 0; i < EvalList::ListSize; ++i) {
         const int k0 = list0[i];
         const int k1 = list1[i];
         for (int j = 0; j < i; ++j) {
           const int l0 = list0[j];
           const int l1 = list1[j];
-          y += KPP[sq_bk][k0][l0];
-          y -= KPP[inverse(sq_wk)][k1][l1];
+          y += kpp[sq_bk][k0][l0];
+          y -= kpp[inverse(sq_wk)][k1][l1];
         }
-        y += KKP[sq_bk][sq_wk][k0];
+        y += kkp[sq_bk][sq_wk][k0];
       }
       y += material * Apery::FVScale;
 
       // 教師信号と実際の信号から重みの増減分を計算する
       // TODO(nodchip): materialを更新する必要があるかどうか考える
-      Score delta = teacher - y;
-      float diff = alpha * (int)delta / (iteration + 1);
-      k00sum[sq_bk][sq_wk] += diff;
+      double delta = (double)teacher - y;
+      double diff = alpha * delta / (iteration + 1);
+      k00sumDelta[sq_bk][sq_wk] += diff;
       for (int i = 0; i < EvalList::ListSize; ++i) {
         const int k0 = list0[i];
         const int k1 = list1[i];
         for (int j = 0; j < i; ++j) {
           const int l0 = list0[j];
           const int l1 = list1[j];
-          kpp[sq_bk][k0][l0] += diff;
-          kpp[sq_bk][l0][k0] += diff;
-          kpp[inverse(sq_wk)][k1][l1] -= diff;
-          kpp[inverse(sq_wk)][l1][k1] -= diff;
+          kppDelta[sq_bk][k0][l0] += diff;
+          kppDelta[sq_bk][l0][k0] += diff;
+          kppDelta[inverse(sq_wk)][k1][l1] -= diff;
+          kppDelta[inverse(sq_wk)][l1][k1] -= diff;
         }
-        kkp[sq_bk][sq_wk][k0] += diff;
+        kkpDelta[sq_bk][sq_wk][k0] += diff;
       }
 
-      eps2 += delta * delta;
+      delta2 += delta * delta;
     }
 
     // 重みを更新する
     for (int i = 0; i < SquareNum; ++i) {
       for (int j = 0; j < SquareNum; ++j) {
-        K00Sum[i][j] += k00sum[i][j];
+        k00sum[i][j] += k00sumDelta[i][j];
       }
     }
     for (int i = 0; i < SquareNum; ++i) {
       for (int j = 0; j < Apery::fe_end; ++j) {
         for (int k = 0; k < Apery::fe_end; ++k) {
-          KPP[i][j][k] += kpp[i][j][k];
+          kpp[i][j][k] += kppDelta[i][j][k];
         }
       }
     }
     for (int i = 0; i < SquareNum; ++i) {
       for (int j = 0; j < SquareNum; ++j) {
         for (int k = 0; k < Apery::fe_end; ++k) {
-          KKP[i][j][k] += kkp[i][j][k];
+          kkp[i][j][k] += kkpDelta[i][j][k];
         }
       }
     }
 
-    //if (prevEps2 < eps2) {
-    //  alpha *= 0.5;
-    //}
-    prevEps2 = eps2;
-    cout << setprecision(10) << "eps2=" << eps2 << " alpha=" << alpha << endl << endl;
+    cout << setprecision(10) << "delta2=" << delta2 << " alpha=" << alpha << endl << endl;
   }
+
+  // ローカル変数から重みを書き戻す
+  double maxDiff = 0.0;
+  double diff2 = 0.0;
+  double threshold = 4.0;
+  for (int i = 0; i < SquareNum; ++i) {
+    for (int j = 0; j < SquareNum; ++j) {
+      double diff = K00Sum[i][j] - k00sum[i][j];
+      maxDiff = max(maxDiff, abs(diff));
+      diff2 += diff * diff;
+      if (abs(diff) > threshold) {
+        printf("K00Sum[%d][%d] %6d -> %6d\n", i, j, K00Sum[i][j], (int)round(k00sum[i][j]));
+      }
+      K00Sum[i][j] = round(k00sum[i][j]);
+    }
+  }
+  for (int i = 0; i < SquareNum; ++i) {
+    for (int j = 0; j < Apery::fe_end; ++j) {
+      for (int k = 0; k < Apery::fe_end; ++k) {
+        double diff = KPP[i][j][k] - kpp[i][j][k];
+        maxDiff = max(maxDiff, abs(diff));
+        diff2 += diff * diff;
+        if (abs(diff) > threshold) {
+          printf("KPP[%d][%d][%d] %6d -> %6d\n", i, j, k, KPP[i][j][k], (int)round(kpp[i][j][k]));
+        }
+        KPP[i][j][k] = round(kpp[i][j][k]);
+      }
+    }
+  }
+  for (int i = 0; i < SquareNum; ++i) {
+    for (int j = 0; j < SquareNum; ++j) {
+      for (int k = 0; k < Apery::fe_end; ++k) {
+        double diff = KKP[i][j][k] - kkp[i][j][k];
+        maxDiff = max(maxDiff, abs(diff));
+        diff2 += diff * diff;
+        if (abs(diff) > threshold) {
+          printf("KKP[%d][%d][%d] %6d -> %6d\n", i, j, k, KKP[i][j][k], (int)round(kkp[i][j][k]));
+        }
+        KKP[i][j][k] = round(kkp[i][j][k]);
+      }
+    }
+  }
+
+  cout << "diff2=" << diff2 << " maxDiff=" << maxDiff << endl;
 
   return true;
 }

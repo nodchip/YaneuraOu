@@ -27,29 +27,33 @@ const int kppHandArray[ColorNum][HandPieceNum] = {
 };
 
 namespace {
+  // % of Hotspot Samples 12.08%
 	Score doapc(const Position& pos, const int index[2]) {
 		const Square sq_bk = pos.kingSquare(Black);
 		const Square sq_wk = pos.kingSquare(White);
 		const int* list0 = pos.cplist0();
 		const int* list1 = pos.cplist1();
 
-		Score sum = kkp(sq_bk, sq_wk, index[0]);
-		const auto* pkppb = KPP[sq_bk         ][index[0]];
-		const auto* pkppw = KPP[inverse(sq_wk)][index[1]];
-    //int add = 0;
-    //int sub = 0;
+    // TODO(nodchip): KPP[sq_bk][list0[i]][list0[j]]と
+    // をKPP[inverse(sq_wk)][list1[i]][list1[j]]を
+    // _mm_i32gather_epi32/_mm256_i32gather_epi32を使用して足す。
+    // _mm256_mask_i32gather_epi32と速度を比較する
+    
+    Score sum = kkp(sq_bk, sq_wk, index[0]);
+
     //for (int i = 0; i < pos.nlist(); ++i) {
-    //  add += pkppb[list0[i]];
-    //  sub -= pkppw[list1[i]];
+    //  sum += KPP[sq_bk         ][index[0]][list0[i]];
+    //  sum -= KPP[inverse(sq_wk)][index[1]][list1[i]];
     //}
-    //sum += add;
-    //sum -= sub;
+
+    const auto* pkppb = KPP[sq_bk][index[0]];
+    const auto* pkppw = KPP[inverse(sq_wk)][index[1]];
     for (int i = 0; i < pos.nlist(); ++i) {
       sum += pkppb[list0[i]];
       sum -= pkppw[list1[i]];
     }
 
-		return sum;
+    return sum;
 	}
 
 #if defined INANIWA_SHIFT
@@ -176,6 +180,7 @@ namespace {
 		return nlist;
 	}
 
+  // % of Hotspot Samples 22.01%
 	Score evaluateBody(Position& pos, SearchStack* ss) {
 		if (calcDifference(pos, ss)) {
 			const auto score = ss->staticEvalRaw;
@@ -192,21 +197,33 @@ namespace {
 		const auto* ppkppw = KPP[inverse(sq_wk)];
 
 		Score score = static_cast<Score>(K00Sum[sq_bk][sq_wk]);
-		// loop 開始を i = 1 からにして、i = 0 の分のKKPを先に足す。
-		score += KKP[sq_bk][sq_wk][list0[0]];
-		for (int i = 1; i < pos.nlist(); ++i) {
-			const int k0 = list0[i];
-			const int k1 = list1[i];
-			const auto* pkppb = ppkppb[k0];
-			const auto* pkppw = ppkppw[k1];
-      //int add = 0;
-      //int sub = 0;
-      //for (int j = 0; j < i; ++j) {
-      //  add += pkppb[list0[j]];
-      //  sub -= pkppw[list1[j]];
-      //}
-      //score += add;
-      //score += sub;
+
+    // TODO(nodchip): KKP[sq_bk][sq_wk][list0[0]]を
+    // _mm_i32gather_epi32/_mm256_i32gather_epi32を使用して足す。
+    // _mm256_mask_i32gather_epi32と速度を比較する
+    //for (int i = 0; i < pos.nlist(); ++i) {
+    //  score += KKP[sq_bk][sq_wk][list0[i]];
+    //}
+
+    //for (int i = 0; i < pos.nlist(); ++i) {
+    //  // TODO(nodchip): KPP[sq_bk][list0[i]][list0[j]]と
+    //  // をKPP[inverse(sq_wk)][list1[i]][list1[j]]を
+    //  // _mm_i32gather_epi32/_mm256_i32gather_epi32を使用して足す。
+    //  // _mm256_mask_i32gather_epi32と速度を比較する
+
+    //  for (int j = 0; j < i; ++j) {
+    //    score += KPP[sq_bk][list0[i]][list0[j]];
+    //    score -= KPP[inverse(sq_wk)][list1[i]][list1[j]];
+    //  }
+    //}
+
+    // loop 開始を i = 1 からにして、i = 0 の分のKKPを先に足す。
+    score += KKP[sq_bk][sq_wk][list0[0]];
+    for (int i = 1; i < pos.nlist(); ++i) {
+      const int k0 = list0[i];
+      const int k1 = list1[i];
+      const auto* pkppb = ppkppb[k0];
+      const auto* pkppw = ppkppw[k1];
       for (int j = 0; j < i; ++j) {
         const int l0 = list0[j];
         const int l1 = list1[j];
@@ -214,7 +231,7 @@ namespace {
         score -= pkppw[l1];
       }
       score += KKP[sq_bk][sq_wk][k0];
-		}
+    }
 
 		score += pos.material() * Apery::FVScale;
 #if defined INANIWA_SHIFT

@@ -1558,10 +1558,8 @@ void Searcher::think() {
 
 finalize:
 
-  if (showInfo) {
-    SYNCCOUT << "info nodes " << pos.nodesSearched()
-      << " time " << Searcher::searchTimer.elapsed() << SYNCENDL;
-  }
+  SYNCCOUT << "info nodes " << pos.nodesSearched()
+    << " time " << Searcher::searchTimer.elapsed() << SYNCENDL;
 
 	if (!Searcher::signals.stop && (Searcher::limits.ponder || Searcher::limits.infinite)) {
 		Searcher::signals.stopOnPonderHit = true;

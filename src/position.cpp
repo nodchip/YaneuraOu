@@ -1916,6 +1916,7 @@ Bitboard Position::attackersTo(const Square sq, const Bitboard& occupied) const 
 }
 
 // occupied を Position::occupiedBB() 以外のものを使用する場合に使用する。
+// % of Hotspot Samples 7.45%
 Bitboard Position::attackersTo(const Color c, const Square sq, const Bitboard& occupied) const {
 	const Color opposite = oppositeColor(c);
 	return ((attacksFrom<Pawn  >(opposite, sq          ) & bbOf(Pawn  ))
