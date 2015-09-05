@@ -161,6 +161,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\src\csa_test.cpp" />
+    <ClCompile Include="..\..\src\evaluate_test.cpp" />
     <ClCompile Include="..\..\src\hayabusa_test.cpp" />
     <ClCompile Include="..\..\src\main_test.cpp" />
   </ItemGroup>

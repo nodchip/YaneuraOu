@@ -381,7 +381,7 @@ bool hayabusa::adjustWeights(
       maxDiff = max(maxDiff, abs(diff));
       diff2 += diff * diff;
       if (abs(diff) > threshold) {
-        printf("K00Sum[%d][%d] %6d -> %6d\n", i, j, K00Sum[i][j], (int)round(k00sum[i][j]));
+        //printf("K00Sum[%d][%d] %6d -> %6d\n", i, j, K00Sum[i][j], (int)round(k00sum[i][j]));
       }
       K00Sum[i][j] = round(k00sum[i][j]);
     }
@@ -393,7 +393,7 @@ bool hayabusa::adjustWeights(
         maxDiff = max(maxDiff, abs(diff));
         diff2 += diff * diff;
         if (abs(diff) > threshold) {
-          printf("KPP[%d][%d][%d] %6d -> %6d\n", i, j, k, KPP[i][j][k], (int)round(kpp[i][j][k]));
+          //printf("KPP[%d][%d][%d] %6d -> %6d\n", i, j, k, KPP[i][j][k], (int)round(kpp[i][j][k]));
         }
         KPP[i][j][k] = round(kpp[i][j][k]);
       }
@@ -406,7 +406,7 @@ bool hayabusa::adjustWeights(
         maxDiff = max(maxDiff, abs(diff));
         diff2 += diff * diff;
         if (abs(diff) > threshold) {
-          printf("KKP[%d][%d][%d] %6d -> %6d\n", i, j, k, KKP[i][j][k], (int)round(kkp[i][j][k]));
+          //printf("KKP[%d][%d][%d] %6d -> %6d\n", i, j, k, KKP[i][j][k], (int)round(kkp[i][j][k]));
         }
         KKP[i][j][k] = round(kkp[i][j][k]);
       }

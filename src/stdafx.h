@@ -71,4 +71,6 @@
 
 #include <filesystem>
 
+#include <immintrin.h>
+
 #endif

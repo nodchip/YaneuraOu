@@ -27,6 +27,18 @@ const int kppHandArray[ColorNum][HandPieceNum] = {
 };
 
 namespace {
+  static const __m256i MASK[9] = {
+    _mm256_setzero_si256(),
+    _mm256_set_epi32(-1, 0, 0, 0, 0, 0, 0, 0),
+    _mm256_set_epi32(-1, -1, 0, 0, 0, 0, 0, 0),
+    _mm256_set_epi32(-1, -1, -1, 0, 0, 0, 0, 0),
+    _mm256_set_epi32(-1, -1, -1, -1, 0, 0, 0, 0),
+    _mm256_set_epi32(-1, -1, -1, -1, -1, 0, 0, 0),
+    _mm256_set_epi32(-1, -1, -1, -1, -1, -1, 0, 0),
+    _mm256_set_epi32(-1, -1, -1, -1, -1, -1, -1, 0),
+    _mm256_set_epi32(-1, -1, -1, -1, -1, -1, -1, -1),
+  };
+
   // % of Hotspot Samples 12.08%
 	Score doapc(const Position& pos, const int index[2]) {
 		const Square sq_bk = pos.kingSquare(Black);
@@ -34,24 +46,55 @@ namespace {
 		const int* list0 = pos.cplist0();
 		const int* list1 = pos.cplist1();
 
-    // TODO(nodchip): KPP[sq_bk][list0[i]][list0[j]]と
-    // をKPP[inverse(sq_wk)][list1[i]][list1[j]]を
-    // _mm_i32gather_epi32/_mm256_i32gather_epi32を使用して足す。
+    // TODO(nodchip): _mm_i32gather_epi32/_mm256_i32gather_epi32と
     // _mm256_mask_i32gather_epi32と速度を比較する
-    
+
     Score sum = kkp(sq_bk, sq_wk, index[0]);
 
-    //for (int i = 0; i < pos.nlist(); ++i) {
-    //  sum += KPP[sq_bk         ][index[0]][list0[i]];
-    //  sum -= KPP[inverse(sq_wk)][index[1]][list1[i]];
-    //}
+#ifdef HAVE_AVX2
+    __m256i ymmScore = _mm256_setzero_si256();
+    for (int i = 0; i < pos.nlist(); ++i) {
+      // ymmList0 = list0[j]
+      __m256i ymmList0 = _mm256_loadu_si256((const __m256i*)&list0[i]);
+      // ymmKpp0 = KPP[sq_bk][index[0]][list0[i]] または 0
+      __m256i ymmKpp0 = _mm256_mask_i32gather_epi32(
+        _mm256_setzero_si256(),
+        KPP[sq_bk][index[0]],
+        ymmList0,
+        MASK[std::min(pos.nlist() - i, 8)],
+        sizeof(s32));
+      // ymmScore += ymmKpp0;
+      ymmScore = _mm256_add_epi32(ymmScore, ymmKpp0);
 
+      // ymmList1 = list1[j]
+      __m256i ymmList1 = _mm256_loadu_si256((const __m256i*)&list1[i]);
+      // ymmKpp1 = KPP[inverse(sq_wk)][index[1]][list1[i]] または 0
+      __m256i ymmKpp1 = _mm256_mask_i32gather_epi32(
+        _mm256_setzero_si256(),
+        KPP[inverse(sq_wk)][index[1]],
+        ymmList1,
+        MASK[std::min(pos.nlist() - i, 8)],
+        sizeof(s32));
+      // ymmScore += ymmKpp1;
+      ymmScore = _mm256_sub_epi32(ymmScore, ymmKpp1);
+    }
+
+    // http://www.slideshare.net/KenjiImasaki/ss-46408963
+    ymmScore = _mm256_hadd_epi32(ymmScore, ymmScore);
+    ymmScore = _mm256_hadd_epi32(ymmScore, ymmScore);
+    __m128i xmmScoreLow = _mm256_castsi256_si128(ymmScore);
+    __m128i xmmScoreHigh = _mm256_extracti128_si256(ymmScore, 1);
+    sum += _mm_cvtsi128_si32(xmmScoreLow);
+    sum += _mm_cvtsi128_si32(xmmScoreHigh);
+
+#else
     const auto* pkppb = KPP[sq_bk][index[0]];
     const auto* pkppw = KPP[inverse(sq_wk)][index[1]];
     for (int i = 0; i < pos.nlist(); ++i) {
       sum += pkppb[list0[i]];
       sum -= pkppw[list1[i]];
     }
+#endif
 
     return sum;
 	}
@@ -193,29 +236,67 @@ namespace {
 		const int* list0 = pos.plist0();
 		const int* list1 = pos.plist1();
 
-		const auto* ppkppb = KPP[sq_bk         ];
-		const auto* ppkppw = KPP[inverse(sq_wk)];
-
 		Score score = static_cast<Score>(K00Sum[sq_bk][sq_wk]);
 
-    // TODO(nodchip): KKP[sq_bk][sq_wk][list0[0]]を
-    // _mm_i32gather_epi32/_mm256_i32gather_epi32を使用して足す。
+#ifdef HAVE_AVX2
+    // TODO(nodchip): _mm_i32gather_epi32/_mm256_i32gather_epi32と
     // _mm256_mask_i32gather_epi32と速度を比較する
-    //for (int i = 0; i < pos.nlist(); ++i) {
-    //  score += KKP[sq_bk][sq_wk][list0[i]];
-    //}
+    __m256i ymmScore = _mm256_setzero_si256();
+    for (int i = 0; i < pos.nlist(); ++i) {
+      // ymmList0 = list0[j]
+      __m256i ymmList0 = _mm256_loadu_si256((const __m256i*)&list0[i]);
+      // ymmKpp0 = KKP[sq_bk][sq_wk][list0[i]] または 0
+      __m256i ymmKkp0 = _mm256_mask_i32gather_epi32(
+        _mm256_setzero_si256(),
+        KKP[sq_bk][sq_wk],
+        ymmList0,
+        MASK[std::min(pos.nlist() - i, 8)],
+        sizeof(s32));
+      // ymmScore += ymmKpp0;
+      ymmScore = _mm256_add_epi32(ymmScore, ymmKkp0);
+    }
 
-    //for (int i = 0; i < pos.nlist(); ++i) {
-    //  // TODO(nodchip): KPP[sq_bk][list0[i]][list0[j]]と
-    //  // をKPP[inverse(sq_wk)][list1[i]][list1[j]]を
-    //  // _mm_i32gather_epi32/_mm256_i32gather_epi32を使用して足す。
-    //  // _mm256_mask_i32gather_epi32と速度を比較する
+    for (int i = 0; i < pos.nlist(); ++i) {
+      // TODO(nodchip): _mm_i32gather_epi32/_mm256_i32gather_epi32と
+      // _mm256_mask_i32gather_epi32と速度を比較する
+      for (int j = 0; j < i; j += 8) {
+        // ymmList0 = list0[j]
+        __m256i ymmList0 = _mm256_loadu_si256((const __m256i*)&list0[j]);
+        // ymmKpp0 = KPP[sq_bk][list0[i]][list0[j]] または 0
+        __m256i ymmKpp0 = _mm256_mask_i32gather_epi32(
+          _mm256_setzero_si256(),
+          KPP[sq_bk][list0[i]],
+          ymmList0,
+          MASK[std::min(i - j, 8)],
+          sizeof(s32));
+        // ymmScore += ymmKpp0;
+        ymmScore = _mm256_add_epi32(ymmScore, ymmKpp0);
 
-    //  for (int j = 0; j < i; ++j) {
-    //    score += KPP[sq_bk][list0[i]][list0[j]];
-    //    score -= KPP[inverse(sq_wk)][list1[i]][list1[j]];
-    //  }
-    //}
+        // ymmList1 = list1[j]
+        __m256i ymmList1 = _mm256_loadu_si256((const __m256i*)&list1[j]);
+        // ymmKpp1 = KPP[inverse(sq_wk)][list1[i]][list1[j]] または 0
+        __m256i ymmKpp1 = _mm256_mask_i32gather_epi32(
+          _mm256_setzero_si256(),
+          KPP[inverse(sq_wk)][list1[i]],
+          ymmList1,
+          MASK[std::min(i - j, 8)],
+          sizeof(s32));
+        // ymmScore += ymmKpp1;
+        ymmScore = _mm256_sub_epi32(ymmScore, ymmKpp1);
+      }
+    }
+
+    // http://www.slideshare.net/KenjiImasaki/ss-46408963
+    ymmScore = _mm256_hadd_epi32(ymmScore, ymmScore);
+    ymmScore = _mm256_hadd_epi32(ymmScore, ymmScore);
+    __m128i xmmScoreLow = _mm256_castsi256_si128(ymmScore);
+    __m128i xmmScoreHigh = _mm256_extracti128_si256(ymmScore, 1);
+    score += _mm_cvtsi128_si32(xmmScoreLow);
+    score += _mm_cvtsi128_si32(xmmScoreHigh);
+
+#else
+    const auto* ppkppb = KPP[sq_bk];
+    const auto* ppkppw = KPP[inverse(sq_wk)];
 
     // loop 開始を i = 1 からにして、i = 0 の分のKKPを先に足す。
     score += KKP[sq_bk][sq_wk][list0[0]];
@@ -232,6 +313,7 @@ namespace {
       }
       score += KKP[sq_bk][sq_wk][k0];
     }
+#endif
 
 		score += pos.material() * Apery::FVScale;
 #if defined INANIWA_SHIFT
