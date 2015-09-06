@@ -29,13 +29,13 @@ const int kppHandArray[ColorNum][HandPieceNum] = {
 namespace {
   static const __m256i MASK[9] = {
     _mm256_setzero_si256(),
-    _mm256_set_epi32(-1, 0, 0, 0, 0, 0, 0, 0),
-    _mm256_set_epi32(-1, -1, 0, 0, 0, 0, 0, 0),
-    _mm256_set_epi32(-1, -1, -1, 0, 0, 0, 0, 0),
-    _mm256_set_epi32(-1, -1, -1, -1, 0, 0, 0, 0),
-    _mm256_set_epi32(-1, -1, -1, -1, -1, 0, 0, 0),
-    _mm256_set_epi32(-1, -1, -1, -1, -1, -1, 0, 0),
-    _mm256_set_epi32(-1, -1, -1, -1, -1, -1, -1, 0),
+    _mm256_set_epi32(0, 0, 0, 0, 0, 0, 0, -1),
+    _mm256_set_epi32(0, 0, 0, 0, 0, 0, -1, -1),
+    _mm256_set_epi32(0, 0, 0, 0, 0, -1, -1, -1),
+    _mm256_set_epi32(0, 0, 0, 0, -1, -1, -1, -1),
+    _mm256_set_epi32(0, 0, 0, -1, -1, -1, -1, -1),
+    _mm256_set_epi32(0, 0, -1, -1, -1, -1, -1, -1),
+    _mm256_set_epi32(0, -1, -1, -1, -1, -1, -1, -1),
     _mm256_set_epi32(-1, -1, -1, -1, -1, -1, -1, -1),
   };
 
@@ -53,7 +53,7 @@ namespace {
 
 #ifdef HAVE_AVX2
     __m256i ymmScore = _mm256_setzero_si256();
-    for (int i = 0; i < pos.nlist(); ++i) {
+    for (int i = 0; i < pos.nlist(); i += 8) {
       // ymmList0 = list0[j]
       __m256i ymmList0 = _mm256_loadu_si256((const __m256i*)&list0[i]);
       // ymmKpp0 = KPP[sq_bk][index[0]][list0[i]] または 0
@@ -75,7 +75,7 @@ namespace {
         ymmList1,
         MASK[std::min(pos.nlist() - i, 8)],
         sizeof(s32));
-      // ymmScore += ymmKpp1;
+      // ymmScore -= ymmKpp1;
       ymmScore = _mm256_sub_epi32(ymmScore, ymmKpp1);
     }
 
@@ -242,8 +242,8 @@ namespace {
     // TODO(nodchip): _mm_i32gather_epi32/_mm256_i32gather_epi32と
     // _mm256_mask_i32gather_epi32と速度を比較する
     __m256i ymmScore = _mm256_setzero_si256();
-    for (int i = 0; i < pos.nlist(); ++i) {
-      // ymmList0 = list0[j]
+    for (int i = 0; i < pos.nlist(); i += 8) {
+      // ymmList0 = list0[i]
       __m256i ymmList0 = _mm256_loadu_si256((const __m256i*)&list0[i]);
       // ymmKpp0 = KKP[sq_bk][sq_wk][list0[i]] または 0
       __m256i ymmKkp0 = _mm256_mask_i32gather_epi32(

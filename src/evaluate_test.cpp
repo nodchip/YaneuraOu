@@ -53,16 +53,19 @@ TEST_F(EvaluateTest, evaluate_withDiffBlack) {
   std::istringstream ss_sfen("startpos moves 7g7f");
   Position pos(DefaultStartPositionSFEN, g_threads.mainThread());
   setPosition(pos, ss_sfen);
-  StateInfo stateInfo;
-  pos.doMove(usiToMove(pos, "3c3d"), stateInfo);
 
   SearchStack searchStack[MaxPlyPlus2];
   memset(searchStack, 0, sizeof(searchStack));
   searchStack[0].currentMove = Move::moveNull(); // skip update gains
   searchStack[0].staticEvalRaw = (Score)INT_MAX;
   searchStack[1].staticEvalRaw = (Score)INT_MAX;
+  searchStack[2].staticEvalRaw = (Score)INT_MAX;
 
-  Score score = evaluate(pos, &searchStack[1]);
+  evaluate(pos, &searchStack[1]);
+  StateInfo stateInfo;
+  pos.doMove(usiToMove(pos, "3c3d"), stateInfo);
+
+  Score score = evaluate(pos, &searchStack[2]);
 
   EXPECT_EQ(-8, score);
 }
