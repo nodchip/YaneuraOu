@@ -55,7 +55,7 @@ namespace {
     __m256i ymmScore = _mm256_setzero_si256();
     for (int i = 0; i < pos.nlist(); i += 8) {
       // ymmList0 = list0[j]
-      __m256i ymmList0 = _mm256_loadu_si256((const __m256i*)&list0[i]);
+      __m256i ymmList0 = _mm256_load_si256((const __m256i*)&list0[i]);
       // ymmKpp0 = KPP[sq_bk][index[0]][list0[i]] または 0
       __m256i ymmKpp0 = _mm256_mask_i32gather_epi32(
         _mm256_setzero_si256(),
@@ -67,7 +67,7 @@ namespace {
       ymmScore = _mm256_add_epi32(ymmScore, ymmKpp0);
 
       // ymmList1 = list1[j]
-      __m256i ymmList1 = _mm256_loadu_si256((const __m256i*)&list1[i]);
+      __m256i ymmList1 = _mm256_load_si256((const __m256i*)&list1[i]);
       // ymmKpp1 = KPP[inverse(sq_wk)][index[1]][list1[i]] または 0
       __m256i ymmKpp1 = _mm256_mask_i32gather_epi32(
         _mm256_setzero_si256(),
@@ -244,7 +244,7 @@ namespace {
     __m256i ymmScore = _mm256_setzero_si256();
     for (int i = 0; i < pos.nlist(); i += 8) {
       // ymmList0 = list0[i]
-      __m256i ymmList0 = _mm256_loadu_si256((const __m256i*)&list0[i]);
+      __m256i ymmList0 = _mm256_load_si256((const __m256i*)&list0[i]);
       // ymmKpp0 = KKP[sq_bk][sq_wk][list0[i]] または 0
       __m256i ymmKkp0 = _mm256_mask_i32gather_epi32(
         _mm256_setzero_si256(),
@@ -261,7 +261,7 @@ namespace {
       // _mm256_mask_i32gather_epi32と速度を比較する
       for (int j = 0; j < i; j += 8) {
         // ymmList0 = list0[j]
-        __m256i ymmList0 = _mm256_loadu_si256((const __m256i*)&list0[j]);
+        __m256i ymmList0 = _mm256_load_si256((const __m256i*)&list0[j]);
         // ymmKpp0 = KPP[sq_bk][list0[i]][list0[j]] または 0
         __m256i ymmKpp0 = _mm256_mask_i32gather_epi32(
           _mm256_setzero_si256(),
@@ -273,7 +273,7 @@ namespace {
         ymmScore = _mm256_add_epi32(ymmScore, ymmKpp0);
 
         // ymmList1 = list1[j]
-        __m256i ymmList1 = _mm256_loadu_si256((const __m256i*)&list1[j]);
+        __m256i ymmList1 = _mm256_stream_load_si256((const __m256i*)&list1[j]);
         // ymmKpp1 = KPP[inverse(sq_wk)][list1[i]][list1[j]] または 0
         __m256i ymmKpp1 = _mm256_mask_i32gather_epi32(
           _mm256_setzero_si256(),

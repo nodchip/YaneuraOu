@@ -17,7 +17,7 @@ void benchmark(Position& pos) {
 	std::string token;
 	LimitsType limits;
 
-  g_options["Threads"] = std::string("2");
+  g_options["Threads"] = std::string("1");
   g_options["USI_Hash"] = std::string("4096");
 
 	std::ifstream ifs("../src/benchmark.sfen");

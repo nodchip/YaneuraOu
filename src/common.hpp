@@ -306,4 +306,16 @@ template <typename T> inline void reverseEndian(T& r) {
 }
 #endif
 
+#ifdef _WIN32
+#define ALIGNED16(x) __declspec(align(16)) x
+#define ALIGNED32(x) __declspec(align(32)) x
+#define ALIGNED64(x) __declspec(align(64)) x
+#define ALIGNED128(x) __declspec(align(128)) x
+#else
+#define ALIGNED16(x) __attribute__((aligned(16))) x
+#define ALIGNED32(x) __attribute__((aligned(32))) x
+#define ALIGNED64(x) __attribute__((aligned(64))) x
+#define ALIGNED128(x) __attribute__((aligned(128))) x
+#endif
+
 #endif // #ifndef COMMON_HPP
