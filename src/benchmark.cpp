@@ -24,7 +24,7 @@ void benchmark(Position& pos) {
   assert(ifs.is_open());
 	std::string sfen;
 	while (std::getline(ifs, sfen)) {
-		std::cout << sfen << std::endl;
+		//std::cout << sfen << std::endl;
 		std::istringstream ss_sfen(sfen);
 		setPosition(pos, ss_sfen);
 		std::istringstream ss_go("byoyomi 10000");

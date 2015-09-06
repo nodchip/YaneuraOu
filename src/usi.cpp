@@ -517,7 +517,9 @@ void doUSICommandLoop(int argc, char* argv[]) {
 // エンジン情報
 const std::string engine_name()
 {
-#ifdef HAVE_BMI2
+#ifdef HAVE_AVX2
+  std::string tag = "avx2";
+#elif HAVE_BMI2
 	std::string tag = "bmi2";
 #elif defined(HAVE_SSE42)
 	std::string tag = "sse4.2";
