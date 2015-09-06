@@ -273,7 +273,7 @@ namespace {
         ymmScore = _mm256_add_epi32(ymmScore, ymmKpp0);
 
         // ymmList1 = list1[j]
-        __m256i ymmList1 = _mm256_stream_load_si256((const __m256i*)&list1[j]);
+        __m256i ymmList1 = _mm256_load_si256((const __m256i*)&list1[j]);
         // ymmKpp1 = KPP[inverse(sq_wk)][list1[i]][list1[j]] または 0
         __m256i ymmKpp1 = _mm256_mask_i32gather_epi32(
           _mm256_setzero_si256(),
