@@ -165,6 +165,7 @@
     <ClInclude Include="..\..\src\search.hpp" />
     <ClInclude Include="..\..\src\square.hpp" />
     <ClInclude Include="..\..\src\stdafx.h" />
+    <ClInclude Include="..\..\src\string_util.hpp" />
     <ClInclude Include="..\..\src\thread.hpp" />
     <ClInclude Include="..\..\src\timeManager.hpp" />
     <ClInclude Include="..\..\src\tt.hpp" />
@@ -193,6 +194,7 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
     </ClCompile>
+    <ClCompile Include="..\..\src\string_util.cpp" />
     <ClCompile Include="..\..\src\thread.cpp" />
     <ClCompile Include="..\..\src\timeManager.cpp" />
     <ClCompile Include="..\..\src\tt.cpp" />

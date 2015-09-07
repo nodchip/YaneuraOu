@@ -1,3 +1,6 @@
+#include <filesystem>
+#include <iostream>
+
 #include "csa.hpp"
 #include "generateMoves.hpp"
 #include "hayabusa.hpp"
@@ -6,8 +9,7 @@
 #include "search.hpp"
 #include "square.hpp"
 #include "thread.hpp"
-#include <filesystem>
-#include <iostream>
+#include "string_util.hpp"
 
 using namespace std;
 using namespace std::tr2::sys;
@@ -26,26 +28,6 @@ static const Score LOSE_PENARTY = PawnScore * 1000;
 void setPosition(Position& pos, std::istringstream& ssCmd);
 void go(const Position& pos, std::istringstream& ssCmd);
 
-// 文字列をスペースで区切って文字列の配列に変換する
-static void split(const string& in, vector<string>& out) {
-  out.clear();
-  istringstream iss(in);
-  string word;
-  while (iss >> word) {
-    out.push_back(word);
-  }
-}
-
-// 文字列の配列をスペース区切りで結合する
-static void concat(const vector<string>& words, string& out) {
-  out.clear();
-  for (const auto& word : words) {
-    if (!out.empty()) {
-      out += " ";
-    }
-    out += word;
-  }
-}
 
 // SFENを教師データに変換する
 // sfen SFEN形式の文字列
@@ -58,12 +40,12 @@ static bool converSfenToTeacherData(
   vector<hayabusa::TeacherData>& teacherDatas,
   int& plays) {
   vector<string> sfen;
-  split(in, sfen);
+  string_util::split(in, sfen);
 
   int numberOfPlays = sfen.size() - 2;
   for (int play = 1; play <= numberOfPlays; ++play) {
     string subSfen;
-    concat(vector<string>(sfen.begin(), sfen.begin() + play + 2), subSfen);
+    string_util::concat(vector<string>(sfen.begin(), sfen.begin() + play + 2), subSfen);
 
     std::istringstream ss_sfen(subSfen);
     Position pos(DefaultStartPositionSFEN, g_threads.mainThread());
@@ -209,7 +191,7 @@ bool hayabusa::addTeacherData(
     }
 
     string sfen;
-    concat(words, sfen);
+    string_util::concat(words, sfen);
 
     vector<TeacherData> teacherDatas;
     if (!converSfenToTeacherData(sfen, maxNumberOfPlays, teacherDatas, plays)) {
