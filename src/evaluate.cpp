@@ -242,6 +242,7 @@ namespace {
     // TODO(nodchip): _mm_i32gather_epi32/_mm256_i32gather_epi32と
     // _mm256_mask_i32gather_epi32と速度を比較する
     __m256i ymmScore = _mm256_setzero_si256();
+    __m128i xmmScore = _mm_setzero_si128();
     for (int i = 0; i < pos.nlist(); i += 8) {
       // ymmList0 = list0[i]
       __m256i ymmList0 = _mm256_load_si256((const __m256i*)&list0[i]);
@@ -256,33 +257,57 @@ namespace {
       ymmScore = _mm256_add_epi32(ymmScore, ymmKkp0);
     }
 
+    const auto* ppkppb = KPP[sq_bk];
+    const auto* ppkppw = KPP[inverse(sq_wk)];
+
     for (int i = 0; i < pos.nlist(); ++i) {
+      const int k0 = list0[i];
+      const int k1 = list1[i];
+      const auto* pkppb = ppkppb[k0];
+      const auto* pkppw = ppkppw[k1];
+
       // TODO(nodchip): _mm_i32gather_epi32/_mm256_i32gather_epi32と
       // _mm256_mask_i32gather_epi32と速度を比較する
-      for (int j = 0; j < i; j += 8) {
-        // ymmList0 = list0[j]
+      int j;
+      for (j = 0; j + 8 <= i; j += 8) {
         __m256i ymmList0 = _mm256_load_si256((const __m256i*)&list0[j]);
-        // ymmKpp0 = KPP[sq_bk][list0[i]][list0[j]] または 0
-        __m256i ymmKpp0 = _mm256_mask_i32gather_epi32(
-          _mm256_setzero_si256(),
-          KPP[sq_bk][list0[i]],
+        __m256i ymmKpp0 = _mm256_i32gather_epi32(
+          pkppb,
           ymmList0,
-          MASK[std::min(i - j, 8)],
           sizeof(s32));
-        // ymmScore += ymmKpp0;
         ymmScore = _mm256_add_epi32(ymmScore, ymmKpp0);
 
-        // ymmList1 = list1[j]
         __m256i ymmList1 = _mm256_load_si256((const __m256i*)&list1[j]);
-        // ymmKpp1 = KPP[inverse(sq_wk)][list1[i]][list1[j]] または 0
-        __m256i ymmKpp1 = _mm256_mask_i32gather_epi32(
-          _mm256_setzero_si256(),
-          KPP[inverse(sq_wk)][list1[i]],
+        __m256i ymmKpp1 = _mm256_i32gather_epi32(
+          pkppw,
           ymmList1,
-          MASK[std::min(i - j, 8)],
           sizeof(s32));
-        // ymmScore += ymmKpp1;
         ymmScore = _mm256_sub_epi32(ymmScore, ymmKpp1);
+      }
+
+      if (j + 4 <= i) {
+        __m128i xmmList0 = _mm_load_si128((const __m128i*)&list0[j]);
+        __m128i xmmKpp0 = _mm_i32gather_epi32(
+          pkppb,
+          xmmList0,
+          sizeof(s32));
+        xmmScore = _mm_add_epi32(xmmScore, xmmKpp0);
+
+        __m128i xmmList1 = _mm_load_si128((const __m128i*)&list1[j]);
+        __m128i xmmKpp1 = _mm_i32gather_epi32(
+          pkppw,
+          xmmList1,
+          sizeof(s32));
+        xmmScore = _mm_sub_epi32(xmmScore, xmmKpp1);
+
+        j += 4;
+      }
+
+      for (; j < i; ++j) {
+        const int l0 = list0[j];
+        const int l1 = list1[j];
+        score += pkppb[l0];
+        score -= pkppw[l1];
       }
     }
 
@@ -293,6 +318,9 @@ namespace {
     __m128i xmmScoreHigh = _mm256_extracti128_si256(ymmScore, 1);
     score += _mm_cvtsi128_si32(xmmScoreLow);
     score += _mm_cvtsi128_si32(xmmScoreHigh);
+    xmmScore = _mm_hadd_epi32(xmmScore, xmmScore);
+    xmmScore = _mm_hadd_epi32(xmmScore, xmmScore);
+    score += _mm_cvtsi128_si32(xmmScore);
 
 #else
     const auto* ppkppb = KPP[sq_bk];
