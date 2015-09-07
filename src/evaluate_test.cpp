@@ -30,7 +30,7 @@ TEST_F(EvaluateTest, evaluate_withoutDiffBlack) {
 
   Score score = evaluate(pos, &searchStack[1]);
 
-  EXPECT_EQ(-7, score);
+  EXPECT_EQ(0, score);
 }
 
 TEST_F(EvaluateTest, evaluate_withoutDiffWhite) {
@@ -46,7 +46,7 @@ TEST_F(EvaluateTest, evaluate_withoutDiffWhite) {
 
   Score score = evaluate(pos, &searchStack[1]);
 
-  EXPECT_EQ(-64, score);
+  EXPECT_EQ(-76, score);
 }
 
 TEST_F(EvaluateTest, evaluate_withDiffBlack) {
@@ -67,7 +67,7 @@ TEST_F(EvaluateTest, evaluate_withDiffBlack) {
 
   Score score = evaluate(pos, &searchStack[2]);
 
-  EXPECT_EQ(-8, score);
+  EXPECT_EQ(0, score);
 }
 
 TEST_F(EvaluateTest, evaluate_withDiffWhite) {
@@ -86,5 +86,5 @@ TEST_F(EvaluateTest, evaluate_withDiffWhite) {
 
   Score score = evaluate(pos, &searchStack[1]);
 
-  EXPECT_EQ(-78, score);
+  EXPECT_EQ(-87, score);
 }
