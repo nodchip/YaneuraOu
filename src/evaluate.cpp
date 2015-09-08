@@ -312,7 +312,7 @@ namespace {
         ymmScore = _mm256_sub_epi32(ymmScore, ymmKpp1);
       }
 
-      if (j + 4 <= i) {
+      for (; j + 4 <= i; j += 4) {
         __m128i xmmList0 = _mm_load_si128((const __m128i*)&list0[j]);
         __m128i xmmKpp0 = _mm_i32gather_epi32(
           pkppb,
@@ -326,8 +326,6 @@ namespace {
           xmmList1,
           sizeof(s32));
         xmmScore = _mm_sub_epi32(xmmScore, xmmKpp1);
-
-        j += 4;
       }
 
       for (; j < i; ++j) {
