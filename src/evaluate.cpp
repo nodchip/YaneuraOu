@@ -46,9 +46,6 @@ namespace {
 		const int* list0 = pos.cplist0();
 		const int* list1 = pos.cplist1();
 
-    // TODO(nodchip): _mm_i32gather_epi32/_mm256_i32gather_epi32と
-    // _mm256_mask_i32gather_epi32と速度を比較する
-
     Score sum = kkp(sq_bk, sq_wk, index[0]);
 
 #ifdef HAVE_AVX2
@@ -59,32 +56,20 @@ namespace {
     int i;
     for (i = 0; i + 8 <= pos.nlist(); i += 8) {
       __m256i ymmList0 = _mm256_load_si256((const __m256i*)&list0[i]);
-      __m256i ymmKpp0 = _mm256_i32gather_epi32(
-        pkppb,
-        ymmList0,
-        sizeof(s32));
+      __m256i ymmKpp0 = _mm256_i32gather_epi32(pkppb, ymmList0, sizeof(s32));
       ymmScore = _mm256_add_epi32(ymmScore, ymmKpp0);
 
       __m256i ymmList1 = _mm256_load_si256((const __m256i*)&list1[i]);
-      __m256i ymmKpp1 = _mm256_i32gather_epi32(
-        pkppw,
-        ymmList1,
-        sizeof(s32));
+      __m256i ymmKpp1 = _mm256_i32gather_epi32(pkppw, ymmList1, sizeof(s32));
       ymmScore = _mm256_sub_epi32(ymmScore, ymmKpp1);
     }
     for (; i + 4 <= pos.nlist(); i += 4) {
       __m128i xmmList0 = _mm_load_si128((const __m128i*)&list0[i]);
-      __m128i xmmKpp0 = _mm_i32gather_epi32(
-        pkppb,
-        xmmList0,
-        sizeof(s32));
+      __m128i xmmKpp0 = _mm_i32gather_epi32(pkppb, xmmList0, sizeof(s32));
       xmmScore = _mm_add_epi32(xmmScore, xmmKpp0);
 
       __m128i xmmList1 = _mm_load_si128((const __m128i*)&list1[i]);
-      __m128i xmmKpp1 = _mm_i32gather_epi32(
-        pkppw,
-        xmmList1,
-        sizeof(s32));
+      __m128i xmmKpp1 = _mm_i32gather_epi32(pkppw, xmmList1, sizeof(s32));
       xmmScore = _mm_sub_epi32(xmmScore, xmmKpp1);
     }
 
@@ -256,27 +241,19 @@ namespace {
 		Score score = static_cast<Score>(K00Sum[sq_bk][sq_wk]);
 
 #ifdef HAVE_AVX2
-    // TODO(nodchip): _mm_i32gather_epi32/_mm256_i32gather_epi32と
-    // _mm256_mask_i32gather_epi32と速度を比較する
     __m256i ymmScore = _mm256_setzero_si256();
     __m128i xmmScore = _mm_setzero_si128();
     const s32* kkpbw = KKP[sq_bk][sq_wk];
     int i;
     for (i = 0; i + 8 <= pos.nlist(); i += 8) {
       __m256i ymmList0 = _mm256_load_si256((const __m256i*)&list0[i]);
-      __m256i ymmKkp0 = _mm256_i32gather_epi32(
-        kkpbw,
-        ymmList0,
-        sizeof(s32));
+      __m256i ymmKkp0 = _mm256_i32gather_epi32(kkpbw, ymmList0, sizeof(s32));
       ymmScore = _mm256_add_epi32(ymmScore, ymmKkp0);
     }
 
     for (; i + 4 <= pos.nlist(); i += 4) {
       __m128i xmmList0 = _mm_load_si128((const __m128i*)&list0[i]);
-      __m128i xmmKkp0 = _mm_i32gather_epi32(
-        kkpbw,
-        xmmList0,
-        sizeof(s32));
+      __m128i xmmKkp0 = _mm_i32gather_epi32(kkpbw, xmmList0, sizeof(s32));
       xmmScore = _mm_add_epi32(xmmScore, xmmKkp0);
     }
 
@@ -293,38 +270,24 @@ namespace {
       const auto* pkppb = ppkppb[k0];
       const auto* pkppw = ppkppw[k1];
 
-      // TODO(nodchip): _mm_i32gather_epi32/_mm256_i32gather_epi32と
-      // _mm256_mask_i32gather_epi32と速度を比較する
       int j;
       for (j = 0; j + 8 <= i; j += 8) {
         __m256i ymmList0 = _mm256_load_si256((const __m256i*)&list0[j]);
-        __m256i ymmKpp0 = _mm256_i32gather_epi32(
-          pkppb,
-          ymmList0,
-          sizeof(s32));
+        __m256i ymmKpp0 = _mm256_i32gather_epi32(pkppb, ymmList0, sizeof(s32));
         ymmScore = _mm256_add_epi32(ymmScore, ymmKpp0);
 
         __m256i ymmList1 = _mm256_load_si256((const __m256i*)&list1[j]);
-        __m256i ymmKpp1 = _mm256_i32gather_epi32(
-          pkppw,
-          ymmList1,
-          sizeof(s32));
+        __m256i ymmKpp1 = _mm256_i32gather_epi32(pkppw, ymmList1, sizeof(s32));
         ymmScore = _mm256_sub_epi32(ymmScore, ymmKpp1);
       }
 
       for (; j + 4 <= i; j += 4) {
         __m128i xmmList0 = _mm_load_si128((const __m128i*)&list0[j]);
-        __m128i xmmKpp0 = _mm_i32gather_epi32(
-          pkppb,
-          xmmList0,
-          sizeof(s32));
+        __m128i xmmKpp0 = _mm_i32gather_epi32(pkppb, xmmList0, sizeof(s32));
         xmmScore = _mm_add_epi32(xmmScore, xmmKpp0);
 
         __m128i xmmList1 = _mm_load_si128((const __m128i*)&list1[j]);
-        __m128i xmmKpp1 = _mm_i32gather_epi32(
-          pkppw,
-          xmmList1,
-          sizeof(s32));
+        __m128i xmmKpp1 = _mm_i32gather_epi32(pkppw, xmmList1, sizeof(s32));
         xmmScore = _mm_sub_epi32(xmmScore, xmmKpp1);
       }
 
