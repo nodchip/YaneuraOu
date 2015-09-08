@@ -52,31 +52,45 @@ namespace {
     Score sum = kkp(sq_bk, sq_wk, index[0]);
 
 #ifdef HAVE_AVX2
+    const auto* pkppb = KPP[sq_bk][index[0]];
+    const auto* pkppw = KPP[inverse(sq_wk)][index[1]];
     __m256i ymmScore = _mm256_setzero_si256();
-    for (int i = 0; i < pos.nlist(); i += 8) {
-      // ymmList0 = list0[j]
+    __m128i xmmScore = _mm_setzero_si128();
+    int i;
+    for (i = 0; i + 8 <= pos.nlist(); i += 8) {
       __m256i ymmList0 = _mm256_load_si256((const __m256i*)&list0[i]);
-      // ymmKpp0 = KPP[sq_bk][index[0]][list0[i]] または 0
-      __m256i ymmKpp0 = _mm256_mask_i32gather_epi32(
-        _mm256_setzero_si256(),
-        KPP[sq_bk][index[0]],
+      __m256i ymmKpp0 = _mm256_i32gather_epi32(
+        pkppb,
         ymmList0,
-        MASK[std::min(pos.nlist() - i, 8)],
         sizeof(s32));
-      // ymmScore += ymmKpp0;
       ymmScore = _mm256_add_epi32(ymmScore, ymmKpp0);
 
-      // ymmList1 = list1[j]
       __m256i ymmList1 = _mm256_load_si256((const __m256i*)&list1[i]);
-      // ymmKpp1 = KPP[inverse(sq_wk)][index[1]][list1[i]] または 0
-      __m256i ymmKpp1 = _mm256_mask_i32gather_epi32(
-        _mm256_setzero_si256(),
-        KPP[inverse(sq_wk)][index[1]],
+      __m256i ymmKpp1 = _mm256_i32gather_epi32(
+        pkppw,
         ymmList1,
-        MASK[std::min(pos.nlist() - i, 8)],
         sizeof(s32));
-      // ymmScore -= ymmKpp1;
       ymmScore = _mm256_sub_epi32(ymmScore, ymmKpp1);
+    }
+    for (; i + 4 <= pos.nlist(); i += 4) {
+      __m128i xmmList0 = _mm_load_si128((const __m128i*)&list0[i]);
+      __m128i xmmKpp0 = _mm_i32gather_epi32(
+        pkppb,
+        xmmList0,
+        sizeof(s32));
+      xmmScore = _mm_add_epi32(xmmScore, xmmKpp0);
+
+      __m128i xmmList1 = _mm_load_si128((const __m128i*)&list1[i]);
+      __m128i xmmKpp1 = _mm_i32gather_epi32(
+        pkppw,
+        xmmList1,
+        sizeof(s32));
+      xmmScore = _mm_sub_epi32(xmmScore, xmmKpp1);
+    }
+
+    for (; i < pos.nlist(); ++i) {
+      sum += pkppb[list0[i]];
+      sum -= pkppw[list1[i]];
     }
 
     // http://www.slideshare.net/KenjiImasaki/ss-46408963
@@ -86,6 +100,9 @@ namespace {
     __m128i xmmScoreHigh = _mm256_extracti128_si256(ymmScore, 1);
     sum += _mm_cvtsi128_si32(xmmScoreLow);
     sum += _mm_cvtsi128_si32(xmmScoreHigh);
+    xmmScore = _mm_hadd_epi32(xmmScore, xmmScore);
+    xmmScore = _mm_hadd_epi32(xmmScore, xmmScore);
+    sum += _mm_cvtsi128_si32(xmmScore);
 
 #else
     const auto* pkppb = KPP[sq_bk][index[0]];
@@ -243,23 +260,33 @@ namespace {
     // _mm256_mask_i32gather_epi32と速度を比較する
     __m256i ymmScore = _mm256_setzero_si256();
     __m128i xmmScore = _mm_setzero_si128();
-    for (int i = 0; i < pos.nlist(); i += 8) {
-      // ymmList0 = list0[i]
+    const s32* kkpbw = KKP[sq_bk][sq_wk];
+    int i;
+    for (i = 0; i + 8 <= pos.nlist(); i += 8) {
       __m256i ymmList0 = _mm256_load_si256((const __m256i*)&list0[i]);
-      // ymmKpp0 = KKP[sq_bk][sq_wk][list0[i]] または 0
-      __m256i ymmKkp0 = _mm256_mask_i32gather_epi32(
-        _mm256_setzero_si256(),
-        KKP[sq_bk][sq_wk],
+      __m256i ymmKkp0 = _mm256_i32gather_epi32(
+        kkpbw,
         ymmList0,
-        MASK[std::min(pos.nlist() - i, 8)],
         sizeof(s32));
-      // ymmScore += ymmKpp0;
       ymmScore = _mm256_add_epi32(ymmScore, ymmKkp0);
+    }
+
+    for (; i + 4 <= pos.nlist(); i += 4) {
+      __m128i xmmList0 = _mm_load_si128((const __m128i*)&list0[i]);
+      __m128i xmmKkp0 = _mm_i32gather_epi32(
+        kkpbw,
+        xmmList0,
+        sizeof(s32));
+      xmmScore = _mm_add_epi32(xmmScore, xmmKkp0);
+    }
+
+    for (; i < pos.nlist(); ++i) {
+      const int k0 = list0[i];
+      score += kkpbw[k0];
     }
 
     const auto* ppkppb = KPP[sq_bk];
     const auto* ppkppw = KPP[inverse(sq_wk)];
-
     for (int i = 0; i < pos.nlist(); ++i) {
       const int k0 = list0[i];
       const int k1 = list1[i];
