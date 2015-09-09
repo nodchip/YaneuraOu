@@ -1,8 +1,8 @@
 #include <filesystem>
 #include <fstream>
 #include "csa.hpp"
-#include "thread.hpp"
-#include "usi.hpp"
+#include "search.hpp"
+#include "string_util.hpp"
 
 using namespace std;
 using namespace std::tr2::sys;
@@ -15,7 +15,9 @@ bool csa::toSfen(const std::tr2::sys::path& filepath, std::vector<std::string>& 
   sfen.push_back("startpos");
   sfen.push_back("moves");
 
-  Position position(DefaultStartPositionSFEN, g_threads.mainThread());
+  Position position;
+  std::istringstream ss_sfen(string_util::concat(sfen));
+  setPosition(position, ss_sfen);
 
   ifstream ifs(filepath);
   if (!ifs.is_open()) {
@@ -220,7 +222,7 @@ bool csa::convertCsa1LineToSfen(
     ofs << "startpos moves";
 
     Position pos;
-    pos.set(DefaultStartPositionSFEN, g_threads.mainThread());
+    pos.set(DefaultStartPositionSFEN, Searcher::threads.mainThread());
     StateStackPtr SetUpStates = StateStackPtr(new std::stack<StateInfo>());
     while (!line.empty()) {
       const std::string moveStrCSA = line.substr(0, 6);

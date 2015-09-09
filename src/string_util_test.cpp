@@ -17,8 +17,7 @@ TEST_F(StringUtilTest, split_simpleExample) {
   string input = "a b c";
   vector<string> expected = { "a", "b", "c" };
 
-  vector<string> actual;
-  string_util::split(input, actual);
+  vector<string> actual = string_util::split(input);
   EXPECT_EQ(expected, actual);
 }
 
@@ -26,7 +25,6 @@ TEST_F(StringUtilTest, concat_simpleExample) {
   vector<string> input = { "a", "b", "c" };
   string expected = "a b c";
 
-  string actual;
-  string_util::concat(input, actual);
+  string actual = string_util::concat(input);
   EXPECT_EQ(expected, actual);
 }

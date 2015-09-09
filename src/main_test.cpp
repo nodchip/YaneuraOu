@@ -1,21 +1,19 @@
 #include <gtest/gtest.h>
 #include "init.hpp"
 #include "thread.hpp"
+#include "search.hpp"
 #include "usi.hpp"
 
 int main(int argc, char **argv) {
   ::testing::InitGoogleTest(&argc, argv);
 
-  std::cout << engine_name() << std::endl;
-
-  initTable(true);
+  initTable();
   Position::initZobrist();
-  g_threads.init();
-  Searcher::tt.setSize(g_options["USI_Hash"]);
-
+  auto s = std::unique_ptr<Searcher>(new Searcher);
+  s->init();
+  // 一時オブジェクトの生成と破棄
+  std::unique_ptr<Evaluater>(new Evaluater)->init(s->options["Eval_Dir"], true);
   int statusCode = RUN_ALL_TESTS();
-
-  g_threads.exit(); // main関数が終わるまでにスレッドは終了させる
-
+  s->threads.exit();
   return statusCode;
 }

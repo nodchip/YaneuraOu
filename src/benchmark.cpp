@@ -3,32 +3,29 @@
 #include "usi.hpp"
 #include "position.hpp"
 #include "search.hpp"
-#include "thread.hpp"
-
-extern bool showInfo;
-
-void setPosition(Position& pos, std::istringstream& ssCmd);
-void go(const Position& pos, std::istringstream& ssCmd);
 
 // 今はベンチマークというより、PGO ビルドの自動化の為にある。
 void benchmark(Position& pos) {
-  showInfo = false;
+  std::string token;
+  LimitsType limits;
 
-	std::string token;
-	LimitsType limits;
+  std::string options[] = { "name Threads value 1",
+    "name MultiPV value 1",
+    "name OwnBook value false",
+    "name Max_Random_Score_Diff value 0" };
+  for (auto& str : options) {
+    std::istringstream is(str);
+    pos.searcher()->setOption(is);
+  }
 
-  g_options["Threads"] = std::string("1");
-  g_options["USI_Hash"] = std::string("4096");
-
-	std::ifstream ifs("../src/benchmark.sfen");
-  assert(ifs.is_open());
-	std::string sfen;
-	while (std::getline(ifs, sfen)) {
-		//std::cout << sfen << std::endl;
-		std::istringstream ss_sfen(sfen);
-		setPosition(pos, ss_sfen);
-		std::istringstream ss_go("byoyomi 10000");
-		go(pos, ss_go);
-    g_threads.waitForThinkFinished();
-	}
+  std::ifstream ifs("benchmark.sfen");
+  std::string sfen;
+  while (std::getline(ifs, sfen)) {
+    std::cout << sfen << std::endl;
+    std::istringstream ss_sfen(sfen);
+    setPosition(pos, ss_sfen);
+    std::istringstream ss_go("byoyomi 10000");
+    go(pos, ss_go);
+    pos.searcher()->threads.waitForThinkFinished();
+  }
 }

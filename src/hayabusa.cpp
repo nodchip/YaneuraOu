@@ -21,7 +21,6 @@ const std::tr2::sys::path hayabusa::DEFAULT_INPUT_SHOGIDOKORO_CSA_DIRECTORY_PATH
 const std::tr2::sys::path hayabusa::DEFAULT_INPUT_SFEN_FILE_PATH("../bin/kifu.sfen");
 
 static const double ALPHA = pow(2.0, -4.0);
-extern bool showInfo;
 
 static const Score LOSE_PENARTY = PawnScore * 1000;
 
@@ -39,16 +38,14 @@ static bool converSfenToTeacherData(
   int maxNumberOfPlays,
   vector<hayabusa::TeacherData>& teacherDatas,
   int& plays) {
-  vector<string> sfen;
-  string_util::split(in, sfen);
+  vector<string> sfen = string_util::split(in);
 
   int numberOfPlays = sfen.size() - 2;
   for (int play = 1; play <= numberOfPlays; ++play) {
-    string subSfen;
-    string_util::concat(vector<string>(sfen.begin(), sfen.begin() + play + 2), subSfen);
+    string subSfen = string_util::concat(vector<string>(sfen.begin(), sfen.begin() + play + 2));
 
     std::istringstream ss_sfen(subSfen);
-    Position pos(DefaultStartPositionSFEN, g_threads.mainThread());
+    Position pos;
     setPosition(pos, ss_sfen);
 
     SearchStack searchStack[MaxPlyPlus2];
@@ -105,8 +102,6 @@ bool hayabusa::convertSfenToTeacherData(
   const std::tr2::sys::path& outputTeacherDataFilePath,
   int maxNumberOfPlays) {
   cout << "hayabusa::createTeacherData()" << endl;
-
-  showInfo = false;
 
   int numberOfKifus = getNumberOfLines(inputSfenFilePath);
 
@@ -190,8 +185,7 @@ bool hayabusa::addTeacherData(
       continue;
     }
 
-    string sfen;
-    string_util::concat(words, sfen);
+    string sfen = string_util::concat(words);
 
     vector<TeacherData> teacherDatas;
     if (!converSfenToTeacherData(sfen, maxNumberOfPlays, teacherDatas, plays)) {
@@ -237,24 +231,24 @@ bool hayabusa::adjustWeights(
 
   // 重みを更新する
   vector<vector<double> > k00sum(SquareNum, vector<double>(SquareNum));
-  vector<vector<vector<double> > > kpp(SquareNum, vector<vector<double> >(Apery::fe_end, vector<double>(Apery::fe_end)));
-  vector<vector<vector<double> > > kkp(SquareNum, vector<vector<double> >(SquareNum, vector<double>(Apery::fe_end)));
+  vector<vector<vector<double> > > kpp(SquareNum, vector<vector<double> >(fe_end, vector<double>(fe_end)));
+  vector<vector<vector<double> > > kkp(SquareNum, vector<vector<double> >(SquareNum, vector<double>(fe_end)));
   for (int i = 0; i < SquareNum; ++i) {
     for (int j = 0; j < SquareNum; ++j) {
-      k00sum[i][j] = K00Sum[i][j];
+      k00sum[i][j] = Evaluater::KK[i][j];
     }
   }
   for (int i = 0; i < SquareNum; ++i) {
-    for (int j = 0; j < Apery::fe_end; ++j) {
-      for (int k = 0; k < Apery::fe_end; ++k) {
-        kpp[i][j][k] = KPP[i][j][k];
+    for (int j = 0; j < fe_end; ++j) {
+      for (int k = 0; k < fe_end; ++k) {
+        kpp[i][j][k] = Evaluater::KPP[i][j][k];
       }
     }
   }
   for (int i = 0; i < SquareNum; ++i) {
     for (int j = 0; j < SquareNum; ++j) {
-      for (int k = 0; k < Apery::fe_end; ++k) {
-        kkp[i][j][k] = KKP[i][j][k];
+      for (int k = 0; k < fe_end; ++k) {
+        kkp[i][j][k] = Evaluater::KKP[i][j][k];
       }
     }
   }
@@ -265,8 +259,8 @@ bool hayabusa::adjustWeights(
     // 最急降下法を使用して重みを調整する
     // こういう書き方すると心が荒む
     vector<vector<double> > k00sumDelta(SquareNum, vector<double>(SquareNum));
-    vector<vector<vector<double> > > kppDelta(SquareNum, vector<vector<double> >(Apery::fe_end, vector<double>(Apery::fe_end)));
-    vector<vector<vector<double> > > kkpDelta(SquareNum, vector<vector<double> >(SquareNum, vector<double>(Apery::fe_end)));
+    vector<vector<vector<double> > > kppDelta(SquareNum, vector<vector<double> >(fe_end, vector<double>(fe_end)));
+    vector<vector<vector<double> > > kkpDelta(SquareNum, vector<vector<double> >(SquareNum, vector<double>(fe_end)));
     // TODO(nodchip): バイアスhを加える
 
     ifstream teacherFile(inputTeacherFilePath, std::ios::in | std::ios::binary);
@@ -290,7 +284,7 @@ bool hayabusa::adjustWeights(
       const int* list0 = teacherData.list0;
       const int* list1 = teacherData.list1;
       int material = teacherData.material;
-      Score teacher = teacherData.teacher * Apery::FVScale;
+      Score teacher = teacherData.teacher * FVScale;
 
       // 実際の信号を計算する
       double y = k00sum[sq_bk][sq_wk];
@@ -305,7 +299,7 @@ bool hayabusa::adjustWeights(
         }
         y += kkp[sq_bk][sq_wk][k0];
       }
-      y += material * Apery::FVScale;
+      y += material * FVScale;
 
       // 教師信号と実際の信号から重みの増減分を計算する
       // TODO(nodchip): materialを更新する必要があるかどうか考える
@@ -336,15 +330,15 @@ bool hayabusa::adjustWeights(
       }
     }
     for (int i = 0; i < SquareNum; ++i) {
-      for (int j = 0; j < Apery::fe_end; ++j) {
-        for (int k = 0; k < Apery::fe_end; ++k) {
+      for (int j = 0; j < fe_end; ++j) {
+        for (int k = 0; k < fe_end; ++k) {
           kpp[i][j][k] += kppDelta[i][j][k];
         }
       }
     }
     for (int i = 0; i < SquareNum; ++i) {
       for (int j = 0; j < SquareNum; ++j) {
-        for (int k = 0; k < Apery::fe_end; ++k) {
+        for (int k = 0; k < fe_end; ++k) {
           kkp[i][j][k] += kkpDelta[i][j][k];
         }
       }
@@ -359,38 +353,38 @@ bool hayabusa::adjustWeights(
   double threshold = 4.0;
   for (int i = 0; i < SquareNum; ++i) {
     for (int j = 0; j < SquareNum; ++j) {
-      double diff = K00Sum[i][j] - k00sum[i][j];
+      double diff = Evaluater::KK[i][j] - k00sum[i][j];
       maxDiff = max(maxDiff, abs(diff));
       diff2 += diff * diff;
       if (abs(diff) > threshold) {
         //printf("K00Sum[%d][%d] %6d -> %6d\n", i, j, K00Sum[i][j], (int)round(k00sum[i][j]));
       }
-      K00Sum[i][j] = round(k00sum[i][j]);
+      Evaluater::KK[i][j] = round(k00sum[i][j]);
     }
   }
   for (int i = 0; i < SquareNum; ++i) {
-    for (int j = 0; j < Apery::fe_end; ++j) {
-      for (int k = 0; k < Apery::fe_end; ++k) {
-        double diff = KPP[i][j][k] - kpp[i][j][k];
+    for (int j = 0; j < fe_end; ++j) {
+      for (int k = 0; k < fe_end; ++k) {
+        double diff = Evaluater::KPP[i][j][k] - kpp[i][j][k];
         maxDiff = max(maxDiff, abs(diff));
         diff2 += diff * diff;
         if (abs(diff) > threshold) {
           //printf("KPP[%d][%d][%d] %6d -> %6d\n", i, j, k, KPP[i][j][k], (int)round(kpp[i][j][k]));
         }
-        KPP[i][j][k] = round(kpp[i][j][k]);
+        Evaluater::KPP[i][j][k] = round(kpp[i][j][k]);
       }
     }
   }
   for (int i = 0; i < SquareNum; ++i) {
     for (int j = 0; j < SquareNum; ++j) {
-      for (int k = 0; k < Apery::fe_end; ++k) {
-        double diff = KKP[i][j][k] - kkp[i][j][k];
+      for (int k = 0; k < fe_end; ++k) {
+        double diff = Evaluater::KKP[i][j][k] - kkp[i][j][k];
         maxDiff = max(maxDiff, abs(diff));
         diff2 += diff * diff;
         if (abs(diff) > threshold) {
           //printf("KKP[%d][%d][%d] %6d -> %6d\n", i, j, k, KKP[i][j][k], (int)round(kkp[i][j][k]));
         }
-        KKP[i][j][k] = round(kkp[i][j][k]);
+        Evaluater::KKP[i][j][k] = round(kkp[i][j][k]);
       }
     }
   }

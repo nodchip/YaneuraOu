@@ -4,274 +4,258 @@
 #include "usi.hpp"
 
 namespace {
-
- // Helpers to launch a thread after creation and joining before delete. Must be
- // outside Thread c'tor and d'tor because object shall be fully initialized
- // when virtual idle_loop() is called and when joining.
- template<typename T> T* new_thread() {
-   T* th = new T();
-   th->handle = std::thread(&Thread::idleLoop, th); // Will go to sleep
-   return th;
- }
-
- void delete_thread(Thread* th) {
-   th->exit = true; // Search must be already finished
-   th->notifyOne();
-   th->handle.join(); // Wait for thread termination
-   delete th;
- }
-
+  template <typename T> T* newThread(Searcher* s) {
+    T* th = new T(s);
+    th->handle = std::thread(&Thread::idleLoop, th); // move constructor
+    return th;
+  }
+  void deleteThread(Thread* th) {
+    th->exit = true;
+    th->notifyOne();
+    th->handle.join(); // Wait for thread termination
+    delete th;
+  }
 }
 
-ThreadPool g_threads;
-
-Thread::Thread() /*: splitPoints()*/ {
-	exit = false;
-	searching = false;
-	splitPointsSize = 0;
-	maxPly = 0;
-	activeSplitPoint = nullptr;
-	activePosition = nullptr;
-	idx = g_threads.size();
-
-	// move constructor
-	// コンストラクタ内だとVCで正常に動かない
-//	handle = std::thread(&Thread::idleLoop, this);
+Thread::Thread(Searcher* s) /*: splitPoints()*/ {
+  searcher = s;
+  exit = false;
+  searching = false;
+  splitPointsSize = 0;
+  maxPly = 0;
+  activeSplitPoint = nullptr;
+  activePosition = nullptr;
+  idx = s->threads.size();
 }
 
-Thread::~Thread() {
-}
-
-extern void checkTime();
 void TimerThread::idleLoop() {
-	while (!exit) {
-		{
-			std::unique_lock<std::mutex> lock(sleepLock);
-			if (!exit) {
-				sleepCond.wait_for(lock, std::chrono::milliseconds(msec ? msec : INT_MAX));
-			}
-		}
-		if (msec) {
-			checkTime();
-		}
-	}
+  while (!exit) {
+    {
+      std::unique_lock<std::mutex> lock(sleepLock);
+      if (!exit) {
+        sleepCond.wait_for(lock, std::chrono::milliseconds(msec ? msec : INT_MAX));
+      }
+    }
+    if (msec) {
+      searcher->checkTime();
+    }
+  }
 }
 
 void MainThread::idleLoop() {
-	while (true) {
-		{
-			std::unique_lock<std::mutex> lock(sleepLock);
-			thinking = false;
-			while (!thinking && !exit) {
-				// UI 関連だから要らないのかも。
-				g_threads.sleepCond_.notify_one();
-				sleepCond.wait(lock);
-			}
-		}
+  while (true) {
+    {
+      std::unique_lock<std::mutex> lock(sleepLock);
+      thinking = false;
+      while (!thinking && !exit) {
+        // UI 関連だから要らないのかも。
+        searcher->threads.sleepCond_.notify_one();
+        sleepCond.wait(lock);
+      }
+    }
 
-		if (exit) {
-			return;
-		}
+    if (exit) {
+      return;
+    }
 
-		searching = true;
-		Searcher::think();
-		assert(searching);
-		searching = false;
-	}
+    searching = true;
+    searcher->think();
+    assert(searching);
+    searching = false;
+  }
 }
 
 void Thread::notifyOne() {
-	std::unique_lock<std::mutex> lock(sleepLock);
-	sleepCond.notify_one();
+  std::unique_lock<std::mutex> lock(sleepLock);
+  sleepCond.notify_one();
 }
 
 bool Thread::cutoffOccurred() const {
-	for (SplitPoint* sp = activeSplitPoint; sp != nullptr; sp = sp->parentSplitPoint) {
-		if (sp->cutoff) {
-			return true;
-		}
-	}
-	return false;
+  for (SplitPoint* sp = activeSplitPoint; sp != nullptr; sp = sp->parentSplitPoint) {
+    if (sp->cutoff) {
+      return true;
+    }
+  }
+  return false;
 }
 
 // master と同じ thread であるかを判定
 bool Thread::isAvailableTo(Thread* master) const {
-	if (searching) {
-		return false;
-	}
+  if (searching) {
+    return false;
+  }
 
-	// ローカルコピーし、途中で値が変わらないようにする。
-	const int spCount = splitPointsSize;
-	return !spCount || (splitPoints[spCount - 1].slavesMask & (UINT64_C(1) << master->idx));
+  // ローカルコピーし、途中で値が変わらないようにする。
+  const int spCount = splitPointsSize;
+  return !spCount || (splitPoints[spCount - 1].slavesMask & (UINT64_C(1) << master->idx));
 }
 
 void Thread::waitFor(volatile const bool& b) {
-	std::unique_lock<std::mutex> lock(sleepLock);
-	sleepCond.wait(lock, [&] { return b; });
+  std::unique_lock<std::mutex> lock(sleepLock);
+  sleepCond.wait(lock, [&] { return b; });
 }
 
-void ThreadPool::init() {
-	sleepWhileIdle_ = true;
-	timer_ = new_thread<TimerThread>();
-	
-	push_back(new_thread<MainThread>());
-	readUSIOptions();
+void ThreadPool::init(Searcher* s) {
+  sleepWhileIdle_ = true;
+  timer_ = newThread<TimerThread>(s);
+  push_back(newThread<MainThread>(s));
+  readUSIOptions(s);
 }
 
-void ThreadPool::exit()
-{
-	// checkTime() がデータにアクセスしないよう、先に timer_ を delete
-	delete_thread(timer_);
+void ThreadPool::exit() {
+  // checkTime() がデータにアクセスしないよう、先に timer_ を delete
+  deleteThread(timer_);
 
-	for (auto elem : *this) {
-		delete_thread(elem);
-	}
+  for (auto elem : *this)
+    deleteThread(elem);
 }
 
-ThreadPool::~ThreadPool() {
-}
+void ThreadPool::readUSIOptions(Searcher* s) {
+  maxThreadsPerSplitPoint_ = s->options["Max_Threads_per_Split_Point"];
+  const size_t requested = s->options["Threads"];
+  minimumSplitDepth_ = (requested < 6 ? 4 : (requested < 8 ? 5 : 7)) * OnePly;
 
-void ThreadPool::readUSIOptions() {
-	maxThreadsPerSplitPoint_ = g_options["Max_Threads_per_Split_Point"];
-	minimumSplitDepth_       = g_options["Min_Split_Depth"] * OnePly;
-	const size_t requested   = g_options["Threads"];
+  assert(0 < requested);
 
-	assert(0 < requested);
+  while (size() < requested) {
+    push_back(newThread<Thread>(s));
+  }
 
-	while (size() < requested) {
-		push_back(new_thread<Thread>());
-	}
-
-	while (requested < size()) {
-		delete_thread(back());
-		pop_back();
-	}
+  while (requested < size()) {
+    deleteThread(back());
+    pop_back();
+  }
 }
 
 Thread* ThreadPool::availableSlave(Thread* master) const {
-	for (auto elem : *this) {
-		if (elem->isAvailableTo(master)) {
-			return elem;
-		}
-	}
-	return nullptr;
+  for (auto elem : *this) {
+    if (elem->isAvailableTo(master)) {
+      return elem;
+    }
+  }
+  return nullptr;
 }
 
 void ThreadPool::setTimer(const int msec) {
-	timer_->maxPly = msec;
-	timer_->notifyOne(); // Wake up and restart the timer
+  timer_->maxPly = msec;
+  timer_->notifyOne(); // Wake up and restart the timer
 }
 
 void ThreadPool::waitForThinkFinished() {
-	MainThread* t = mainThread();
-	std::unique_lock<std::mutex> lock(t->sleepLock);
-	sleepCond_.wait(lock, [&] { return !(t->thinking); });
+  MainThread* t = mainThread();
+  std::unique_lock<std::mutex> lock(t->sleepLock);
+  sleepCond_.wait(lock, [&] { return !(t->thinking); });
 }
 
 void ThreadPool::startThinking(const Position& pos, const LimitsType& limits,
-							   const std::vector<Move>& searchMoves, StateStackPtr&& states)
+  const std::vector<Move>& searchMoves)
 {
-	waitForThinkFinished();
-	Searcher::searchTimer.restart();
+  waitForThinkFinished();
+  pos.searcher()->searchTimer.restart();
 
-	Searcher::signals.stopOnPonderHit = Searcher::signals.firstRootMove = false;
-	Searcher::signals.stop = Searcher::signals.failedLowAtRoot = false;
+  pos.searcher()->signals.stopOnPonderHit = pos.searcher()->signals.firstRootMove = false;
+  pos.searcher()->signals.stop = pos.searcher()->signals.failedLowAtRoot = false;
 
-	g_rootPosition = pos;
-	Searcher::limits = limits;
-	Searcher::setUpStates = std::move(states);
-	Searcher::rootMoves.clear();
+  pos.searcher()->rootPosition = pos;
+  pos.searcher()->limits = limits;
+  pos.searcher()->rootMoves.clear();
 
-	for (MoveList<Legal> ml(pos); !ml.end(); ++ml) {
-		if (searchMoves.empty()
-			|| std::find(searchMoves.begin(), searchMoves.end(), ml.move()) != searchMoves.end())
-		{
-			Searcher::rootMoves.push_back(RootMove(ml.move()));
-		}
-	}
+#if defined LEARN
+  const MoveType MT = LegalAll;
+#else
+  const MoveType MT = Legal;
+#endif
 
-	mainThread()->thinking = true;
-	mainThread()->notifyOne();
+  for (MoveList<MT> ml(pos); !ml.end(); ++ml) {
+    if (searchMoves.empty()
+      || std::find(searchMoves.begin(), searchMoves.end(), ml.move()) != searchMoves.end())
+    {
+      pos.searcher()->rootMoves.push_back(RootMove(ml.move()));
+    }
+  }
+
+  mainThread()->thinking = true;
+  mainThread()->notifyOne();
 }
 
 template <bool Fake>
 void Thread::split(Position& pos, SearchStack* ss, const Score alpha, const Score beta, Score& bestScore,
-				   Move& bestMove, const Depth depth, const Move threatMove, const int moveCount,
-				   MovePicker& mp, const NodeType nodeType, const bool cutNode)
+  Move& bestMove, const Depth depth, const Move threatMove, const int moveCount,
+  MovePicker& mp, const NodeType nodeType, const bool cutNode)
 {
-	assert(pos.isOK());
-	assert(bestScore <= alpha && alpha < beta && beta <= ScoreInfinite);
-	assert(-ScoreInfinite < bestScore);
-	assert(g_threads.minSplitDepth() <= depth);
+  assert(pos.isOK());
+  assert(bestScore <= alpha && alpha < beta && beta <= ScoreInfinite);
+  assert(-ScoreInfinite < bestScore);
+  assert(searcher->threads.minSplitDepth() <= depth);
 
-	assert(searching);
-	assert(splitPointsSize < MaxSplitPointsPerThread);
+  assert(searching);
+  assert(splitPointsSize < MaxSplitPointsPerThread);
 
-	SplitPoint& sp = splitPoints[splitPointsSize];
+  SplitPoint& sp = splitPoints[splitPointsSize];
 
-	sp.masterThread = this;
-	sp.parentSplitPoint = activeSplitPoint;
-	sp.slavesMask = UINT64_C(1) << idx;
-	sp.depth = depth;
-	sp.bestMove = bestMove;
-	sp.threatMove = threatMove;
-	sp.alpha = alpha;
-	sp.beta = beta;
-	sp.nodeType = nodeType;
-	sp.cutNode = cutNode;
-	sp.bestScore = bestScore;
-	sp.movePicker = &mp;
-	sp.moveCount = moveCount;
-	sp.pos = &pos;
-	sp.nodes = 0;
-	sp.cutoff = false;
-	sp.ss = ss;
+  sp.masterThread = this;
+  sp.parentSplitPoint = activeSplitPoint;
+  sp.slavesMask = UINT64_C(1) << idx;
+  sp.depth = depth;
+  sp.bestMove = bestMove;
+  sp.threatMove = threatMove;
+  sp.alpha = alpha;
+  sp.beta = beta;
+  sp.nodeType = nodeType;
+  sp.cutNode = cutNode;
+  sp.bestScore = bestScore;
+  sp.movePicker = &mp;
+  sp.moveCount = moveCount;
+  sp.pos = &pos;
+  sp.nodes = 0;
+  sp.cutoff = false;
+  sp.ss = ss;
 
-	g_threads.mutex_.lock();
-	sp.mutex.lock();
+  searcher->threads.mutex_.lock();
+  sp.mutex.lock();
 
-	++splitPointsSize;
-	activeSplitPoint = &sp;
-	activePosition = nullptr;
+  ++splitPointsSize;
+  activeSplitPoint = &sp;
+  activePosition = nullptr;
 
-	// thisThread が常に含まれるので 1
-	size_t slavesCount = 1;
-	Thread* slave;
+  // thisThread が常に含まれるので 1
+  size_t slavesCount = 1;
+  Thread* slave;
 
-	while ((slave = g_threads.availableSlave(this)) != nullptr
-		   && ++slavesCount <= g_threads.maxThreadsPerSplitPoint_ && !Fake)
-	{
-		sp.slavesMask |= UINT64_C(1) << slave->idx;
-		slave->activeSplitPoint = &sp;
-		slave->searching = true;
-		slave->notifyOne();
-	}
+  while ((slave = searcher->threads.availableSlave(this)) != nullptr
+    && ++slavesCount <= searcher->threads.maxThreadsPerSplitPoint_ && !Fake)
+  {
+    sp.slavesMask |= UINT64_C(1) << slave->idx;
+    slave->activeSplitPoint = &sp;
+    slave->searching = true;
+    slave->notifyOne();
+  }
 
-	if (1 < slavesCount || Fake) {
-		sp.mutex.unlock();
-		g_threads.mutex_.unlock();
-		Thread::idleLoop();
-		assert(!searching);
-		assert(!activePosition);
-		g_threads.mutex_.lock();
-		sp.mutex.lock();
-	}
+  if (1 < slavesCount || Fake) {
+    sp.mutex.unlock();
+    searcher->threads.mutex_.unlock();
+    Thread::idleLoop();
+    assert(!searching);
+    assert(!activePosition);
+    searcher->threads.mutex_.lock();
+    sp.mutex.lock();
+  }
 
-	searching = true;
-	--splitPointsSize;
-	activeSplitPoint = sp.parentSplitPoint;
-	activePosition = &pos;
-	pos.setNodesSearched(pos.nodesSearched() + sp.nodes);
-	bestMove = sp.bestMove;
-	bestScore = sp.bestScore;
+  searching = true;
+  --splitPointsSize;
+  activeSplitPoint = sp.parentSplitPoint;
+  activePosition = &pos;
+  pos.setNodesSearched(pos.nodesSearched() + sp.nodes);
+  bestMove = sp.bestMove;
+  bestScore = sp.bestScore;
 
-	g_threads.mutex_.unlock();
-	sp.mutex.unlock();
+  searcher->threads.mutex_.unlock();
+  sp.mutex.unlock();
 }
 
 template void Thread::split<true >(Position& pos, SearchStack* ss, const Score alpha, const Score beta, Score& bestScore,
-								   Move& bestMove, const Depth depth, const Move threatMove, const int moveCount,
-								   MovePicker& mp, const NodeType nodeType, const bool cutNode);
+  Move& bestMove, const Depth depth, const Move threatMove, const int moveCount,
+  MovePicker& mp, const NodeType nodeType, const bool cutNode);
 template void Thread::split<false>(Position& pos, SearchStack* ss, const Score alpha, const Score beta, Score& bestScore,
-								   Move& bestMove, const Depth depth, const Move threatMove, const int moveCount,
-								   MovePicker& mp, const NodeType nodeType, const bool cutNode);
+  Move& bestMove, const Depth depth, const Move threatMove, const int moveCount,
+  MovePicker& mp, const NodeType nodeType, const bool cutNode);

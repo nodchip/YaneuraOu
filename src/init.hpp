@@ -1,15 +1,14 @@
-﻿#ifndef INIT_HPP
-#define INIT_HPP
+﻿#ifndef APERY_INIT_HPP
+#define APERY_INIT_HPP
 
 #include "ifdef.hpp"
 #include "common.hpp"
 #include "bitboard.hpp"
 
-void initTable(bool initializeFv = true);
-void writeTable();
+void initTable();
 
 #if defined FIND_MAGIC
 u64 findMagic(const Square sqare, const bool isBishop);
 #endif // #if defined FIND_MAGIC
 
-#endif // #ifndef INIT_HPP
+#endif // #ifndef APERY_INIT_HPP
