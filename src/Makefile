@@ -1,14 +1,14 @@
 COMPILER = g++
 #COMPILER = mpicxx
-CFLAGS   = -std=c++11 -fno-exceptions -fno-rtti -m32 -Wextra -Ofast #-MMD -MP
+CFLAGS   = -std=c++11 -fno-exceptions -fno-rtti -m64 -Wextra -Ofast #-MMD -MP
 LDFLAGS  = -lpthread #-lboost_mpi -lboost_serialization
 LIBS     =
 INCLUDE  = #-I../include
 ifeq ($(OS),Windows_NT)
-  TARGET = apery.exe
+  TARGET = tanuki-gcc.exe
   LDFLAGS += -static
 else
-  TARGET = apery
+  TARGET = tanuki-gcc
 endif
 OBJDIR   = ../obj
 ifeq "$(strip $(OBJDIR))" ""
@@ -31,6 +31,9 @@ $(OBJDIR)/%.o: %.cpp
 
 all: clean $(TARGET)
 
+avx2:
+	$(MAKE) CFLAGS='$(CFLAGS) -DNDEBUG -DHAVE_SSE4 -DHAVE_SSE42 -DHAVE_BMI2 -DHAVE_AVX2 -mavx2 -mbmi2' LDFLAGS='$(LDFLAGS) -flto' $(TARGET)
+
 bmi2:
 	$(MAKE) CFLAGS='$(CFLAGS) -DNDEBUG -DHAVE_SSE4 -DHAVE_SSE42 -DHAVE_BMI2 -msse4.2 -mbmi2' LDFLAGS='$(LDFLAGS) -flto' $(TARGET)
 
@@ -47,16 +50,17 @@ prof:
 	$(MAKE) CFLAGS='$(CFLAGS) -pg' bmi2
 
 profgen:
-	$(MAKE) CFLAGS='$(CFLAGS) -fprofile-generate -lgcov' LDFLAGS='$(LDFLAGS) -fprofile-generate -lgcov' bmi2
+	$(MAKE) CFLAGS='$(CFLAGS) -fprofile-generate -lgcov' LDFLAGS='$(LDFLAGS) -fprofile-generate -lgcov' avx2
 
 profuse:
-	$(MAKE) CFLAGS='$(CFLAGS) -fprofile-use -lgcov' LDFLAGS='$(LDFLAGS) -fprofile-use -lgcov' bmi2
+	$(MAKE) CFLAGS='$(CFLAGS) -fprofile-use -lgcov' LDFLAGS='$(LDFLAGS) -fprofile-use -lgcov' avx2
 
 pgo:
 	$(MAKE) profgen
-	@./$(TARGET) bench
+	@./$(TARGET) bench | grep "info nodes"
 	@touch *.[ch]pp
 	$(MAKE) profuse
+	@./$(TARGET) bench | grep "info nodes"
 
 clean:
 	rm -f $(OBJECTS) $(DEPENDS) $(TARGET) ${OBJECTS:.o=.gcda}
