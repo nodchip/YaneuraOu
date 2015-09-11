@@ -414,6 +414,7 @@ void measureGenerateMoves(const Position& pos) {
 
 #ifdef NDEBUG
 const std::string MyName = "tanuki-";
+//const std::string MyName = "tanuki-gcc";
 //const std::string MyName = "tanukibase";
 #else
 const std::string MyName = "tanuki- Debug Build";
