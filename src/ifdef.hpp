@@ -67,4 +67,9 @@
 #define FIND_MAGIC
 #endif
 
+#if 1
+// mask gather を使用する
+#define USE_MASK_GATHER
+#endif
+
 #endif // #ifndef APERY_IFDEF_HPP

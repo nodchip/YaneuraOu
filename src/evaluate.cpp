@@ -45,6 +45,18 @@ const int kppHandArray[ColorNum][HandPieceNum] = {
 };
 
 namespace {
+  static const __m256i MASK[9] = {
+    _mm256_setzero_si256(),
+    _mm256_set_epi32(0, 0, 0, 0, 0, 0, 0, -1),
+    _mm256_set_epi32(0, 0, 0, 0, 0, 0, -1, -1),
+    _mm256_set_epi32(0, 0, 0, 0, 0, -1, -1, -1),
+    _mm256_set_epi32(0, 0, 0, 0, -1, -1, -1, -1),
+    _mm256_set_epi32(0, 0, 0, -1, -1, -1, -1, -1),
+    _mm256_set_epi32(0, 0, -1, -1, -1, -1, -1, -1),
+    _mm256_set_epi32(0, -1, -1, -1, -1, -1, -1, -1),
+    _mm256_set_epi32(-1, -1, -1, -1, -1, -1, -1, -1),
+  };
+
   s32 doapc(const Position& pos, const int index[2]) {
     const Square sq_bk = pos.kingSquare(Black);
     const Square sq_wk = pos.kingSquare(White);
@@ -56,6 +68,29 @@ namespace {
     const auto* pkppw = Evaluater::KPP[inverse(sq_wk)][index[1]];
 
 #ifdef HAVE_AVX2
+
+#ifdef USE_MASK_GATHER
+    __m256i ymmScore = _mm256_setzero_si256();
+    for (int i = 0; i < pos.nlist(); i += 8) {
+      __m256i ymmList0 = _mm256_load_si256((const __m256i*)&list0[i]);
+      __m256i ymmKpp0 = _mm256_mask_i32gather_epi32(
+        _mm256_setzero_si256(), pkppb, ymmList0, MASK[std::min(pos.nlist() - i, 8)], sizeof(s32));
+      ymmScore = _mm256_add_epi32(ymmScore, ymmKpp0);
+
+      __m256i ymmList1 = _mm256_load_si256((const __m256i*)&list1[i]);
+      __m256i ymmKpp1 = _mm256_mask_i32gather_epi32(
+        _mm256_setzero_si256(), pkppw, ymmList1, MASK[std::min(pos.nlist() - i, 8)], sizeof(s32));
+      ymmScore = _mm256_sub_epi32(ymmScore, ymmKpp1);
+    }
+
+    // http://www.slideshare.net/KenjiImasaki/ss-46408963
+    ymmScore = _mm256_hadd_epi32(ymmScore, ymmScore);
+    ymmScore = _mm256_hadd_epi32(ymmScore, ymmScore);
+    __m128i xmmScoreLow = _mm256_castsi256_si128(ymmScore);
+    __m128i xmmScoreHigh = _mm256_extracti128_si256(ymmScore, 1);
+    sum += _mm_cvtsi128_si32(xmmScoreLow);
+    sum += _mm_cvtsi128_si32(xmmScoreHigh);
+#else
     __m256i ymmScore = _mm256_setzero_si256();
     __m128i xmmScore = _mm_setzero_si128();
     int i;
@@ -93,6 +128,7 @@ namespace {
     xmmScore = _mm_hadd_epi32(xmmScore, xmmScore);
     xmmScore = _mm_hadd_epi32(xmmScore, xmmScore);
     sum += _mm_cvtsi128_si32(xmmScore);
+#endif
 
 #else
     for (int i = 0; i < pos.nlist(); ++i) {
@@ -246,6 +282,48 @@ namespace {
     s32 score = Evaluater::KK[sq_bk][sq_wk];
 
 #ifdef HAVE_AVX2
+
+#ifdef USE_MASK_GATHER
+    const s32* kkpbw = Evaluater::KKP[sq_bk][sq_wk];
+    __m256i ymmScore = _mm256_setzero_si256();
+    for (int i = 0; i < pos.nlist(); i += 8) {
+      __m256i ymmList0 = _mm256_load_si256((const __m256i*)&list0[i]);
+      __m256i ymmKkp0 = _mm256_mask_i32gather_epi32(
+        _mm256_setzero_si256(),
+        kkpbw,
+        ymmList0,
+        MASK[std::min(pos.nlist() - i, 8)],
+        sizeof(s32));
+      ymmScore = _mm256_add_epi32(ymmScore, ymmKkp0);
+    }
+
+    for (int i = 0; i < pos.nlist(); ++i) {
+      const int k0 = list0[i];
+      const int k1 = list1[i];
+      const auto* pkppb = ppkppb[k0];
+      const auto* pkppw = ppkppw[k1];
+
+      for (int j = 0; j < i; j += 8) {
+        __m256i ymmList0 = _mm256_load_si256((const __m256i*)&list0[j]);
+        __m256i ymmKpp0 = _mm256_mask_i32gather_epi32(
+          _mm256_setzero_si256(), pkppb, ymmList0, MASK[std::min(i - j, 8)], sizeof(s32));
+        ymmScore = _mm256_add_epi32(ymmScore, ymmKpp0);
+
+        __m256i ymmList1 = _mm256_load_si256((const __m256i*)&list1[j]);
+        __m256i ymmKpp1 = _mm256_mask_i32gather_epi32(
+          _mm256_setzero_si256(), pkppw, ymmList1, MASK[std::min(i - j, 8)], sizeof(s32));
+        ymmScore = _mm256_sub_epi32(ymmScore, ymmKpp1);
+      }
+    }
+
+    // http://www.slideshare.net/KenjiImasaki/ss-46408963
+    ymmScore = _mm256_hadd_epi32(ymmScore, ymmScore);
+    ymmScore = _mm256_hadd_epi32(ymmScore, ymmScore);
+    __m128i xmmScoreLow = _mm256_castsi256_si128(ymmScore);
+    __m128i xmmScoreHigh = _mm256_extracti128_si256(ymmScore, 1);
+    score += _mm_cvtsi128_si32(xmmScoreLow);
+    score += _mm_cvtsi128_si32(xmmScoreHigh);
+#else
     __m256i ymmScore = _mm256_setzero_si256();
     __m128i xmmScore = _mm_setzero_si128();
     const s32* kkpbw = Evaluater::KKP[sq_bk][sq_wk];
@@ -312,6 +390,7 @@ namespace {
     xmmScore = _mm_hadd_epi32(xmmScore, xmmScore);
     xmmScore = _mm_hadd_epi32(xmmScore, xmmScore);
     score += _mm_cvtsi128_si32(xmmScore);
+#endif
 
 #else
     // loop 開始を i = 1 からにして、i = 0 の分のKKPを先に足す。
