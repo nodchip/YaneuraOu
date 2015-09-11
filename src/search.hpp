@@ -112,6 +112,7 @@ struct Searcher {
   STATIC LimitsType limits;
   STATIC std::vector<Move> searchMoves;
   STATIC Time searchTimer;
+  STATIC u64 lastSearchedNodes;
   STATIC StateStackPtr setUpStates;
   STATIC std::vector<RootMove> rootMoves;
 

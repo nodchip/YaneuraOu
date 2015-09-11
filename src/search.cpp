@@ -26,6 +26,7 @@ volatile SignalsType Searcher::signals;
 LimitsType Searcher::limits;
 std::vector<Move> Searcher::searchMoves;
 Time Searcher::searchTimer;
+u64 Searcher::lastSearchedNodes;
 StateStackPtr Searcher::setUpStates;
 std::vector<RootMove> Searcher::rootMoves;
 size_t Searcher::pvSize;
@@ -1604,6 +1605,7 @@ finalize:
 
   SYNCCOUT << "info nodes " << pos.nodesSearched()
     << " time " << searchTimer.elapsed() << SYNCENDL;
+  lastSearchedNodes = pos.nodesSearched();
 
   if (!signals.stop && (limits.ponder || limits.infinite)) {
     signals.stopOnPonderHit = true;
