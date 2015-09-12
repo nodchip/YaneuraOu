@@ -4,11 +4,12 @@ CFLAGS   = -std=c++11 -fno-exceptions -fno-rtti -m64 -Wextra -Ofast #-MMD -MP
 LDFLAGS  = -lpthread #-lboost_mpi -lboost_serialization
 LIBS     =
 INCLUDE  = #-I../include
+TARGET_PREFIX = tanuki-gcc
 ifeq ($(OS),Windows_NT)
-  TARGET = tanuki-gcc.exe
+  TARGET = $(TARGET_PREFIX).exe
   LDFLAGS += -static
 else
-  TARGET = tanuki-gcc
+  TARGET = $(TARGET_PREFIX)
 endif
 OBJDIR   = ../obj
 ifeq "$(strip $(OBJDIR))" ""
@@ -32,19 +33,19 @@ $(OBJDIR)/%.o: %.cpp
 all: clean $(TARGET)
 
 avx2:
-	$(MAKE) CFLAGS='$(CFLAGS) -DNDEBUG -DHAVE_SSE4 -DHAVE_SSE42 -DHAVE_BMI2 -DHAVE_AVX2 -mavx2 -mbmi2' LDFLAGS='$(LDFLAGS) -flto' $(TARGET)
+	$(MAKE) CFLAGS='$(CFLAGS) -DNDEBUG -DMY_NAME=\"$(TARGET_PREFIX)\" -DHAVE_SSE4 -DHAVE_SSE42 -DHAVE_BMI2 -DHAVE_AVX2 -mavx2 -mbmi2' LDFLAGS='$(LDFLAGS) -flto' $(TARGET)
 
 bmi2:
-	$(MAKE) CFLAGS='$(CFLAGS) -DNDEBUG -DHAVE_SSE4 -DHAVE_SSE42 -DHAVE_BMI2 -msse4.2 -mbmi2' LDFLAGS='$(LDFLAGS) -flto' $(TARGET)
+	$(MAKE) CFLAGS='$(CFLAGS) -DNDEBUG -DMY_NAME=\"$(TARGET_PREFIX)\" -DHAVE_SSE4 -DHAVE_SSE42 -DHAVE_BMI2 -msse4.2 -mbmi2' LDFLAGS='$(LDFLAGS) -flto' $(TARGET)
 
 sse:
-	$(MAKE) CFLAGS='$(CFLAGS) -DNDEBUG -DHAVE_SSE4 -DHAVE_SSE42 -msse4.2' LDFLAGS='$(LDFLAGS) -flto' $(TARGET)
+	$(MAKE) CFLAGS='$(CFLAGS) -DNDEBUG -DMY_NAME=\"$(TARGET_PREFIX)\" -DHAVE_SSE4 -DHAVE_SSE42 -msse4.2' LDFLAGS='$(LDFLAGS) -flto' $(TARGET)
 
 sse41:
-	$(MAKE) CFLAGS='$(CFLAGS) -DNDEBUG -DHAVE_SSE4 -msse4.1' LDFLAGS='$(LDFLAGS) -flto' $(TARGET)
+	$(MAKE) CFLAGS='$(CFLAGS) -DNDEBUG -DMY_NAME=\"$(TARGET_PREFIX)\" -DHAVE_SSE4 -msse4.1' LDFLAGS='$(LDFLAGS) -flto' $(TARGET)
 
 nosse:
-	$(MAKE) CFLAGS='$(CFLAGS) -DNDEBUG' LDFLAGS='$(LDFLAGS) -flto' $(TARGET)
+	$(MAKE) CFLAGS='$(CFLAGS) -DNDEBUG -DMY_NAME=\"$(TARGET_PREFIX)\"' LDFLAGS='$(LDFLAGS) -flto' $(TARGET)
 
 prof:
 	$(MAKE) CFLAGS='$(CFLAGS) -pg' bmi2
