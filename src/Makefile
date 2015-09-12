@@ -1,10 +1,12 @@
 COMPILER = g++
+#COMPILER = clang++
 #COMPILER = mpicxx
-CFLAGS   = -std=c++11 -fno-exceptions -fno-rtti -m64 -Wextra -Ofast #-MMD -MP
-LDFLAGS  = -lpthread #-lboost_mpi -lboost_serialization
+#CFLAGS   = -std=c++11 -fno-exceptions -fno-rtti -m64 -Wextra -Ofast #-MMD -MP
+CFLAGS   = -std=c++11 -fno-exceptions -fno-rtti -m64 -Wextra -g -Ofast #-MMD -MP
+LDFLAGS  = -pthread #-lboost_mpi -lboost_serialization
 LIBS     =
 INCLUDE  = #-I../include
-TARGET_PREFIX = tanuki-gcc
+TARGET_PREFIX = tanuki-gcc-g
 ifeq ($(OS),Windows_NT)
   TARGET = $(TARGET_PREFIX).exe
   LDFLAGS += -static
@@ -51,10 +53,10 @@ prof:
 	$(MAKE) CFLAGS='$(CFLAGS) -pg' bmi2
 
 profgen:
-	$(MAKE) CFLAGS='$(CFLAGS) -fprofile-generate -lgcov' LDFLAGS='$(LDFLAGS) -fprofile-generate -lgcov' avx2
+	$(MAKE) CFLAGS='$(CFLAGS) -fprofile-generate -lgcov' LDFLAGS='$(LDFLAGS) -fprofile-generate -lgcov' bmi2
 
 profuse:
-	$(MAKE) CFLAGS='$(CFLAGS) -fprofile-use -lgcov' LDFLAGS='$(LDFLAGS) -fprofile-use -lgcov' avx2
+	$(MAKE) CFLAGS='$(CFLAGS) -fprofile-use -lgcov' LDFLAGS='$(LDFLAGS) -fprofile-use -lgcov' bmi2
 
 pgo:
 	$(MAKE) profgen

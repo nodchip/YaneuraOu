@@ -45,6 +45,7 @@ const int kppHandArray[ColorNum][HandPieceNum] = {
 };
 
 namespace {
+#ifdef HAVE_AVX2
   static const __m256i MASK[9] = {
     _mm256_setzero_si256(),
     _mm256_set_epi32(0, 0, 0, 0, 0, 0, 0, -1),
@@ -56,6 +57,7 @@ namespace {
     _mm256_set_epi32(0, -1, -1, -1, -1, -1, -1, -1),
     _mm256_set_epi32(-1, -1, -1, -1, -1, -1, -1, -1),
   };
+#endif
 
   s32 doapc(const Position& pos, const int index[2]) {
     const Square sq_bk = pos.kingSquare(Black);
