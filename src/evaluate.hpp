@@ -107,32 +107,35 @@ inline int inverseFileIndexOnBoard(const int index) {
   return static_cast<int>(begin + inverseFile(sq));
 };
 
-struct KPPBoardIndexStartToPiece : public std::unordered_map<int, Piece> {
+struct KPPBoardIndexStartToPiece {
+  Piece m[fe_end];
   KPPBoardIndexStartToPiece() {
-    (*this)[f_pawn] = BPawn;
-    (*this)[e_pawn] = WPawn;
-    (*this)[f_lance] = BLance;
-    (*this)[e_lance] = WLance;
-    (*this)[f_knight] = BKnight;
-    (*this)[e_knight] = WKnight;
-    (*this)[f_silver] = BSilver;
-    (*this)[e_silver] = WSilver;
-    (*this)[f_gold] = BGold;
-    (*this)[e_gold] = WGold;
-    (*this)[f_bishop] = BBishop;
-    (*this)[e_bishop] = WBishop;
-    (*this)[f_horse] = BHorse;
-    (*this)[e_horse] = WHorse;
-    (*this)[f_rook] = BRook;
-    (*this)[e_rook] = WRook;
-    (*this)[f_dragon] = BDragon;
-    (*this)[e_dragon] = WDragon;
+    for (int i = 0; i < fe_end; ++i) {
+      m[i] = PieceNone;
+    }
+    m[f_pawn] = BPawn;
+    m[e_pawn] = WPawn;
+    m[f_lance] = BLance;
+    m[e_lance] = WLance;
+    m[f_knight] = BKnight;
+    m[e_knight] = WKnight;
+    m[f_silver] = BSilver;
+    m[e_silver] = WSilver;
+    m[f_gold] = BGold;
+    m[e_gold] = WGold;
+    m[f_bishop] = BBishop;
+    m[e_bishop] = WBishop;
+    m[f_horse] = BHorse;
+    m[e_horse] = WHorse;
+    m[f_rook] = BRook;
+    m[e_rook] = WRook;
+    m[f_dragon] = BDragon;
+    m[e_dragon] = WDragon;
   }
   Piece value(const int i) const {
-    const auto it = find(i);
-    if (it == std::end(*this))
-      return PieceNone;
-    return it->second;
+    assert(0 <= i);
+    assert(i < fe_end);
+    return m[i];
   }
 };
 extern KPPBoardIndexStartToPiece g_kppBoardIndexStartToPiece;
