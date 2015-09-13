@@ -163,6 +163,7 @@
     <ClCompile Include="..\..\src\evaluate_test.cpp" />
     <ClCompile Include="..\..\src\hayabusa_test.cpp" />
     <ClCompile Include="..\..\src\main_test.cpp" />
+    <ClCompile Include="..\..\src\scanner_test.cpp" />
     <ClCompile Include="..\..\src\string_util_test.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

@@ -3,6 +3,7 @@
 
 #include "common.hpp"
 #include "move.hpp"
+#include "scanner.hpp"
 
 const std::string DefaultStartPositionSFEN = "lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1";
 
@@ -52,8 +53,8 @@ public:
   }
 };
 
-void go(const Position& pos, std::istringstream& ssCmd);
-void setPosition(Position& pos, std::istringstream& ssCmd);
+void go(const Position& pos, Scanner command);
+void setPosition(Position& pos, Scanner command);
 Move csaToMove(const Position& pos, const std::string& moveStr);
 Move usiToMove(const Position& pos, const std::string& moveStr);
 

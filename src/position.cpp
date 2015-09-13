@@ -1769,8 +1769,7 @@ Position& Position::operator = (const Position& pos) {
 
 void Position::set(const std::string& sfen, Thread* th) {
   Piece promoteFlag = UnPromoted;
-  std::istringstream ss(sfen);
-  char token;
+  Scanner scanner = sfen;
   Square sq = A9;
 
   Searcher* s = std::move(searcher_);
@@ -1778,7 +1777,8 @@ void Position::set(const std::string& sfen, Thread* th) {
   setSearcher(s);
 
   // 盤上の駒
-  while (ss.get(token) && token != ' ') {
+  char token;
+  while (scanner.hasNextChar() && (token = scanner.nextChar()) != ' ') {
     if (isdigit(token)) {
       sq += DeltaE * (token - '0');
     }
@@ -1807,7 +1807,7 @@ void Position::set(const std::string& sfen, Thread* th) {
   goldsBB_ = bbOf(Gold, ProPawn, ProLance, ProKnight, ProSilver);
 
   // 手番
-  while (ss.get(token) && token != ' ') {
+  while (scanner.hasNextChar() && (token = scanner.nextChar()) != ' ') {
     if (token == 'b') {
       turn_ = Black;
     }
@@ -1820,7 +1820,7 @@ void Position::set(const std::string& sfen, Thread* th) {
   }
 
   // 持ち駒
-  for (int digits = 0; ss.get(token) && token != ' '; ) {
+  for (int digits = 0; (token = scanner.nextChar()) != ' '; ) {
     if (token == '-') {
       memset(hand_, 0, sizeof(hand_));
     }
@@ -1840,7 +1840,7 @@ void Position::set(const std::string& sfen, Thread* th) {
   }
 
   // 次の手が何手目か
-  ss >> gamePly_;
+  gamePly_ = scanner.nextInt();
   gamePly_ = std::max(2 * (gamePly_ - 1), 0) + static_cast<int>(turn() == White);
 
   // 残り時間, hash key, (もし実装するなら)駒番号などをここで設定

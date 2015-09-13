@@ -1,8 +1,9 @@
 ﻿#include "benchmark.hpp"
 #include "common.hpp"
-#include "usi.hpp"
 #include "position.hpp"
+#include "scanner.hpp"
 #include "search.hpp"
+#include "usi.hpp"
 
 // 今はベンチマークというより、PGO ビルドの自動化の為にある。
 void benchmark(Position& pos) {
@@ -17,8 +18,7 @@ void benchmark(Position& pos) {
     "name USI_Hash value 4096",
   };
   for (auto& str : options) {
-    std::istringstream is(str);
-    pos.searcher()->setOption(is);
+    pos.searcher()->setOption(str);
   }
 
   std::ifstream ifs("benchmark.sfen");
@@ -27,10 +27,8 @@ void benchmark(Position& pos) {
   int sumOfSeaerchTimeMs = 0;
   while (std::getline(ifs, sfen)) {
     std::cout << sfen << std::endl;
-    std::istringstream ss_sfen(sfen);
-    setPosition(pos, ss_sfen);
-    std::istringstream ss_go("byoyomi 10000");
-    go(pos, ss_go);
+    setPosition(pos, sfen);
+    go(pos, "byoyomi 10000");
     pos.searcher()->threads.waitForThinkFinished();
 
     sumOfSearchedNodes += Searcher::lastSearchedNodes;

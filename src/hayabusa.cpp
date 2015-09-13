@@ -4,12 +4,13 @@
 #include "csa.hpp"
 #include "generateMoves.hpp"
 #include "hayabusa.hpp"
-#include "thread.hpp"
-#include "usi.hpp"
+#include "scanner.hpp"
 #include "search.hpp"
 #include "square.hpp"
-#include "thread.hpp"
 #include "string_util.hpp"
+#include "thread.hpp"
+#include "thread.hpp"
+#include "usi.hpp"
 
 using namespace std;
 using namespace std::tr2::sys;
@@ -23,10 +24,6 @@ const std::tr2::sys::path hayabusa::DEFAULT_INPUT_SFEN_FILE_PATH("../bin/kifu.sf
 static const double ALPHA = pow(2.0, -4.0);
 
 static const Score LOSE_PENARTY = PawnScore * 1000;
-
-void setPosition(Position& pos, std::istringstream& ssCmd);
-void go(const Position& pos, std::istringstream& ssCmd);
-
 
 // SFENを教師データに変換する
 // sfen SFEN形式の文字列
@@ -42,11 +39,8 @@ static bool converSfenToTeacherData(
 
   int numberOfPlays = sfen.size() - 2;
   for (int play = 1; play <= numberOfPlays; ++play) {
-    string subSfen = string_util::concat(vector<string>(sfen.begin(), sfen.begin() + play + 2));
-
-    std::istringstream ss_sfen(subSfen);
     Position pos;
-    setPosition(pos, ss_sfen);
+    setPosition(pos, vector<string>(sfen.begin(), sfen.begin() + play + 2));
 
     SearchStack searchStack[MaxPlyPlus2];
     memset(searchStack, 0, sizeof(searchStack));

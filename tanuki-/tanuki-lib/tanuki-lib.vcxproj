@@ -157,6 +157,7 @@
     <ClInclude Include="..\..\src\piece.hpp" />
     <ClInclude Include="..\..\src\pieceScore.hpp" />
     <ClInclude Include="..\..\src\position.hpp" />
+    <ClInclude Include="..\..\src\scanner.hpp" />
     <ClInclude Include="..\..\src\score.hpp" />
     <ClInclude Include="..\..\src\search.hpp" />
     <ClInclude Include="..\..\src\square.hpp" />
@@ -184,6 +185,7 @@
     <ClCompile Include="..\..\src\mt64bit.cpp" />
     <ClCompile Include="..\..\src\pieceScore.cpp" />
     <ClCompile Include="..\..\src\position.cpp" />
+    <ClCompile Include="..\..\src\scanner.cpp" />
     <ClCompile Include="..\..\src\search.cpp" />
     <ClCompile Include="..\..\src\square.cpp" />
     <ClCompile Include="..\..\src\stdafx.cpp">

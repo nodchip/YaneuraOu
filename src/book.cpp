@@ -130,7 +130,7 @@ std::tuple<Move, Score> Book::probe(const Position& pos, const std::string& fNam
       else {
         const Square from = tmp.from();
         const PieceType ptFrom = pieceToPieceType(pos.piece(from));
-        const bool promo = tmp.isPromotion();
+        const bool promo = tmp.isPromotion() != 0;
         if (promo) {
           move = makeCapturePromoteMove(ptFrom, from, to, pos);
         }
@@ -162,9 +162,8 @@ inline bool countCompare(const BookEntry& b1, const BookEntry& b2) {
 // 出現回数がそのまま定跡として使う確率となる。
 // 基本的には棋譜を丁寧に選別した上で定跡を作る必要がある。
 // MAKE_SEARCHED_BOOK を on にしていると、定跡生成に非常に時間が掛かる。
-void makeBook(Position& pos, std::istringstream& ssCmd) {
-  std::string fileName;
-  ssCmd >> fileName;
+void makeBook(Position& pos, Scanner command) {
+  std::string fileName = command.next();
   std::ifstream ifs(fileName.c_str(), std::ios::binary);
   if (!ifs) {
     std::cout << "I cannot open " << fileName << std::endl;
@@ -174,15 +173,12 @@ void makeBook(Position& pos, std::istringstream& ssCmd) {
   std::map<Key, std::vector<BookEntry> > bookMap;
 
   while (std::getline(ifs, line)) {
-    std::string elem;
-    std::stringstream ss(line);
-    ss >> elem; // 棋譜番号を飛ばす。
-    ss >> elem; // 対局日を飛ばす。
-    ss >> elem; // 先手
-    const std::string sente = elem;
-    ss >> elem; // 後手
-    const std::string gote = elem;
-    ss >> elem; // (0:引き分け,1:先手の勝ち,2:後手の勝ち)
+    Scanner scanner = line;
+    scanner.next(); // 棋譜番号を飛ばす。
+    scanner.next(); // 対局日を飛ばす。
+    const std::string sente = scanner.next(); // 先手
+    const std::string gote = scanner.next(); // 後手
+    std::string elem = scanner.next(); // (0:引き分け,1:先手の勝ち,2:後手の勝ち)
     const Color winner = (elem == "1" ? Black : elem == "2" ? White : ColorNum);
     // 勝った方の指し手を記録していく。
     // 又は稲庭戦法側を記録していく。
@@ -227,8 +223,7 @@ void makeBook(Position& pos, std::istringstream& ssCmd) {
           SetUpStates->push(StateInfo());
           pos.doMove(move, SetUpStates->top());
 
-          std::istringstream ssCmd("byoyomi 1000");
-          go(pos, ssCmd);
+          go(pos, "byoyomi 1000");
           pos.searcher()->threads.waitForThinkFinished();
 
           pos.undoMove(move);

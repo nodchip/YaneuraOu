@@ -156,26 +156,36 @@ std::ostream& operator << (std::ostream& os, const OptionsMap& om) {
   return os;
 }
 
-void go(const Position& pos, std::istringstream& ssCmd) {
+void go(const Position& pos, Scanner command) {
   LimitsType limits;
   std::vector<Move> moves;
-  std::string token;
 
-  while (ssCmd >> token) {
+  while (command.hasNext()) {
+    std::string token = command.next();
     if (token == "ponder") { limits.ponder = true; }
-    else if (token == "btime") { ssCmd >> limits.time[Black]; }
-    else if (token == "wtime") { ssCmd >> limits.time[White]; }
+    else if (token == "btime") {
+      limits.time[Black] = command.nextInt();
+    }
+    else if (token == "wtime") {
+      limits.time[White] = command.nextInt();
+    }
     else if (token == "infinite") { limits.infinite = true; }
     else if (token == "byoyomi" || token == "movetime") {
       // btime wtime の後に byoyomi が来る前提になっているので良くない。
-      ssCmd >> limits.moveTime;
+      limits.moveTime = command.nextInt();
       if (limits.moveTime != 0) { limits.moveTime -= pos.searcher()->options["Byoyomi_Margin"]; }
     }
-    else if (token == "depth") { ssCmd >> limits.depth; }
-    else if (token == "nodes") { ssCmd >> limits.nodes; }
+    else if (token == "depth") {
+      limits.depth = command.nextInt();
+    }
+    else if (token == "nodes") {
+      limits.nodes = command.nextInt();
+    }
     else if (token == "searchmoves") {
-      while (ssCmd >> token)
+      while (command.hasNext()) {
+        token = command.next();
         moves.push_back(usiToMove(pos, token));
+      }
     }
   }
   pos.searcher()->searchMoves = moves;
@@ -311,19 +321,20 @@ Move csaToMove(const Position& pos, const std::string& moveStr) {
   return move;
 }
 
-void setPosition(Position& pos, std::istringstream& ssCmd) {
-  std::string token;
+void setPosition(Position& pos, Scanner command) {
+  std::string token = command.next();
   std::string sfen;
-
-  ssCmd >> token;
 
   if (token == "startpos") {
     sfen = DefaultStartPositionSFEN;
-    ssCmd >> token; // "moves" が入力されるはず。
+    token = command.next();
+    assert(token == "moves");
   }
   else if (token == "sfen") {
-    while (ssCmd >> token && token != "moves") {
-      sfen += token + " ";
+    while (command.hasNext()) {
+      token = command.next();
+      sfen += token;
+      sfen += " ";
     }
   }
   else {
@@ -334,7 +345,8 @@ void setPosition(Position& pos, std::istringstream& ssCmd) {
   pos.searcher()->setUpStates = StateStackPtr(new std::stack<StateInfo>());
 
   Ply currentPly = pos.gamePly();
-  while (ssCmd >> token) {
+  while (command.hasNext()) {
+    token = command.next();
     const Move move = usiToMove(pos, token);
     if (move.isNone()) break;
     pos.searcher()->setUpStates->push(StateInfo());
@@ -344,23 +356,22 @@ void setPosition(Position& pos, std::istringstream& ssCmd) {
   pos.setStartPosPly(currentPly);
 }
 
-void Searcher::setOption(std::istringstream& ssCmd) {
-  std::string token;
-  std::string name;
-  std::string value;
+void Searcher::setOption(Scanner commands) {
+  std::string token = commands.next();
+  assert(token == "name");
 
-  ssCmd >> token; // "name" が入力されるはず。
-
-  ssCmd >> name;
+  std::string name = commands.next();
   // " " が含まれた名前も扱う。
-  while (ssCmd >> token && token != "value") {
-    name += " " + token;
+  while (commands.hasNext() && (token = commands.next()) != "value") {
+    name += " ";
+    name += token;
   }
 
-  ssCmd >> value;
+  std::string value = commands.next();
   // " " が含まれた値も扱う。
-  while (ssCmd >> token) {
-    value += " " + token;
+  while (commands.hasNext()) {
+    value += " ";
+    value += commands.next();
   }
 
   if (!options.isLegalOption(name)) {
@@ -444,9 +455,8 @@ void Searcher::doUSICommandLoop(int argc, char* argv[]) {
     if (argc == 1)
       std::getline(std::cin, cmd);
 
-    std::istringstream ssCmd(cmd);
-
-    ssCmd >> std::skipws >> token;
+    Scanner command = cmd;
+    token = command.next();
 
     if (token == "quit" || token == "stop" || token == "ponderhit" || token == "gameover") {
       if (token != "ponderhit" || signals.stopOnPonderHit) {
@@ -476,10 +486,10 @@ void Searcher::doUSICommandLoop(int argc, char* argv[]) {
         << "\n" << options
         << "\nusiok" << SYNCENDL;
     }
-    else if (token == "go") { go(pos, ssCmd); }
+    else if (token == "go") { go(pos, command); }
     else if (token == "isready") { SYNCCOUT << "readyok" << SYNCENDL; }
-    else if (token == "position") { setPosition(pos, ssCmd); }
-    else if (token == "setoption") { setOption(ssCmd); }
+    else if (token == "position") { setPosition(pos, command); }
+    else if (token == "setoption") { setOption(command); }
 #if defined LEARN
     else if (token == "l") {
       auto learner = std::unique_ptr<Learner>(new Learner);
@@ -496,7 +506,7 @@ void Searcher::doUSICommandLoop(int argc, char* argv[]) {
     else if (token == "d") { pos.print(); }
     else if (token == "s") { measureGenerateMoves(pos); }
     else if (token == "t") { std::cout << pos.mateMoveIn1Ply().toCSA() << std::endl; }
-    else if (token == "b") { makeBook(pos, ssCmd); }
+    else if (token == "b") { makeBook(pos, command); }
 #endif
     else { SYNCCOUT << "unknown command: " << cmd << SYNCENDL; }
   } while (token != "quit" && argc == 1);

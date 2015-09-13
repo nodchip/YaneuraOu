@@ -3,9 +3,10 @@
 
 #include "move.hpp"
 #include "pieceScore.hpp"
+#include "scanner.hpp"
+#include "thread.hpp"
 #include "timeManager.hpp"
 #include "tt.hpp"
-#include "thread.hpp"
 
 class Position;
 struct SplitPoint;
@@ -151,7 +152,7 @@ struct Searcher {
   STATIC void checkTime();
 
   STATIC void doUSICommandLoop(int argc, char* argv[]);
-  STATIC void setOption(std::istringstream& ssCmd);
+  STATIC void setOption(Scanner commands);
 };
 
 void initSearchTable();

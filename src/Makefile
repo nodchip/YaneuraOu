@@ -3,7 +3,8 @@ COMPILER = g++
 #COMPILER = mpicxx
 CFLAGS   = -std=c++11 -fno-exceptions -fno-rtti -m64 -Wextra -Ofast #-MMD -MP
 #CFLAGS   = -std=c++11 -fno-exceptions -fno-rtti -m64 -Wextra -g -Ofast #-MMD -MP
-LDFLAGS  = -pthread #-lboost_mpi -lboost_serialization
+LDFLAGS  = -lpthread #-lboost_mpi -lboost_serialization
+#LDFLAGS  = -pthread #-lboost_mpi -lboost_serialization
 LIBS     =
 INCLUDE  = #-I../include
 TARGET_PREFIX = tanuki-gcc
@@ -21,7 +22,7 @@ endif
 SOURCES  = main.cpp bitboard.cpp init.cpp mt64bit.cpp position.cpp evalList.cpp \
            move.cpp movePicker.cpp square.cpp usi.cpp generateMoves.cpp evaluate.cpp \
            search.cpp hand.cpp tt.cpp timeManager.cpp book.cpp benchmark.cpp \
-           thread.cpp common.cpp pieceScore.cpp
+           thread.cpp common.cpp pieceScore.cpp scanner.cpp string_util.cpp
 OBJECTS  = $(addprefix $(OBJDIR)/, $(SOURCES:.cpp=.o))
 DEPENDS  = $(OBJECTS:.o=.d)
 
