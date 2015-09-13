@@ -94,7 +94,7 @@ namespace {
     sum += _mm_cvtsi128_si32(xmmScoreLow);
     sum += _mm_cvtsi128_si32(xmmScoreHigh);
 #else
-    __m256i ymmScore = ZERO;
+    __m256i ymmScore = _mm256_setzero_si256();
     __m128i xmmScore = _mm_setzero_si128();
     int i;
     for (i = 0; i + 8 <= pos.nlist(); i += 8) {
@@ -329,7 +329,7 @@ namespace {
     score += _mm_cvtsi128_si32(xmmScoreLow);
     score += _mm_cvtsi128_si32(xmmScoreHigh);
 #else
-    __m256i ymmScore = ZERO;
+    __m256i ymmScore = _mm256_setzero_si256();
     __m128i xmmScore = _mm_setzero_si128();
     const s32* kkpbw = Evaluater::KKP[sq_bk][sq_wk];
     int i;

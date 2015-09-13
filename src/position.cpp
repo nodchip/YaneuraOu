@@ -327,7 +327,7 @@ void Position::doMove(const Move move, StateInfo& newSt, const CheckInfo& ci, co
 
       st_->material += (us == Black ? capturePieceScore(ptCaptured) : -capturePieceScore(ptCaptured));
     }
-    //prefetch(csearcher()->tt.firstEntry(boardKey + handKey));
+    prefetch(csearcher()->tt.firstEntry(boardKey + handKey));
     // Occupied は to, from の位置のビットを操作するよりも、
     // Black と White の or を取る方が速いはず。
     byTypeBB_[Occupied] = bbOf(Black) | bbOf(White);
