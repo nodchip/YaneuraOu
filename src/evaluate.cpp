@@ -70,18 +70,19 @@ namespace {
     const auto* pkppw = Evaluater::KPP[inverse(sq_wk)][index[1]];
 
 #ifdef HAVE_AVX2
-
 #ifdef USE_MASK_GATHER
     __m256i ymmScore = _mm256_setzero_si256();
     for (int i = 0; i < pos.nlist(); i += 8) {
+      __m256i ymmMask = MASK[std::min(pos.nlist() - i, 8)];
+
       __m256i ymmList0 = _mm256_load_si256((const __m256i*)&list0[i]);
       __m256i ymmKpp0 = _mm256_mask_i32gather_epi32(
-        _mm256_setzero_si256(), pkppb, ymmList0, MASK[std::min(pos.nlist() - i, 8)], sizeof(s32));
+        _mm256_setzero_si256(), pkppb, ymmList0, ymmMask, sizeof(s32));
       ymmScore = _mm256_add_epi32(ymmScore, ymmKpp0);
 
       __m256i ymmList1 = _mm256_load_si256((const __m256i*)&list1[i]);
       __m256i ymmKpp1 = _mm256_mask_i32gather_epi32(
-        _mm256_setzero_si256(), pkppw, ymmList1, MASK[std::min(pos.nlist() - i, 8)], sizeof(s32));
+        _mm256_setzero_si256(), pkppw, ymmList1, ymmMask, sizeof(s32));
       ymmScore = _mm256_sub_epi32(ymmScore, ymmKpp1);
     }
 
@@ -93,7 +94,7 @@ namespace {
     sum += _mm_cvtsi128_si32(xmmScoreLow);
     sum += _mm_cvtsi128_si32(xmmScoreHigh);
 #else
-    __m256i ymmScore = _mm256_setzero_si256();
+    __m256i ymmScore = ZERO;
     __m128i xmmScore = _mm_setzero_si128();
     int i;
     for (i = 0; i + 8 <= pos.nlist(); i += 8) {
@@ -306,14 +307,16 @@ namespace {
       const auto* pkppw = ppkppw[k1];
 
       for (int j = 0; j < i; j += 8) {
+        __m256i ymmMask = MASK[std::min(i - j, 8)];
+
         __m256i ymmList0 = _mm256_load_si256((const __m256i*)&list0[j]);
         __m256i ymmKpp0 = _mm256_mask_i32gather_epi32(
-          _mm256_setzero_si256(), pkppb, ymmList0, MASK[std::min(i - j, 8)], sizeof(s32));
+          _mm256_setzero_si256(), pkppb, ymmList0, ymmMask, sizeof(s32));
         ymmScore = _mm256_add_epi32(ymmScore, ymmKpp0);
 
         __m256i ymmList1 = _mm256_load_si256((const __m256i*)&list1[j]);
         __m256i ymmKpp1 = _mm256_mask_i32gather_epi32(
-          _mm256_setzero_si256(), pkppw, ymmList1, MASK[std::min(i - j, 8)], sizeof(s32));
+          _mm256_setzero_si256(), pkppw, ymmList1, ymmMask, sizeof(s32));
         ymmScore = _mm256_sub_epi32(ymmScore, ymmKpp1);
       }
     }
@@ -326,7 +329,7 @@ namespace {
     score += _mm_cvtsi128_si32(xmmScoreLow);
     score += _mm_cvtsi128_si32(xmmScoreHigh);
 #else
-    __m256i ymmScore = _mm256_setzero_si256();
+    __m256i ymmScore = ZERO;
     __m128i xmmScore = _mm_setzero_si128();
     const s32* kkpbw = Evaluater::KKP[sq_bk][sq_wk];
     int i;
