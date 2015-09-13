@@ -173,7 +173,9 @@ void go(const Position& pos, Scanner command) {
     else if (token == "byoyomi" || token == "movetime") {
       // btime wtime の後に byoyomi が来る前提になっているので良くない。
       limits.moveTime = command.nextInt();
-      if (limits.moveTime != 0) { limits.moveTime -= pos.searcher()->options["Byoyomi_Margin"]; }
+      if (limits.moveTime != 0) {
+        limits.moveTime -= pos.searcher()->options["Byoyomi_Margin"];
+      }
     }
     else if (token == "depth") {
       limits.depth = command.nextInt();
@@ -327,8 +329,12 @@ void setPosition(Position& pos, Scanner command) {
 
   if (token == "startpos") {
     sfen = DefaultStartPositionSFEN;
-    token = command.next();
-    assert(token == "moves");
+    // 将棋所は startpos のみ送ってくる。
+    // SFEN は startpos の直後は moves。
+    if (command.hasNext()) {
+      token = command.next();
+      assert(token == "moves");
+    }
   }
   else if (token == "sfen") {
     while (command.hasNext()) {
