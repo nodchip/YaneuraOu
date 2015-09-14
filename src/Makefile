@@ -35,6 +35,9 @@ $(OBJDIR)/%.o: %.cpp
 
 all: clean $(TARGET)
 
+native:
+	$(MAKE) CFLAGS='$(CFLAGS) -DNDEBUG -DMY_NAME=\"$(TARGET_PREFIX)\" -DHAVE_SSE4 -DHAVE_SSE42 -DHAVE_BMI2 -DHAVE_AVX2 -march=native' LDFLAGS='$(LDFLAGS) -flto' $(TARGET)
+
 broadwell:
 	$(MAKE) CFLAGS='$(CFLAGS) -DNDEBUG -DMY_NAME=\"$(TARGET_PREFIX)\" -DHAVE_SSE4 -DHAVE_SSE42 -DHAVE_BMI2 -DHAVE_AVX2 -mavx2 -mbmi2 -march=broadwell' LDFLAGS='$(LDFLAGS) -flto' $(TARGET)
 
@@ -57,16 +60,17 @@ prof:
 	$(MAKE) CFLAGS='$(CFLAGS) -pg' bmi2
 
 profgen:
-	$(MAKE) CFLAGS='$(CFLAGS) -fprofile-generate -lgcov' LDFLAGS='$(LDFLAGS) -fprofile-generate -lgcov' avx2
+	$(MAKE) CFLAGS='$(CFLAGS) -fprofile-generate -lgcov' LDFLAGS='$(LDFLAGS) -fprofile-generate -lgcov' native
 
 profuse:
-	$(MAKE) CFLAGS='$(CFLAGS) -fprofile-use -lgcov' LDFLAGS='$(LDFLAGS) -fprofile-use -lgcov' avx2
+	$(MAKE) CFLAGS='$(CFLAGS) -fprofile-use -lgcov' LDFLAGS='$(LDFLAGS) -fprofile-use -lgcov' native
 
 pgo:
 	$(MAKE) profgen
 	@./$(TARGET) bench | grep "info nodes"
 	@touch *.[ch]pp
 	$(MAKE) profuse
+	@./$(TARGET) bench | grep "info nodes"
 	@./$(TARGET) bench | grep "info nodes"
 
 clean:
