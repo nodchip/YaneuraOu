@@ -35,6 +35,9 @@ $(OBJDIR)/%.o: %.cpp
 
 all: clean $(TARGET)
 
+broadwell:
+	$(MAKE) CFLAGS='$(CFLAGS) -DNDEBUG -DMY_NAME=\"$(TARGET_PREFIX)\" -DHAVE_SSE4 -DHAVE_SSE42 -DHAVE_BMI2 -DHAVE_AVX2 -mavx2 -mbmi2 -march=broadwell' LDFLAGS='$(LDFLAGS) -flto' $(TARGET)
+
 avx2:
 	$(MAKE) CFLAGS='$(CFLAGS) -DNDEBUG -DMY_NAME=\"$(TARGET_PREFIX)\" -DHAVE_SSE4 -DHAVE_SSE42 -DHAVE_BMI2 -DHAVE_AVX2 -mavx2 -mbmi2' LDFLAGS='$(LDFLAGS) -flto' $(TARGET)
 
