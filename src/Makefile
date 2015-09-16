@@ -1,10 +1,7 @@
 COMPILER = g++
-#COMPILER = clang++
 #COMPILER = mpicxx
 CFLAGS   = -std=c++11 -fno-exceptions -fno-rtti -m64 -Wextra -Ofast #-MMD -MP
-#CFLAGS   = -std=c++11 -fno-exceptions -fno-rtti -m64 -Wextra -g -Ofast #-MMD -MP
 LDFLAGS  = -lpthread #-lboost_mpi -lboost_serialization
-#LDFLAGS  = -pthread #-lboost_mpi -lboost_serialization
 LIBS     =
 INCLUDE  = #-I../include
 TARGET_PREFIX = tanuki-gcc
@@ -25,6 +22,7 @@ SOURCES  = main.cpp bitboard.cpp init.cpp mt64bit.cpp position.cpp evalList.cpp 
            thread.cpp common.cpp pieceScore.cpp scanner.cpp string_util.cpp
 OBJECTS  = $(addprefix $(OBJDIR)/, $(SOURCES:.cpp=.o))
 DEPENDS  = $(OBJECTS:.o=.d)
+PGO_TARGET = native
 
 $(TARGET): $(OBJECTS) $(LIBS)
 	$(COMPILER) -o $@ $^ $(LDFLAGS) $(CFLAGS)
@@ -39,7 +37,7 @@ native:
 	$(MAKE) CFLAGS='$(CFLAGS) -DNDEBUG -DMY_NAME=\"$(TARGET_PREFIX)\" -DHAVE_SSE4 -DHAVE_SSE42 -DHAVE_BMI2 -DHAVE_AVX2 -march=native' LDFLAGS='$(LDFLAGS) -flto' $(TARGET)
 
 broadwell:
-	$(MAKE) CFLAGS='$(CFLAGS) -DNDEBUG -DMY_NAME=\"$(TARGET_PREFIX)\" -DHAVE_SSE4 -DHAVE_SSE42 -DHAVE_BMI2 -DHAVE_AVX2 -mavx2 -mbmi2 -march=broadwell' LDFLAGS='$(LDFLAGS) -flto' $(TARGET)
+	$(MAKE) CFLAGS='$(CFLAGS) -DNDEBUG -DMY_NAME=\"$(TARGET_PREFIX)\" -DHAVE_SSE4 -DHAVE_SSE42 -DHAVE_BMI2 -DHAVE_AVX2 -march=broadwell' LDFLAGS='$(LDFLAGS) -flto' $(TARGET)
 
 avx2:
 	$(MAKE) CFLAGS='$(CFLAGS) -DNDEBUG -DMY_NAME=\"$(TARGET_PREFIX)\" -DHAVE_SSE4 -DHAVE_SSE42 -DHAVE_BMI2 -DHAVE_AVX2 -mavx2 -mbmi2' LDFLAGS='$(LDFLAGS) -flto' $(TARGET)
@@ -60,10 +58,10 @@ prof:
 	$(MAKE) CFLAGS='$(CFLAGS) -pg' bmi2
 
 profgen:
-	$(MAKE) CFLAGS='$(CFLAGS) -fprofile-generate -lgcov' LDFLAGS='$(LDFLAGS) -fprofile-generate -lgcov' native
+	$(MAKE) CFLAGS='$(CFLAGS) -fprofile-generate -lgcov' LDFLAGS='$(LDFLAGS) -fprofile-generate -lgcov' $(PGO_TARGET)
 
 profuse:
-	$(MAKE) CFLAGS='$(CFLAGS) -fprofile-use -lgcov' LDFLAGS='$(LDFLAGS) -fprofile-use -lgcov' native
+	$(MAKE) CFLAGS='$(CFLAGS) -fprofile-use -lgcov' LDFLAGS='$(LDFLAGS) -fprofile-use -lgcov' $(PGO_TARGET)
 
 pgo:
 	$(MAKE) profgen
