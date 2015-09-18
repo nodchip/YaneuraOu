@@ -5,7 +5,7 @@
 
 KPPBoardIndexStartToPiece g_kppBoardIndexStartToPiece;
 
-s32 Evaluater::KPP[SquareNum][fe_end][fe_end];
+s16 Evaluater::KPP[SquareNum][fe_end][fe_end];
 s32 Evaluater::KKP[SquareNum][SquareNum][fe_end];
 s32 Evaluater::KK[SquareNum][SquareNum];
 
@@ -57,6 +57,15 @@ namespace {
     _mm256_set_epi32(0, -1, -1, -1, -1, -1, -1, -1),
     _mm256_set_epi32(-1, -1, -1, -1, -1, -1, -1, -1),
   };
+  static const __m256i SIXTEEN_MASK = _mm256_set_epi32(
+    0x0000ffff,
+    0x0000ffff,
+    0x0000ffff,
+    0x0000ffff,
+    0x0000ffff,
+    0x0000ffff,
+    0x0000ffff,
+    0x0000ffff);
 #endif
 
   s32 doapc(const Position& pos, const int index[2]) {
@@ -71,18 +80,42 @@ namespace {
 
 #ifdef HAVE_AVX2
 #ifdef USE_MASK_GATHER
-    __m256i ymmScore = _mm256_setzero_si256();
+    __m256i zero = _mm256_setzero_si256();
+    __m256i ymmScore = zero;
     for (int i = 0; i < pos.nlist(); i += 8) {
       __m256i ymmMask = MASK[std::min(pos.nlist() - i, 8)];
 
       __m256i ymmList0 = _mm256_load_si256((const __m256i*)&list0[i]);
       __m256i ymmKpp0 = _mm256_mask_i32gather_epi32(
-        _mm256_setzero_si256(), pkppb, ymmList0, ymmMask, sizeof(s32));
-      ymmScore = _mm256_add_epi32(ymmScore, ymmKpp0);
+        zero,
+        (const int*)pkppb,
+        ymmList0,
+        ymmMask,
+        sizeof(Evaluater::KPP[0][0][0]));
+      ymmKpp0 = _mm256_and_si256(ymmKpp0, SIXTEEN_MASK);
+      ymmKpp0 = _mm256_packus_epi32(ymmKpp0, zero);
+      __m128i xmmKppLo0 = _mm256_castsi256_si128(ymmKpp0);
+      __m128i xmmKppHi0 = _mm256_extracti128_si256(ymmKpp0, 1);
+      xmmKppHi0 = _mm_slli_si128(xmmKppHi0, 8);
+      __m128i xmmKpp0 = _mm_or_si128(xmmKppLo0, xmmKppHi0);
+      ymmKpp0 = _mm256_cvtepi16_epi32(xmmKpp0);
 
       __m256i ymmList1 = _mm256_load_si256((const __m256i*)&list1[i]);
       __m256i ymmKpp1 = _mm256_mask_i32gather_epi32(
-        _mm256_setzero_si256(), pkppw, ymmList1, ymmMask, sizeof(s32));
+        zero,
+        (const int*)pkppw,
+        ymmList1,
+        ymmMask,
+        sizeof(Evaluater::KPP[0][0][0]));
+      ymmKpp1 = _mm256_and_si256(ymmKpp1, SIXTEEN_MASK);
+      ymmKpp1 = _mm256_packus_epi32(ymmKpp1, zero);
+      __m128i xmmKppLo1 = _mm256_castsi256_si128(ymmKpp1);
+      __m128i xmmKppHi1 = _mm256_extracti128_si256(ymmKpp1, 1);
+      xmmKppHi1 = _mm_slli_si128(xmmKppHi1, 8);
+      __m128i xmmKpp1 = _mm_or_si128(xmmKppLo1, xmmKppHi1);
+      ymmKpp1 = _mm256_cvtepi16_epi32(xmmKpp1);
+
+      ymmScore = _mm256_add_epi32(ymmScore, ymmKpp0);
       ymmScore = _mm256_sub_epi32(ymmScore, ymmKpp1);
     }
 
@@ -288,11 +321,12 @@ namespace {
 
 #ifdef USE_MASK_GATHER
     const s32* kkpbw = Evaluater::KKP[sq_bk][sq_wk];
-    __m256i ymmScore = _mm256_setzero_si256();
+    __m256i zero = _mm256_setzero_si256();
+    __m256i ymmScore = zero;
     for (int i = 0; i < pos.nlist(); i += 8) {
       __m256i ymmList0 = _mm256_load_si256((const __m256i*)&list0[i]);
       __m256i ymmKkp0 = _mm256_mask_i32gather_epi32(
-        _mm256_setzero_si256(),
+        zero,
         kkpbw,
         ymmList0,
         MASK[std::min(pos.nlist() - i, 8)],
@@ -311,12 +345,35 @@ namespace {
 
         __m256i ymmList0 = _mm256_load_si256((const __m256i*)&list0[j]);
         __m256i ymmKpp0 = _mm256_mask_i32gather_epi32(
-          _mm256_setzero_si256(), pkppb, ymmList0, ymmMask, sizeof(s32));
-        ymmScore = _mm256_add_epi32(ymmScore, ymmKpp0);
+          zero,
+          (const int*)pkppb,
+          ymmList0,
+          ymmMask,
+          sizeof(Evaluater::KPP[0][0][0]));
+        ymmKpp0 = _mm256_and_si256(ymmKpp0, SIXTEEN_MASK);
+        ymmKpp0 = _mm256_packus_epi32(ymmKpp0, zero);
+        __m128i xmmKppLo0 = _mm256_castsi256_si128(ymmKpp0);
+        __m128i xmmKppHi0 = _mm256_extracti128_si256(ymmKpp0, 1);
+        xmmKppHi0 = _mm_slli_si128(xmmKppHi0, 8);
+        __m128i xmmKpp0 = _mm_or_si128(xmmKppLo0, xmmKppHi0);
+        ymmKpp0 = _mm256_cvtepi16_epi32(xmmKpp0);
 
         __m256i ymmList1 = _mm256_load_si256((const __m256i*)&list1[j]);
         __m256i ymmKpp1 = _mm256_mask_i32gather_epi32(
-          _mm256_setzero_si256(), pkppw, ymmList1, ymmMask, sizeof(s32));
+          zero,
+          (const int*)pkppw,
+          ymmList1,
+          ymmMask,
+          sizeof(Evaluater::KPP[0][0][0]));
+        ymmKpp1 = _mm256_and_si256(ymmKpp1, SIXTEEN_MASK);
+        ymmKpp1 = _mm256_packus_epi32(ymmKpp1, zero);
+        __m128i xmmKppLo1 = _mm256_castsi256_si128(ymmKpp1);
+        __m128i xmmKppHi1 = _mm256_extracti128_si256(ymmKpp1, 1);
+        xmmKppHi1 = _mm_slli_si128(xmmKppHi1, 8);
+        __m128i xmmKpp1 = _mm_or_si128(xmmKppLo1, xmmKppHi1);
+        ymmKpp1 = _mm256_cvtepi16_epi32(xmmKpp1);
+
+        ymmScore = _mm256_add_epi32(ymmScore, ymmKpp0);
         ymmScore = _mm256_sub_epi32(ymmScore, ymmKpp1);
       }
     }
@@ -410,7 +467,9 @@ namespace {
         const int l1 = list1[j];
         score += pkppb[l0];
         score -= pkppw[l1];
+        //fprintf(stderr, "%5d %5d %5d %5d\n", l0, pkppb[l0], l1, pkppw[l1]);
       }
+      //fprintf(stderr, "\n");
       score += Evaluater::KKP[sq_bk][sq_wk][k0];
     }
 #endif
@@ -516,4 +575,54 @@ Score evaluate(Position& pos, SearchStack* ss) {
   entry.encode();
   *g_evalTable[keyExcludeTurn] = entry;
   return (pos.turn() == Black ? score : -score) / FVScale;
+}
+
+bool Evaluater::readSynthesized(const std::string& dirName) {
+  {
+    std::ifstream ifs((addSlashIfNone(dirName) + "KPP16_synthesized.bin").c_str(), std::ios::binary);
+    if (!ifs) {
+      return false;
+    }
+    ifs.read(reinterpret_cast<char*>(KPP), sizeof(KPP));
+  }
+  {
+    std::ifstream ifs((addSlashIfNone(dirName) + "KKP32_synthesized.bin").c_str(), std::ios::binary);
+    if (!ifs) {
+      return false;
+    }
+    ifs.read(reinterpret_cast<char*>(KKP), sizeof(KKP));
+  }
+  {
+    std::ifstream ifs((addSlashIfNone(dirName) + "KK32_synthesized.bin").c_str(), std::ios::binary);
+    if (!ifs) {
+      return false;
+    }
+    ifs.read(reinterpret_cast<char*>(KK), sizeof(KK));
+  }
+  return true;
+}
+
+bool Evaluater::writeSynthesized(const std::string& dirName) {
+  {
+    std::ofstream ofs((addSlashIfNone(dirName) + "KPP16_synthesized.bin").c_str(), std::ios::binary);
+    if (!ofs) {
+      return false;
+    }
+    ofs.write(reinterpret_cast<char*>(KPP), sizeof(KPP));
+  }
+  {
+    std::ofstream ofs((addSlashIfNone(dirName) + "KKP32_synthesized.bin").c_str(), std::ios::binary);
+    if (!ofs) {
+      return false;
+    }
+    ofs.write(reinterpret_cast<char*>(KKP), sizeof(KKP));
+  }
+  {
+    std::ofstream ofs((addSlashIfNone(dirName) + "KK32_synthesized.bin").c_str(), std::ios::binary);
+    if (!ofs) {
+      return false;
+    }
+    ofs.write(reinterpret_cast<char*>(KK), sizeof(KK));
+  }
+  return true;
 }

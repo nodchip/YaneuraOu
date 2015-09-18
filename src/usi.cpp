@@ -1,14 +1,18 @@
-﻿#include "usi.hpp"
-#include "position.hpp"
+﻿#include "benchmark.hpp"
+#include "book.hpp"
+#include "generateMoves.hpp"
+#include "learner.hpp"
 #include "move.hpp"
 #include "movePicker.hpp"
-#include "generateMoves.hpp"
+#include "position.hpp"
 #include "search.hpp"
-#include "tt.hpp"
-#include "book.hpp"
 #include "thread.hpp"
-#include "benchmark.hpp"
-#include "learner.hpp"
+#include "tt.hpp"
+#include "usi.hpp"
+
+#ifdef _MSC_VER
+#include "hayabusa.hpp"
+#endif
 
 namespace {
   void onThreads(Searcher* s, const USIOption&) { s->threads.readUSIOptions(s); }
@@ -513,6 +517,15 @@ void Searcher::doUSICommandLoop(int argc, char* argv[]) {
     else if (token == "s") { measureGenerateMoves(pos); }
     else if (token == "t") { std::cout << pos.mateMoveIn1Ply().toCSA() << std::endl; }
     else if (token == "b") { makeBook(pos, command); }
+#ifdef _MSC_VER
+    else if (token == "convert_sfen_to_teacher_data") {
+      hayabusa::convertSfenToTeacherData();
+    }
+    else if (token == "adjust_weights") {
+      hayabusa::adjustWeights();
+      Evaluater::writeSynthesized(options["Eval_Dir"]);
+    }
+#endif
 #endif
     else { SYNCCOUT << "unknown command: " << cmd << SYNCENDL; }
   } while (token != "quit" && argc == 1);

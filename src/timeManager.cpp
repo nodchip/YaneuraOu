@@ -131,6 +131,8 @@ void TimeManager::init(LimitsType& limits, const Ply currentPly, const Color us,
       limits.moveTime = 0;
     }
   }
-  SYNCCOUT << "info string optimum_search_time = " << optimumSearchTime_ << SYNCENDL;
-  SYNCCOUT << "info string maximum_search_time = " << maximumSearchTime_ << SYNCENDL;
+  if (Searcher::outputInfo) {
+    SYNCCOUT << "info string optimum_search_time = " << optimumSearchTime_ << SYNCENDL;
+    SYNCCOUT << "info string maximum_search_time = " << maximumSearchTime_ << SYNCENDL;
+  }
 }

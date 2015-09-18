@@ -34,7 +34,7 @@ $(OBJDIR)/%.o: %.cpp
 all: clean $(TARGET)
 
 native:
-	$(MAKE) CFLAGS='$(CFLAGS) -DNDEBUG -DMY_NAME=\"$(TARGET_PREFIX)\" -DHAVE_SSE4 -DHAVE_SSE42 -DHAVE_BMI2 -DHAVE_AVX2 -march=native' LDFLAGS='$(LDFLAGS) -flto' $(TARGET)
+	$(MAKE) CFLAGS='$(CFLAGS) -DNDEBUG -DMY_NAME=\"$(TARGET_PREFIX)\" -DHAVE_SSE4 -DHAVE_SSE42 -DHAVE_BMI2 -DHAVE_AVX2_ -march=native' LDFLAGS='$(LDFLAGS) -flto' $(TARGET)
 
 broadwell:
 	$(MAKE) CFLAGS='$(CFLAGS) -DNDEBUG -DMY_NAME=\"$(TARGET_PREFIX)\" -DHAVE_SSE4 -DHAVE_SSE42 -DHAVE_BMI2 -DHAVE_AVX2 -march=broadwell' LDFLAGS='$(LDFLAGS) -flto' $(TARGET)
@@ -68,6 +68,7 @@ pgo:
 	@./$(TARGET) bench | grep "info nodes"
 	@touch *.[ch]pp
 	$(MAKE) profuse
+	@./$(TARGET) bench | grep "info nodes"
 	@./$(TARGET) bench | grep "info nodes"
 	@./$(TARGET) bench | grep "info nodes"
 
