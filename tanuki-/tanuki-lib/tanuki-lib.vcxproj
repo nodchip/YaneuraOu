@@ -200,6 +200,9 @@
     <ClCompile Include="..\..\src\tt.cpp" />
     <ClCompile Include="..\..\src\usi.cpp" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="..\..\src\Makefile" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

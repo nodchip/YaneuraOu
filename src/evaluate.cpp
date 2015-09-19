@@ -5,7 +5,7 @@
 
 KPPBoardIndexStartToPiece g_kppBoardIndexStartToPiece;
 
-s32 Evaluater::KPP[SquareNum][fe_end][fe_end];
+s32 Evaluater::KPP[SquareNum][fe_end][fe_end + KPP_PADDING0];
 s32 Evaluater::KKP[SquareNum][SquareNum][fe_end];
 s32 Evaluater::KK[SquareNum][SquareNum];
 
@@ -516,4 +516,65 @@ Score evaluate(Position& pos, SearchStack* ss) {
   entry.encode();
   *g_evalTable[keyExcludeTurn] = entry;
   return (pos.turn() == Black ? score : -score) / FVScale;
+}
+
+
+bool Evaluater::readSynthesized(const std::string& dirName) {
+  {
+    std::ifstream ifs((addSlashIfNone(dirName) + "KPP32_synthesized.bin").c_str(), std::ios::binary);
+    if (!ifs) {
+      return false;
+    }
+    std::vector<s32> temp(SquareNum * fe_end * fe_end);
+    ifs.read(reinterpret_cast<char*>(&temp[0]), SquareNum * fe_end * fe_end * (int)sizeof(s32));
+    
+    int index = 0;
+    for (int i = 0; i < SquareNum; ++i) {
+      for (int j = 0; j < fe_end; ++j) {
+        for (int k = 0; k < fe_end; ++k) {
+          KPP[i][j][k] = temp[index++];
+        }
+      }
+    }
+  }
+  {
+    std::ifstream ifs((addSlashIfNone(dirName) + "KKP32_synthesized.bin").c_str(), std::ios::binary);
+    if (!ifs) {
+      return false;
+    }
+    ifs.read(reinterpret_cast<char*>(KKP), sizeof(KKP));
+  }
+  {
+    std::ifstream ifs((addSlashIfNone(dirName) + "KK32_synthesized.bin").c_str(), std::ios::binary);
+    if (!ifs) {
+      return false;
+    }
+    ifs.read(reinterpret_cast<char*>(KK), sizeof(KK));
+  }
+  return true;
+}
+
+bool Evaluater::writeSynthesized(const std::string& dirName) {
+  {
+    std::ofstream ofs((addSlashIfNone(dirName) + "KPP16_synthesized.bin").c_str(), std::ios::binary);
+    if (!ofs) {
+      return false;
+    }
+    ofs.write(reinterpret_cast<char*>(KPP), sizeof(KPP));
+  }
+  {
+    std::ofstream ofs((addSlashIfNone(dirName) + "KKP32_synthesized.bin").c_str(), std::ios::binary);
+    if (!ofs) {
+      return false;
+    }
+    ofs.write(reinterpret_cast<char*>(KKP), sizeof(KKP));
+  }
+  {
+    std::ofstream ofs((addSlashIfNone(dirName) + "KK32_synthesized.bin").c_str(), std::ios::binary);
+    if (!ofs) {
+      return false;
+    }
+    ofs.write(reinterpret_cast<char*>(KK), sizeof(KK));
+  }
+  return true;
 }

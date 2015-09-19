@@ -705,9 +705,13 @@ template <typename KPPType, typename KKPType, typename KKType> struct EvaluaterB
   }
 };
 
+#ifndef KPP_PADDING0
+#define KPP_PADDING0 0
+#endif
+
 struct Evaluater : public EvaluaterBase<s32, s32, s32> {
   // 探索時に参照する評価関数テーブル
-  static s32 KPP[SquareNum][fe_end][fe_end];
+  static s32 KPP[SquareNum][fe_end][fe_end + KPP_PADDING0];
   static s32 KKP[SquareNum][SquareNum][fe_end];
   static s32 KK[SquareNum][SquareNum];
 #if defined USE_K_FIX_OFFSET
@@ -733,30 +737,11 @@ struct Evaluater : public EvaluaterBase<s32, s32, s32> {
     read(dirName);
     setEvaluate();
   }
-#define ALL_SYNTHESIZED_EVAL {									\
-		FOO(KPP);												\
-		FOO(KKP);												\
-		FOO(KK);												\
-	}
-  static bool readSynthesized(const std::string& dirName) {
-#define FOO(x) {														\
-			std::ifstream ifs((addSlashIfNone(dirName) + #x "_synthesized.bin").c_str(), std::ios::binary); \
-			if (ifs) ifs.read(reinterpret_cast<char*>(x), sizeof(x));	\
-			else     return false;										\
-		}
-    ALL_SYNTHESIZED_EVAL;
-#undef FOO
-    return true;
-  }
-  static void writeSynthesized(const std::string& dirName) {
-#define FOO(x) {														\
-			std::ofstream ofs((addSlashIfNone(dirName) + #x "_synthesized.bin").c_str(), std::ios::binary); \
-			ofs.write(reinterpret_cast<char*>(x), sizeof(x));			\
-		}
-    ALL_SYNTHESIZED_EVAL;
-#undef FOO
-  }
-#undef ALL_SYNTHESIZED_EVAL
+
+  static bool readSynthesized(const std::string& dirName);
+
+  static bool writeSynthesized(const std::string& dirName);
+
 #define ALL_BASE_EVAL {							\
 		FOO(kpp);								\
 		FOO(r_kpp_bb);							\
