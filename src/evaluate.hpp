@@ -705,9 +705,16 @@ template <typename KPPType, typename KKPType, typename KKType> struct EvaluaterB
   }
 };
 
+#ifndef KPP_PADDING0
+#define KPP_PADDING0 0
+#endif
+#ifndef KPP_PADDING1
+#define KPP_PADDING1 0
+#endif
+
 struct Evaluater : public EvaluaterBase<s16, s32, s32> {
   // 探索時に参照する評価関数テーブル
-  static s16 KPP[SquareNum][fe_end][fe_end];
+  static s16 KPP[SquareNum][fe_end + KPP_PADDING1][fe_end + KPP_PADDING0];
   static s32 KKP[SquareNum][SquareNum][fe_end];
   static s32 KK[SquareNum][SquareNum];
 #if defined USE_K_FIX_OFFSET
