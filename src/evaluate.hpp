@@ -705,11 +705,27 @@ template <typename KPPType, typename KKPType, typename KKType> struct EvaluaterB
   }
 };
 
-#ifndef KPP_PADDING0
+#ifdef _DEBUG
+
+#ifdef KPP_PADDING0
+#undef KPP_PADDING0
+#endif
 #define KPP_PADDING0 0
+
+#ifdef KPP_PADDING1
+#undef KPP_PADDING0
+#endif
+#define KPP_PADDING1 0
+
+#else
+
+#ifndef KPP_PADDING0
+#define KPP_PADDING0 5
 #endif
 #ifndef KPP_PADDING1
-#define KPP_PADDING1 0
+#define KPP_PADDING1 4
+#endif
+
 #endif
 
 struct Evaluater : public EvaluaterBase<s16, s32, s32> {

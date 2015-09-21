@@ -387,6 +387,10 @@ bool Evaluater::readSynthesized(const std::string& dirName) {
     if (!ifs) {
       return false;
     }
+    // デバッグ実行時は速度アップのためパディングを無効にして直接読み込む
+#ifdef _DEBUG
+    ifs.read(reinterpret_cast<char*>(KPP), sizeof(KPP));
+#else
     std::vector<s16> temp(SquareNum * fe_end * fe_end);
     ifs.read(reinterpret_cast<char*>(&temp[0]), SquareNum * fe_end * fe_end * (int)sizeof(KPP[0][0][0]));
 
@@ -398,6 +402,7 @@ bool Evaluater::readSynthesized(const std::string& dirName) {
         }
       }
     }
+#endif
   }
   {
     std::ifstream ifs((addSlashIfNone(dirName) + "KKP32_synthesized.bin").c_str(), std::ios::binary);
