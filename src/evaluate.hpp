@@ -705,13 +705,33 @@ template <typename KPPType, typename KKPType, typename KKType> struct EvaluaterB
   }
 };
 
-#ifndef KPP_PADDING0
+
+#ifdef _DEBUG
+
+#ifdef KPP_PADDING0
+#undef KPP_PADDING0
+#endif
 #define KPP_PADDING0 0
+
+#ifdef KPP_PADDING1
+#undef KPP_PADDING0
+#endif
+#define KPP_PADDING1 0
+
+#else
+
+#ifndef KPP_PADDING0
+#define KPP_PADDING0 5
+#endif
+#ifndef KPP_PADDING1
+#define KPP_PADDING1 4
 #endif
 
-struct Evaluater : public EvaluaterBase<s32, s32, s32> {
+#endif
+
+struct Evaluater : public EvaluaterBase<s16, s32, s32> {
   // 探索時に参照する評価関数テーブル
-  static s32 KPP[SquareNum][fe_end][fe_end + KPP_PADDING0];
+  static s16 KPP[SquareNum][fe_end + KPP_PADDING1][fe_end + KPP_PADDING0];
   static s32 KKP[SquareNum][SquareNum][fe_end];
   static s32 KK[SquareNum][SquareNum];
 #if defined USE_K_FIX_OFFSET
@@ -739,7 +759,6 @@ struct Evaluater : public EvaluaterBase<s32, s32, s32> {
   }
 
   static bool readSynthesized(const std::string& dirName);
-
   static bool writeSynthesized(const std::string& dirName);
 
 #define ALL_BASE_EVAL {							\

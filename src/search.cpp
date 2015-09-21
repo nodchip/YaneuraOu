@@ -46,6 +46,7 @@ Position Searcher::rootPosition(nullptr);
 ThreadPool Searcher::threads;
 OptionsMap Searcher::options;
 Searcher* Searcher::thisptr;
+bool Searcher::outputInfo = true;
 #endif
 
 void Searcher::init() {
@@ -617,7 +618,9 @@ void Searcher::idLoop(Position& pos) {
           && (depth < 10 || lastInfoTime + 200 < searchTimer.elapsed()))
         {
           lastInfoTime = searchTimer.elapsed();
-          SYNCCOUT << pvInfoToUSI(pos, depth, alpha, beta) << SYNCENDL;
+          if (outputInfo) {
+            SYNCCOUT << pvInfoToUSI(pos, depth, alpha, beta) << SYNCENDL;
+          }
         }
 
         // fail high/low のとき、aspiration window を広げる。
@@ -647,7 +650,9 @@ void Searcher::idLoop(Position& pos) {
         && (depth < 10 || lastInfoTime + 200 < searchTimer.elapsed()))
       {
         lastInfoTime = searchTimer.elapsed();
-        SYNCCOUT << pvInfoToUSI(pos, depth, alpha, beta) << SYNCENDL;
+        if (outputInfo) {
+          SYNCCOUT << pvInfoToUSI(pos, depth, alpha, beta) << SYNCENDL;
+        }
       }
     }
 
@@ -705,7 +710,9 @@ void Searcher::idLoop(Position& pos) {
     }
   }
   skill.swapIfEnabled(thisptr);
-  SYNCCOUT << pvInfoToUSI(pos, depth - 1, alpha, beta) << SYNCENDL;
+  if (outputInfo) {
+    SYNCCOUT << pvInfoToUSI(pos, depth - 1, alpha, beta) << SYNCENDL;
+  }
 }
 
 #if defined INANIWA_SHIFT
@@ -1563,7 +1570,9 @@ void Searcher::think() {
 
   tt.setSize(options["USI_Hash"]); // operator int() 呼び出し。
 
-  SYNCCOUT << "info string book_ply " << book_ply << SYNCENDL;
+  if (outputInfo) {
+    SYNCCOUT << "info string book_ply " << book_ply << SYNCENDL;
+  }
   if (options["OwnBook"] && pos.gamePly() <= book_ply) {
     const std::tuple<Move, Score> bookMoveScore = book.probe(pos, options["Book_File"], options["Best_Book_Move"]);
     if (!std::get<0>(bookMoveScore).isNone() && std::find(rootMoves.begin(),
@@ -1573,10 +1582,12 @@ void Searcher::think() {
       std::swap(rootMoves[0], *std::find(rootMoves.begin(),
         rootMoves.end(),
         std::get<0>(bookMoveScore)));
-      SYNCCOUT << "info"
-        << " score " << scoreToUSI(std::get<1>(bookMoveScore))
-        << " pv " << std::get<0>(bookMoveScore).toUSI()
-        << SYNCENDL;
+      if (outputInfo) {
+        SYNCCOUT << "info"
+          << " score " << scoreToUSI(std::get<1>(bookMoveScore))
+          << " pv " << std::get<0>(bookMoveScore).toUSI()
+          << SYNCENDL;
+      }
 
       goto finalize;
     }
@@ -1603,8 +1614,10 @@ void Searcher::think() {
 
 finalize:
 
-  SYNCCOUT << "info nodes " << pos.nodesSearched()
-    << " time " << searchTimer.elapsed() << SYNCENDL;
+  if (outputInfo) {
+    SYNCCOUT << "info nodes " << pos.nodesSearched()
+      << " time " << searchTimer.elapsed() << SYNCENDL;
+  }
   lastSearchedNodes = pos.nodesSearched();
 
   if (!signals.stop && (limits.ponder || limits.infinite)) {
@@ -1612,16 +1625,18 @@ finalize:
     pos.thisThread()->waitFor(signals.stop);
   }
 
-  if (nyugyokuWin) {
-    SYNCCOUT << "bestmove win" << SYNCENDL;
-  }
-  else if (rootMoves[0].pv_[0].isNone()) {
-    SYNCCOUT << "bestmove resign" << SYNCENDL;
-  }
-  else {
-    SYNCCOUT << "bestmove " << rootMoves[0].pv_[0].toUSI()
-      << " ponder " << rootMoves[0].pv_[1].toUSI()
-      << SYNCENDL;
+  if (outputInfo) {
+    if (nyugyokuWin) {
+      SYNCCOUT << "bestmove win" << SYNCENDL;
+    }
+    else if (rootMoves[0].pv_[0].isNone()) {
+      SYNCCOUT << "bestmove resign" << SYNCENDL;
+    }
+    else {
+      SYNCCOUT << "bestmove " << rootMoves[0].pv_[0].toUSI()
+        << " ponder " << rootMoves[0].pv_[1].toUSI()
+        << SYNCENDL;
+    }
   }
 }
 

@@ -5,7 +5,7 @@
 
 KPPBoardIndexStartToPiece g_kppBoardIndexStartToPiece;
 
-s32 Evaluater::KPP[SquareNum][fe_end][fe_end + KPP_PADDING0];
+s16 Evaluater::KPP[SquareNum][fe_end + KPP_PADDING1][fe_end + KPP_PADDING0];
 s32 Evaluater::KKP[SquareNum][SquareNum][fe_end];
 s32 Evaluater::KK[SquareNum][SquareNum];
 
@@ -69,76 +69,10 @@ namespace {
     const auto* pkppb = Evaluater::KPP[sq_bk][index[0]];
     const auto* pkppw = Evaluater::KPP[inverse(sq_wk)][index[1]];
 
-#ifdef HAVE_AVX2
-#ifdef USE_MASK_GATHER
-    __m256i ymmScore = _mm256_setzero_si256();
-    for (int i = 0; i < pos.nlist(); i += 8) {
-      __m256i ymmMask = MASK[std::min(pos.nlist() - i, 8)];
-
-      __m256i ymmList0 = _mm256_load_si256((const __m256i*)&list0[i]);
-      __m256i ymmKpp0 = _mm256_mask_i32gather_epi32(
-        _mm256_setzero_si256(), pkppb, ymmList0, ymmMask, sizeof(s32));
-      ymmScore = _mm256_add_epi32(ymmScore, ymmKpp0);
-
-      __m256i ymmList1 = _mm256_load_si256((const __m256i*)&list1[i]);
-      __m256i ymmKpp1 = _mm256_mask_i32gather_epi32(
-        _mm256_setzero_si256(), pkppw, ymmList1, ymmMask, sizeof(s32));
-      ymmScore = _mm256_sub_epi32(ymmScore, ymmKpp1);
-    }
-
-    // http://www.slideshare.net/KenjiImasaki/ss-46408963
-    ymmScore = _mm256_hadd_epi32(ymmScore, ymmScore);
-    ymmScore = _mm256_hadd_epi32(ymmScore, ymmScore);
-    __m128i xmmScoreLow = _mm256_castsi256_si128(ymmScore);
-    __m128i xmmScoreHigh = _mm256_extracti128_si256(ymmScore, 1);
-    sum += _mm_cvtsi128_si32(xmmScoreLow);
-    sum += _mm_cvtsi128_si32(xmmScoreHigh);
-#else
-    __m256i ymmScore = _mm256_setzero_si256();
-    __m128i xmmScore = _mm_setzero_si128();
-    int i;
-    for (i = 0; i + 8 <= pos.nlist(); i += 8) {
-      __m256i ymmList0 = _mm256_load_si256((const __m256i*)&list0[i]);
-      __m256i ymmKpp0 = _mm256_i32gather_epi32(pkppb, ymmList0, sizeof(s32));
-      ymmScore = _mm256_add_epi32(ymmScore, ymmKpp0);
-
-      __m256i ymmList1 = _mm256_load_si256((const __m256i*)&list1[i]);
-      __m256i ymmKpp1 = _mm256_i32gather_epi32(pkppw, ymmList1, sizeof(s32));
-      ymmScore = _mm256_sub_epi32(ymmScore, ymmKpp1);
-    }
-    for (; i + 4 <= pos.nlist(); i += 4) {
-      __m128i xmmList0 = _mm_load_si128((const __m128i*)&list0[i]);
-      __m128i xmmKpp0 = _mm_i32gather_epi32(pkppb, xmmList0, sizeof(s32));
-      xmmScore = _mm_add_epi32(xmmScore, xmmKpp0);
-
-      __m128i xmmList1 = _mm_load_si128((const __m128i*)&list1[i]);
-      __m128i xmmKpp1 = _mm_i32gather_epi32(pkppw, xmmList1, sizeof(s32));
-      xmmScore = _mm_sub_epi32(xmmScore, xmmKpp1);
-    }
-
-    for (; i < pos.nlist(); ++i) {
-      sum += pkppb[list0[i]];
-      sum -= pkppw[list1[i]];
-    }
-
-    // http://www.slideshare.net/KenjiImasaki/ss-46408963
-    ymmScore = _mm256_hadd_epi32(ymmScore, ymmScore);
-    ymmScore = _mm256_hadd_epi32(ymmScore, ymmScore);
-    __m128i xmmScoreLow = _mm256_castsi256_si128(ymmScore);
-    __m128i xmmScoreHigh = _mm256_extracti128_si256(ymmScore, 1);
-    sum += _mm_cvtsi128_si32(xmmScoreLow);
-    sum += _mm_cvtsi128_si32(xmmScoreHigh);
-    xmmScore = _mm_hadd_epi32(xmmScore, xmmScore);
-    xmmScore = _mm_hadd_epi32(xmmScore, xmmScore);
-    sum += _mm_cvtsi128_si32(xmmScore);
-#endif
-
-#else
     for (int i = 0; i < pos.nlist(); ++i) {
       sum += pkppb[list0[i]];
       sum -= pkppw[list1[i]];
     }
-#endif
 
     return sum;
   }
@@ -285,42 +219,22 @@ namespace {
     s32 score = Evaluater::KK[sq_bk][sq_wk];
 
 #ifdef HAVE_AVX2
+    __m256i ymmZero = _mm256_setzero_si256();
+    __m256i ymmMask6 = _mm256_set_epi32(0, 0, -1, -1, -1, -1, -1, -1);
 
-#ifdef USE_MASK_GATHER
     const s32* kkpbw = Evaluater::KKP[sq_bk][sq_wk];
-    __m256i ymmScore = _mm256_setzero_si256();
+    __m256i ymmScore = ymmZero;
     for (int i = 0; i < pos.nlist(); i += 8) {
       __m256i ymmList0 = _mm256_load_si256((const __m256i*)&list0[i]);
       __m256i ymmKkp0 = _mm256_mask_i32gather_epi32(
-        _mm256_setzero_si256(),
+        ymmZero,
         kkpbw,
         ymmList0,
-        MASK[std::min(pos.nlist() - i, 8)],
+        MASK[std::min(8, (int)pos.nlist() - i)],
         sizeof(s32));
       ymmScore = _mm256_add_epi32(ymmScore, ymmKkp0);
     }
 
-    for (int i = 0; i < pos.nlist(); ++i) {
-      const int k0 = list0[i];
-      const int k1 = list1[i];
-      const auto* pkppb = ppkppb[k0];
-      const auto* pkppw = ppkppw[k1];
-
-      for (int j = 0; j < i; j += 8) {
-        __m256i ymmMask = MASK[std::min(i - j, 8)];
-
-        __m256i ymmList0 = _mm256_load_si256((const __m256i*)&list0[j]);
-        __m256i ymmKpp0 = _mm256_mask_i32gather_epi32(
-          _mm256_setzero_si256(), pkppb, ymmList0, ymmMask, sizeof(s32));
-        ymmScore = _mm256_add_epi32(ymmScore, ymmKpp0);
-
-        __m256i ymmList1 = _mm256_load_si256((const __m256i*)&list1[j]);
-        __m256i ymmKpp1 = _mm256_mask_i32gather_epi32(
-          _mm256_setzero_si256(), pkppw, ymmList1, ymmMask, sizeof(s32));
-        ymmScore = _mm256_sub_epi32(ymmScore, ymmKpp1);
-      }
-    }
-
     // http://www.slideshare.net/KenjiImasaki/ss-46408963
     ymmScore = _mm256_hadd_epi32(ymmScore, ymmScore);
     ymmScore = _mm256_hadd_epi32(ymmScore, ymmScore);
@@ -328,76 +242,23 @@ namespace {
     __m128i xmmScoreHigh = _mm256_extracti128_si256(ymmScore, 1);
     score += _mm_cvtsi128_si32(xmmScoreLow);
     score += _mm_cvtsi128_si32(xmmScoreHigh);
-#else
-    __m256i ymmScore = _mm256_setzero_si256();
-    __m128i xmmScore = _mm_setzero_si128();
-    const s32* kkpbw = Evaluater::KKP[sq_bk][sq_wk];
-    int i;
-    for (i = 0; i + 8 <= pos.nlist(); i += 8) {
-      __m256i ymmList0 = _mm256_load_si256((const __m256i*)&list0[i]);
-      __m256i ymmKkp0 = _mm256_i32gather_epi32(kkpbw, ymmList0, sizeof(s32));
-      ymmScore = _mm256_add_epi32(ymmScore, ymmKkp0);
-    }
 
-    for (; i + 4 <= pos.nlist(); i += 4) {
-      __m128i xmmList0 = _mm_load_si128((const __m128i*)&list0[i]);
-      __m128i xmmKkp0 = _mm_i32gather_epi32(kkpbw, xmmList0, sizeof(s32));
-      xmmScore = _mm_add_epi32(xmmScore, xmmKkp0);
-    }
-
-    for (; i < pos.nlist(); ++i) {
-      const int k0 = list0[i];
-      score += kkpbw[k0];
-    }
-
-    for (int i = 0; i < pos.nlist(); ++i) {
+    for (int i = 1; i < pos.nlist(); ++i) {
       const int k0 = list0[i];
       const int k1 = list1[i];
       const auto* pkppb = ppkppb[k0];
       const auto* pkppw = ppkppw[k1];
-
-      int j;
-      for (j = 0; j + 8 <= i; j += 8) {
-        __m256i ymmList0 = _mm256_load_si256((const __m256i*)&list0[j]);
-        __m256i ymmKpp0 = _mm256_i32gather_epi32(pkppb, ymmList0, sizeof(s32));
-        ymmScore = _mm256_add_epi32(ymmScore, ymmKpp0);
-
-        __m256i ymmList1 = _mm256_load_si256((const __m256i*)&list1[j]);
-        __m256i ymmKpp1 = _mm256_i32gather_epi32(pkppw, ymmList1, sizeof(s32));
-        ymmScore = _mm256_sub_epi32(ymmScore, ymmKpp1);
-      }
-
-      for (; j + 4 <= i; j += 4) {
-        __m128i xmmList0 = _mm_load_si128((const __m128i*)&list0[j]);
-        __m128i xmmKpp0 = _mm_i32gather_epi32(pkppb, xmmList0, sizeof(s32));
-        xmmScore = _mm_add_epi32(xmmScore, xmmKpp0);
-
-        __m128i xmmList1 = _mm_load_si128((const __m128i*)&list1[j]);
-        __m128i xmmKpp1 = _mm_i32gather_epi32(pkppw, xmmList1, sizeof(s32));
-        xmmScore = _mm_sub_epi32(xmmScore, xmmKpp1);
-      }
-
-      for (; j < i; ++j) {
+      for (int j = 0; j < i; ++j) {
         const int l0 = list0[j];
         const int l1 = list1[j];
         score += pkppb[l0];
         score -= pkppw[l1];
+        //fprintf(stderr, "%5d %5d %5d %5d\n", l0, pkppb[l0], l1, pkppw[l1]);
       }
+      //fprintf(stderr, "\n");
     }
-
-    // http://www.slideshare.net/KenjiImasaki/ss-46408963
-    ymmScore = _mm256_hadd_epi32(ymmScore, ymmScore);
-    ymmScore = _mm256_hadd_epi32(ymmScore, ymmScore);
-    __m128i xmmScoreLow = _mm256_castsi256_si128(ymmScore);
-    __m128i xmmScoreHigh = _mm256_extracti128_si256(ymmScore, 1);
-    score += _mm_cvtsi128_si32(xmmScoreLow);
-    score += _mm_cvtsi128_si32(xmmScoreHigh);
-    xmmScore = _mm_hadd_epi32(xmmScore, xmmScore);
-    xmmScore = _mm_hadd_epi32(xmmScore, xmmScore);
-    score += _mm_cvtsi128_si32(xmmScore);
-#endif
-
 #else
+
     // loop 開始を i = 1 からにして、i = 0 の分のKKPを先に足す。
     score += Evaluater::KKP[sq_bk][sq_wk][list0[0]];
     for (int i = 1; i < pos.nlist(); ++i) {
@@ -410,7 +271,9 @@ namespace {
         const int l1 = list1[j];
         score += pkppb[l0];
         score -= pkppw[l1];
+        //fprintf(stderr, "%5d %5d %5d %5d\n", l0, pkppb[l0], l1, pkppw[l1]);
       }
+      //fprintf(stderr, "\n");
       score += Evaluater::KKP[sq_bk][sq_wk][k0];
     }
 #endif
@@ -518,16 +381,19 @@ Score evaluate(Position& pos, SearchStack* ss) {
   return (pos.turn() == Black ? score : -score) / FVScale;
 }
 
-
 bool Evaluater::readSynthesized(const std::string& dirName) {
   {
-    std::ifstream ifs((addSlashIfNone(dirName) + "KPP32_synthesized.bin").c_str(), std::ios::binary);
+    std::ifstream ifs((addSlashIfNone(dirName) + "KPP16_synthesized.bin").c_str(), std::ios::binary);
     if (!ifs) {
       return false;
     }
-    std::vector<s32> temp(SquareNum * fe_end * fe_end);
-    ifs.read(reinterpret_cast<char*>(&temp[0]), SquareNum * fe_end * fe_end * (int)sizeof(s32));
-    
+    // デバッグ実行時は速度アップのためパディングを無効にして直接読み込む
+#ifdef _DEBUG
+    ifs.read(reinterpret_cast<char*>(KPP), sizeof(KPP));
+#else
+    std::vector<s16> temp(SquareNum * fe_end * fe_end);
+    ifs.read(reinterpret_cast<char*>(&temp[0]), SquareNum * fe_end * fe_end * (int)sizeof(KPP[0][0][0]));
+
     int index = 0;
     for (int i = 0; i < SquareNum; ++i) {
       for (int j = 0; j < fe_end; ++j) {
@@ -536,6 +402,7 @@ bool Evaluater::readSynthesized(const std::string& dirName) {
         }
       }
     }
+#endif
   }
   {
     std::ifstream ifs((addSlashIfNone(dirName) + "KKP32_synthesized.bin").c_str(), std::ios::binary);
@@ -560,7 +427,18 @@ bool Evaluater::writeSynthesized(const std::string& dirName) {
     if (!ofs) {
       return false;
     }
-    ofs.write(reinterpret_cast<char*>(KPP), sizeof(KPP));
+    std::vector<s16> temp(SquareNum * fe_end * fe_end);
+
+    int index = 0;
+    for (int i = 0; i < SquareNum; ++i) {
+      for (int j = 0; j < fe_end; ++j) {
+        for (int k = 0; k < fe_end; ++k) {
+          temp[index++] = KPP[i][j][k];
+        }
+      }
+    }
+
+    ofs.write(reinterpret_cast<char*>(&temp[0]), SquareNum * fe_end * fe_end * (int)sizeof(KPP[0][0][0]));
   }
   {
     std::ofstream ofs((addSlashIfNone(dirName) + "KKP32_synthesized.bin").c_str(), std::ios::binary);

@@ -5,17 +5,19 @@
 
 namespace {
 #if 1
-  const int MoveHorizon = 47; // 15分切れ負け用。
-  const float MaxRatio = 3.0; // 15分切れ負け用。
-                              //const float MaxRatio = 5.0; // 15分 秒読み10秒用。
+  static const int MoveHorizon = 47; // 15分切れ負け用。
+  static const double MaxRatio = 3.0; // 15分切れ負け用。
+                              //const double MaxRatio = 5.0; // 15分 秒読み10秒用。
 #else
-  const int MoveHorizon = 35; // 2時間切れ負け用。(todo: もう少し時間使っても良いかも知れない。)
-  const float MaxRatio = 5.0; // 2時間切れ負け用。
+  static const int MoveHorizon = 35; // 2時間切れ負け用。(todo: もう少し時間使っても良いかも知れない。)
+  static const double MaxRatio = 5.0; // 2時間切れ負け用。
 #endif
-  const float StealRatio = 0.33;
+  static const double StealRatio = 0.33;
+  // 序盤で本来の思考時間に対する割合
+  static const double OPENING_GAME_SEARCH_TIME_COMPRESSION_RATIO = 0.1;
 
   // Stockfish とは異なる。
-  const int MoveImportance[512] = {
+  static const int MoveImportance[512] = {
     7780, 7780, 7780, 7780, 7780, 7780, 7780, 7780, 7780, 7780, 7780, 7780, 7780, 7780, 7780, 7780,
     7780, 7780, 7780, 7780, 7780, 7780, 7780, 7780, 7780, 7780, 7780, 7780, 7780, 7780, 7780, 7780,
     7780, 7780, 7780, 7780, 7780, 7780, 7780, 7780, 7780, 7780, 7780, 7780, 7780, 7780, 7780, 7780,
@@ -59,37 +61,41 @@ namespace {
     MaxTime
   };
 
-  template <TimeType T> int remaining(const int myTime, const int movesToGo, const Ply currentPly, const int slowMover) {
-    const float TMaxRatio = (T == OptimumTime ? 1 : MaxRatio);
-    const float TStealRatio = (T == OptimumTime ? 0 : StealRatio);
+  double standardSigmoidFunction(double x) {
+    return 1.0 / (1.0 + exp(-x));
+  }
 
-    const float thisMoveImportance = moveImportance(currentPly) * slowMover / 100;
-    float otherMoveImportance = 0;
+  template <TimeType T> int remaining(const int myTime, int movesToGo, Ply currentPly, int slowMover) {
+    double TMaxRatio = (T == OptimumTime ? 1 : MaxRatio);
+    double TStealRatio = (T == OptimumTime ? 0 : StealRatio);
+
+    double thisMoveImportance = moveImportance(currentPly) * slowMover / 100;
+    double otherMoveImportance = 0;
 
     for (int i = 1; i < movesToGo; ++i) {
       otherMoveImportance += moveImportance(currentPly + 2 * i);
     }
 
-    const float ratio1 =
-      (TMaxRatio * thisMoveImportance) / static_cast<float>(TMaxRatio * thisMoveImportance + otherMoveImportance);
-    const float ratio2 =
-      (thisMoveImportance + TStealRatio * otherMoveImportance) / static_cast<float>(thisMoveImportance + otherMoveImportance);
+    double ratio1 =
+      (TMaxRatio * thisMoveImportance) / static_cast<double>(TMaxRatio * thisMoveImportance + otherMoveImportance);
+    double ratio2 =
+      (thisMoveImportance + TStealRatio * otherMoveImportance) / static_cast<double>(thisMoveImportance + otherMoveImportance);
 
     return static_cast<int>(myTime * std::min(ratio1, ratio2));
   }
 }
 
-void TimeManager::pvInstability(const int currChanges, const int prevChanges) {
+void TimeManager::pvInstability(int currChanges, int prevChanges) {
   unstablePVExtraTime_ =
     currChanges * (optimumSearchTime_ / 2) + prevChanges * (optimumSearchTime_ / 3);
 }
 
-void TimeManager::init(LimitsType& limits, const Ply currentPly, const Color us, Searcher* s) {
-  const int emergencyMoveHorizon = s->options["Emergency_Move_Horizon"];
-  const int emergencyBaseTime = s->options["Emergency_Base_Time"];
-  const int emergencyMoveTime = s->options["Emergency_Move_Time"];
-  const int minThinkingTime = s->options["Minimum_Thinking_Time"];
-  const int slowMover = s->options["Slow_Mover"];
+void TimeManager::init(LimitsType& limits, Ply currentPly, Color us, Searcher* s) {
+  int emergencyMoveHorizon = s->options["Emergency_Move_Horizon"];
+  int emergencyBaseTime = s->options["Emergency_Base_Time"];
+  int emergencyMoveTime = s->options["Emergency_Move_Time"];
+  int minThinkingTime = s->options["Minimum_Thinking_Time"];
+  int slowMover = s->options["Slow_Mover"];
 
   unstablePVExtraTime_ = 0;
   optimumSearchTime_ = maximumSearchTime_ = limits.time[us];
@@ -103,8 +109,8 @@ void TimeManager::init(LimitsType& limits, const Ply currentPly, const Color us,
 
     hypMyTime = std::max(hypMyTime, 0);
 
-    const int t1 = minThinkingTime + remaining<OptimumTime>(hypMyTime, hypMTG, currentPly, slowMover);
-    const int t2 = minThinkingTime + remaining<MaxTime>(hypMyTime, hypMTG, currentPly, slowMover);
+    int t1 = minThinkingTime + remaining<OptimumTime>(hypMyTime, hypMTG, currentPly, slowMover);
+    int t2 = minThinkingTime + remaining<MaxTime>(hypMyTime, hypMTG, currentPly, slowMover);
 
     optimumSearchTime_ = std::min(optimumSearchTime_, t1);
     maximumSearchTime_ = std::min(maximumSearchTime_, t2);
@@ -125,12 +131,30 @@ void TimeManager::init(LimitsType& limits, const Ply currentPly, const Color us,
     if (maximumSearchTime_ < limits.moveTime) {
       maximumSearchTime_ = std::min(limits.time[us], limits.moveTime);
     }
+    // TODO(nodchip): なぜ秒読み分を足しているのか？
     optimumSearchTime_ += limits.moveTime;
     maximumSearchTime_ += limits.moveTime;
     if (limits.time[us] != 0) {
       limits.moveTime = 0;
     }
   }
-  SYNCCOUT << "info string optimum_search_time = " << optimumSearchTime_ << SYNCENDL;
-  SYNCCOUT << "info string maximum_search_time = " << maximumSearchTime_ << SYNCENDL;
+
+  // 序盤に時間を使わないようにする
+  // 20手目: 本来の時間 * OPENING_GAME_SEARCH_TIME_COMPRESSION_RATIO
+  // 20～44手目: シグモイド関数で補間
+  // 44手目: 本来の時間
+  double ratio = OPENING_GAME_SEARCH_TIME_COMPRESSION_RATIO;
+  optimumSearchTime_ = (int)(optimumSearchTime_ * (standardSigmoidFunction((currentPly - 32) * 0.5) * (1.0 - ratio) + ratio));
+  maximumSearchTime_ = (int)(maximumSearchTime_ * (standardSigmoidFunction((currentPly - 32) * 0.5) * (1.0 - ratio) + ratio));
+  // ??500 ms に合わせる
+  optimumSearchTime_ = (optimumSearchTime_ + 500) / 1000 * 1000 + 500;
+  maximumSearchTime_ = (maximumSearchTime_ + 500) / 1000 * 1000 + 500;
+  // こちらも minThinkingTime 以上にする。
+  optimumSearchTime_ = std::max(optimumSearchTime_, minThinkingTime);
+  maximumSearchTime_ = std::max(maximumSearchTime_, minThinkingTime);
+
+  if (Searcher::outputInfo) {
+    SYNCCOUT << "info string optimum_search_time = " << optimumSearchTime_ << SYNCENDL;
+    SYNCCOUT << "info string maximum_search_time = " << maximumSearchTime_ << SYNCENDL;
+  }
 }

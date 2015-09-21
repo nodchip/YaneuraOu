@@ -21,7 +21,7 @@ const std::tr2::sys::path hayabusa::DEFAULT_INPUT_TEACHER_DATA_FILE_PATH("../bin
 const std::tr2::sys::path hayabusa::DEFAULT_INPUT_SHOGIDOKORO_CSA_DIRECTORY_PATH("../../Shogidokoro/csa");
 const std::tr2::sys::path hayabusa::DEFAULT_INPUT_SFEN_FILE_PATH("../bin/kifu.sfen");
 
-static const double ALPHA = pow(2.0, -4.0);
+static const double ALPHA = pow(2.0, -14.0);
 
 static const Score LOSE_PENARTY = PawnScore * 1000;
 
@@ -42,18 +42,16 @@ static bool converSfenToTeacherData(
     Position pos;
     setPosition(pos, vector<string>(sfen.begin(), sfen.begin() + play + 2));
 
-    SearchStack searchStack[MaxPlyPlus2];
-    memset(searchStack, 0, sizeof(searchStack));
-    searchStack[0].currentMove = Move::moveNull(); // skip update gains
-    searchStack[0].staticEvalRaw = (Score)INT_MAX;
-    searchStack[1].staticEvalRaw = (Score)INT_MAX;
+    //SearchStack searchStack[MaxPlyPlus2];
+    //memset(searchStack, 0, sizeof(searchStack));
+    //searchStack[0].currentMove = Move::moveNull(); // skip update gains
+    //searchStack[0].staticEvalRaw = (Score)INT_MAX;
+    //searchStack[1].staticEvalRaw = (Score)INT_MAX;
+    //Score score = evaluate(pos, &searchStack[1]);
 
-    Score score = evaluate(pos, &searchStack[1]);
-
-    //std::istringstream ss_go("depth 6");
-    //go(pos, ss_go);
-    //g_threads.waitForThinkFinished();
-    //Score score = Searcher::rootMoves[0].score_;
+    go(pos, "depth 1");
+    pos.searcher()->threads.waitForThinkFinished();
+    Score score = Searcher::rootMoves[0].score_;
 
     if (pos.turn() == White) {
       score = -score;
@@ -95,6 +93,7 @@ bool hayabusa::convertSfenToTeacherData(
   const std::tr2::sys::path& inputSfenFilePath,
   const std::tr2::sys::path& outputTeacherDataFilePath,
   int maxNumberOfPlays) {
+  Searcher::outputInfo = false;
   cout << "hayabusa::createTeacherData()" << endl;
 
   int numberOfKifus = getNumberOfLines(inputSfenFilePath);
@@ -147,6 +146,7 @@ bool hayabusa::addTeacherData(
   const std::tr2::sys::path& inputShogidokoroCsaDirectoryPath,
   const std::tr2::sys::path& outputTeacherFilePath,
   int maxNumberOfPlays) {
+  Searcher::outputInfo = false;
   cout << "hayabusa::addTeacherData()" << endl;
 
   ofstream teacherFile(outputTeacherFilePath, std::ios::app | std::ios::binary);
@@ -218,6 +218,7 @@ bool hayabusa::addTeacherData(
 bool hayabusa::adjustWeights(
   const std::tr2::sys::path& inputTeacherFilePath,
   int numberOfIterations) {
+  Searcher::outputInfo = false;
   cout << "hayabusa::adjustWeights()" << endl;
 
   int numberOfTeacherData = file_size(inputTeacherFilePath) / sizeof(TeacherData);
