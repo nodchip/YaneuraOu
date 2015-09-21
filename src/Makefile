@@ -4,7 +4,7 @@ CFLAGS   = -std=c++11 -fno-exceptions -fno-rtti -m64 -Wextra -Ofast #-MMD -MP
 LDFLAGS  = -lpthread #-lboost_mpi -lboost_serialization
 LIBS     =
 INCLUDE  = #-I../include
-TARGET_PREFIX = tanuki-gcc
+TARGET_PREFIX = tanuki-gcc1
 ifeq ($(OS),Windows_NT)
   TARGET = $(TARGET_PREFIX).exe
   LDFLAGS += -static
@@ -68,7 +68,6 @@ pgo:
 	@./$(TARGET) bench | grep "info nodes"
 	@touch *.[ch]pp
 	$(MAKE) profuse
-	@./$(TARGET) bench | grep "info nodes"
 	@./$(TARGET) bench | grep "info nodes"
 	@./$(TARGET) bench | grep "info nodes"
 
