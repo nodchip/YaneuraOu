@@ -60,6 +60,9 @@ void Searcher::init() {
 }
 
 namespace {
+  // info を標準出力へ出力するスロットル
+  // 前回出力してから以下の時間を経過していない場合は出力しない
+  static const int THROTTLE_TO_OUTPUT_INFO_MS = 1000;
   // true にすると、シングルスレッドで動作する。デバッグ用。
   const bool FakeSplit = false;
 
@@ -500,7 +503,9 @@ void Searcher::idLoop(Position& pos) {
   Score alpha = -ScoreInfinite;
   Score beta = ScoreInfinite;
   bool bestMoveNeverChanged = true;
-  int lastInfoTime = -1; // 将棋所のコンソールが詰まる問題への対処用
+  // 最後にinfoを出力した時間
+  // 将棋所のコンソールが詰まる問題への対処用
+  int lastTimeToOutputInfoMs = -1; 
 
   memset(ss, 0, 4 * sizeof(SearchStack));
   bestMoveChanges = 0;
@@ -613,14 +618,11 @@ void Searcher::idLoop(Position& pos) {
           break;
         }
 
-        if (3000 < searchTimer.elapsed()
-          // 将棋所のコンソールが詰まるのを防ぐ。
-          && (depth < 10 || lastInfoTime + 200 < searchTimer.elapsed()))
-        {
-          lastInfoTime = searchTimer.elapsed();
+        if (lastTimeToOutputInfoMs + THROTTLE_TO_OUTPUT_INFO_MS < searchTimer.elapsed()) {
           if (outputInfo) {
             SYNCCOUT << pvInfoToUSI(pos, depth, alpha, beta) << SYNCENDL;
           }
+          lastTimeToOutputInfoMs = searchTimer.elapsed();
         }
 
         // fail high/low のとき、aspiration window を広げる。
@@ -645,15 +647,6 @@ void Searcher::idLoop(Position& pos) {
       }
 
       insertionSort(rootMoves.begin(), rootMoves.begin() + pvIdx + 1);
-      if ((pvIdx + 1 == pvSize || 3000 < searchTimer.elapsed())
-        // 将棋所のコンソールが詰まるのを防ぐ。
-        && (depth < 10 || lastInfoTime + 200 < searchTimer.elapsed()))
-      {
-        lastInfoTime = searchTimer.elapsed();
-        if (outputInfo) {
-          SYNCCOUT << pvInfoToUSI(pos, depth, alpha, beta) << SYNCENDL;
-        }
-      }
     }
 
     //if (skill.enabled() && skill.timeToPick(depth)) {
