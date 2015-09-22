@@ -20,16 +20,22 @@ enum NodeType {
 // 時間や探索深さの制限を格納する為の構造体
 struct LimitsType {
   LimitsType() { memset(this, 0, sizeof(LimitsType)); }
-  bool useTimeManagement() const { return !(depth | nodes | moveTime | static_cast<int>(infinite)); }
+  // TimeManager::init() で moveTime が 0 に設定される点に注意する
+  bool useTimeManagement() const {
+    return !(depth | nodes | moveTime | static_cast<int>(infinite));
+  }
 
-  int time[ColorNum];
-  int increment[ColorNum];
-  int movesToGo;
-  Ply depth;
-  u32 nodes;
-  int moveTime;
-  bool infinite;
-  bool ponder;
+  // コマンド受け取りスレッドから変更され
+  // メインスレッドで読まれるため volatile をつける
+  volatile int time[ColorNum];
+  volatile int increment[ColorNum];
+  volatile int movesToGo;
+  volatile Ply depth;
+  volatile u32 nodes;
+  // TimeManager::init() で moveTime が 0 に設定される点に注意する
+  volatile int moveTime;
+  volatile bool infinite;
+  volatile bool ponder;
 };
 
 struct SplitPoint {
@@ -91,9 +97,23 @@ struct MainThread : public Thread {
 };
 
 struct TimerThread : public Thread {
-  explicit TimerThread(Searcher* s) : Thread(s), msec(0) {}
+  static const int FOREVER = INT_MAX;
+  explicit TimerThread(Searcher* s) :
+    Thread(s),
+    timerPeriodFirstMs(FOREVER),
+    timerPeriodAfterMs(FOREVER),
+    first(true) { }
+  // 待機時間だけ待ったのち思考時間のチェックを行う
   virtual void idleLoop();
-  volatile int msec;
+  // 初回の待機時間
+  // FOREVERの場合は思考時間のチェックを行わない
+  volatile int timerPeriodFirstMs;
+  // 次回以降回の待機時間
+  // FOREVERの場合は思考時間のチェックを行わない
+  volatile int timerPeriodAfterMs;
+  // 初回の待機時間を使用する場合は true
+  // そうでない場合は false
+  volatile int first;
 };
 
 class ThreadPool : public std::vector<Thread*> {

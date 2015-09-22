@@ -30,13 +30,20 @@ Thread::Thread(Searcher* s) /*: splitPoints()*/ {
 
 void TimerThread::idleLoop() {
   while (!exit) {
+    int timerPeriodMs = first ? timerPeriodFirstMs : timerPeriodAfterMs;
+    first = false;
     {
       std::unique_lock<std::mutex> lock(sleepLock);
       if (!exit) {
-        sleepCond.wait_for(lock, std::chrono::milliseconds(msec ? msec : INT_MAX));
+        sleepCond.wait_for(lock, std::chrono::milliseconds(timerPeriodMs));
+        //SYNCCOUT << "info string *** idleLoop() :"
+        //  << " first=" << first
+        //  << " firstMs=" << timerPeriodFirstMs
+        //  << " afterMs=" << timerPeriodAfterMs
+        //  << SYNCENDL;
       }
     }
-    if (msec) {
+    if (timerPeriodMs != FOREVER) {
       searcher->checkTime();
     }
   }

@@ -100,7 +100,7 @@ void TimeManager::init(LimitsType& limits, Ply currentPly, Color us, Searcher* s
   unstablePVExtraTime_ = 0;
   optimumSearchTime_ = maximumSearchTime_ = limits.time[us];
 
-  for (int hypMTG = 1; hypMTG <= (limits.movesToGo ? std::min(limits.movesToGo, MoveHorizon) : MoveHorizon); ++hypMTG) {
+  for (int hypMTG = 1; hypMTG <= (limits.movesToGo ? std::min((int)limits.movesToGo, MoveHorizon) : MoveHorizon); ++hypMTG) {
     int hypMyTime =
       limits.time[us]
       + limits.increment[us] * (hypMTG - 1)
@@ -126,10 +126,10 @@ void TimeManager::init(LimitsType& limits, Ply currentPly, Color us, Searcher* s
 
   if (limits.moveTime != 0) {
     if (optimumSearchTime_ < limits.moveTime) {
-      optimumSearchTime_ = std::min(limits.time[us], limits.moveTime);
+      optimumSearchTime_ = std::min((int)limits.time[us], (int)limits.moveTime);
     }
     if (maximumSearchTime_ < limits.moveTime) {
-      maximumSearchTime_ = std::min(limits.time[us], limits.moveTime);
+      maximumSearchTime_ = std::min((int)limits.time[us], (int)limits.moveTime);
     }
     // TODO(nodchip): なぜ秒読み分を足しているのか？
     optimumSearchTime_ += limits.moveTime;
@@ -143,6 +143,7 @@ void TimeManager::init(LimitsType& limits, Ply currentPly, Color us, Searcher* s
   // 20手目: 本来の時間 * OPENING_GAME_SEARCH_TIME_COMPRESSION_RATIO
   // 20～44手目: シグモイド関数で補間
   // 44手目: 本来の時間
+  // TODO(nodchip): 上記の if 文の中の処理とつじつまを合わせる。
   double ratio = OPENING_GAME_SEARCH_TIME_COMPRESSION_RATIO;
   optimumSearchTime_ = (int)(optimumSearchTime_ * (standardSigmoidFunction((currentPly - 32) * 0.5) * (1.0 - ratio) + ratio));
   maximumSearchTime_ = (int)(maximumSearchTime_ * (standardSigmoidFunction((currentPly - 32) * 0.5) * (1.0 - ratio) + ratio));

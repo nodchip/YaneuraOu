@@ -1590,17 +1590,31 @@ void Searcher::think() {
 
   threads.wakeUp(thisptr);
 
-  int timerPeriodMs;
-  if (limits.useTimeManagement()) {
-    timerPeriodMs = std::min(MAX_TIMER_PERIOD_MS, std::max(timeManager.availableTime() / 16, TimerResolution));
-  }
-  else if (limits.nodes) {
-    timerPeriodMs = 2 * TimerResolution;
+  int timerPeriodFirstMs;
+  int timerPeriodAfterMs;
+  if (limits.nodes) {
+    timerPeriodFirstMs = 2 * TimerResolution;
+    timerPeriodAfterMs = 2 * TimerResolution;
+    //SYNCCOUT << "info string *** think() : nodes" << SYNCENDL;
   }
   else {
-    timerPeriodMs = MAX_TIMER_PERIOD_MS;
+    // なるべく思考スレッドに処理時間を渡すため
+    // 初回思考時間チェックは maximumTime の直前から行う
+    // この節をif文のはじめに持ってくると
+    // 秒読み時に通らなくなるので注意
+    // TODO(nodchip): ponderhhit 時にはじめに設定した思考時間チェクタイミング以降に
+    // 定期的に思考時間チェックが行われるのを抑制する
+    timerPeriodFirstMs = timeManager.maximumTime() - TimerResolution;
+    timerPeriodFirstMs = std::max(timerPeriodFirstMs, MAX_TIMER_PERIOD_MS);
+    timerPeriodAfterMs = timeManager.availableTime() / 16;
+    timerPeriodAfterMs = std::max(timerPeriodAfterMs,TimerResolution);
+    timerPeriodAfterMs = std::min(timerPeriodAfterMs, MAX_TIMER_PERIOD_MS);
+    //SYNCCOUT << "info string *** think() : other" << SYNCENDL;
   }
-  threads.timerThread()->msec = timerPeriodMs;
+
+  threads.timerThread()->first = true;
+  threads.timerThread()->timerPeriodFirstMs = timerPeriodFirstMs;
+  threads.timerThread()->timerPeriodAfterMs = timerPeriodAfterMs;
   threads.timerThread()->notifyOne();
 
 #if defined INANIWA_SHIFT
@@ -1611,7 +1625,10 @@ void Searcher::think() {
 #endif
   idLoop(pos);
 
-  threads.timerThread()->msec = 0; // timer を止める。
+  // timer を止める。
+  threads.timerThread()->first = true;
+  threads.timerThread()->timerPeriodFirstMs = TimerThread::FOREVER;
+  threads.timerThread()->timerPeriodAfterMs = TimerThread::FOREVER;
   threads.sleep();
 
 finalize:
