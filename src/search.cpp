@@ -63,6 +63,8 @@ namespace {
   // info を標準出力へ出力するスロットル
   // 前回出力してから以下の時間を経過していない場合は出力しない
   static const int THROTTLE_TO_OUTPUT_INFO_MS = 1000;
+  // 思考スレッド監視スレッドの実行周期の最大値
+  static const int MAX_TIMER_PERIOD_MS = 100;
   // true にすると、シングルスレッドで動作する。デバッグ用。
   const bool FakeSplit = false;
 
@@ -1588,10 +1590,17 @@ void Searcher::think() {
 
   threads.wakeUp(thisptr);
 
-  threads.timerThread()->msec =
-    (limits.useTimeManagement() ? std::min(100, std::max(timeManager.availableTime() / 16, TimerResolution)) :
-      limits.nodes ? 2 * TimerResolution :
-      100);
+  int timerPeriodMs;
+  if (limits.useTimeManagement()) {
+    timerPeriodMs = std::min(MAX_TIMER_PERIOD_MS, std::max(timeManager.availableTime() / 16, TimerResolution));
+  }
+  else if (limits.nodes) {
+    timerPeriodMs = 2 * TimerResolution;
+  }
+  else {
+    timerPeriodMs = MAX_TIMER_PERIOD_MS;
+  }
+  threads.timerThread()->msec = timerPeriodMs;
   threads.timerThread()->notifyOne();
 
 #if defined INANIWA_SHIFT

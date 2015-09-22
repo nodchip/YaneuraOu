@@ -93,7 +93,7 @@ struct MainThread : public Thread {
 struct TimerThread : public Thread {
   explicit TimerThread(Searcher* s) : Thread(s), msec(0) {}
   virtual void idleLoop();
-  int msec;
+  volatile int msec;
 };
 
 class ThreadPool : public std::vector<Thread*> {
