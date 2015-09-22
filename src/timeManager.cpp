@@ -14,7 +14,7 @@ namespace {
 #endif
   static const double StealRatio = 0.33;
   // 序盤で本来の思考時間に対する割合
-  static const double OPENING_GAME_SEARCH_TIME_COMPRESSION_RATIO = 0.1;
+  static const double OPENING_GAME_SEARCH_TIME_COMPRESSION_RATIO = 0.2;
 
   // Stockfish とは異なる。
   static const int MoveImportance[512] = {
