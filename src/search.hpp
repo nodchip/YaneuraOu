@@ -25,10 +25,10 @@ struct SearchStack {
 };
 
 struct SignalsType {
-  bool stopOnPonderHit;
-  bool firstRootMove;
-  bool stop;
-  bool failedLowAtRoot;
+  volatile bool stopOnPonderHit;
+  volatile bool firstRootMove;
+  volatile bool stop;
+  volatile bool failedLowAtRoot;
 };
 
 enum InaniwaFlag {
