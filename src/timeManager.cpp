@@ -148,8 +148,8 @@ void TimeManager::init(LimitsType& limits, Ply currentPly, Color us, Searcher* s
   optimumSearchTime_ = (int)(optimumSearchTime_ * (standardSigmoidFunction((currentPly - 32) * 0.5) * (1.0 - ratio) + ratio));
   maximumSearchTime_ = (int)(maximumSearchTime_ * (standardSigmoidFunction((currentPly - 32) * 0.5) * (1.0 - ratio) + ratio));
   // ??500 ms に合わせる
-  optimumSearchTime_ = (optimumSearchTime_ + 500) / 1000 * 1000 + 500;
-  maximumSearchTime_ = (maximumSearchTime_ + 500) / 1000 * 1000 + 500;
+  optimumSearchTime_ = (optimumSearchTime_ + 500 - 1) / 1000 * 1000 + 500;
+  maximumSearchTime_ = (maximumSearchTime_ + 500 - 1) / 1000 * 1000 + 500;
   // こちらも minThinkingTime 以上にする。
   optimumSearchTime_ = std::max(optimumSearchTime_, minThinkingTime);
   maximumSearchTime_ = std::max(maximumSearchTime_, minThinkingTime);

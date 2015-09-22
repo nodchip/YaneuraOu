@@ -130,8 +130,11 @@ public:
   Thread* availableSlave(Thread* master) const;
   void setTimer(const int msec);
   void waitForThinkFinished();
-  void startThinking(const Position& pos, const LimitsType& limits,
-    const std::vector<Move>& searchMoves);
+  void startThinking(
+    const Position& pos,
+    const LimitsType& limits,
+    const std::vector<Move>& searchMoves,
+    const std::chrono::time_point<std::chrono::system_clock>& goReceivedTime);
 
   bool sleepWhileIdle_;
   size_t maxThreadsPerSplitPoint_;

@@ -161,6 +161,8 @@ std::ostream& operator << (std::ostream& os, const OptionsMap& om) {
 }
 
 void go(const Position& pos, Scanner command) {
+  std::chrono::time_point<std::chrono::system_clock> goReceivedTime =
+    std::chrono::system_clock::now();
   LimitsType limits;
   std::vector<Move> moves;
 
@@ -195,7 +197,7 @@ void go(const Position& pos, Scanner command) {
     }
   }
   pos.searcher()->searchMoves = moves;
-  pos.searcher()->threads.startThinking(pos, limits, moves);
+  pos.searcher()->threads.startThinking(pos, limits, moves, goReceivedTime);
 }
 
 Move usiToMoveBody(const Position& pos, const std::string& moveStr) {

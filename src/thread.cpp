@@ -36,11 +36,6 @@ void TimerThread::idleLoop() {
       std::unique_lock<std::mutex> lock(sleepLock);
       if (!exit) {
         sleepCond.wait_for(lock, std::chrono::milliseconds(timerPeriodMs));
-        //SYNCCOUT << "info string *** idleLoop() :"
-        //  << " first=" << first
-        //  << " firstMs=" << timerPeriodFirstMs
-        //  << " afterMs=" << timerPeriodAfterMs
-        //  << SYNCENDL;
       }
     }
     if (timerPeriodMs != FOREVER) {
@@ -154,11 +149,21 @@ void ThreadPool::waitForThinkFinished() {
   sleepCond_.wait(lock, [&] { return !(t->thinking); });
 }
 
-void ThreadPool::startThinking(const Position& pos, const LimitsType& limits,
-  const std::vector<Move>& searchMoves)
+void ThreadPool::startThinking(
+  const Position& pos,
+  const LimitsType& limits,
+  const std::vector<Move>& searchMoves,
+  const std::chrono::time_point<std::chrono::system_clock>& goReceivedTime)
 {
   waitForThinkFinished();
-  pos.searcher()->searchTimer.restart();
+  pos.searcher()->searchTimer.set(goReceivedTime);
+  using std::chrono::duration_cast;
+  using std::chrono::milliseconds;
+  auto goReceivedTimeMinusNow = duration_cast<milliseconds>(std::chrono::system_clock::now() - goReceivedTime).count();
+  SYNCCOUT
+    << "info string ThreadPool::startThinking goReceivedTime-now="
+    << goReceivedTimeMinusNow
+    << SYNCENDL;
 
   pos.searcher()->signals.stopOnPonderHit = pos.searcher()->signals.firstRootMove = false;
   pos.searcher()->signals.stop = pos.searcher()->signals.failedLowAtRoot = false;

@@ -1604,7 +1604,7 @@ void Searcher::think() {
     // 秒読み時に通らなくなるので注意
     // TODO(nodchip): ponderhhit 時にはじめに設定した思考時間チェクタイミング以降に
     // 定期的に思考時間チェックが行われるのを抑制する
-    timerPeriodFirstMs = timeManager.maximumTime() - TimerResolution;
+    timerPeriodFirstMs = timeManager.maximumTime() - MAX_TIMER_PERIOD_MS * 2;
     timerPeriodFirstMs = std::max(timerPeriodFirstMs, MAX_TIMER_PERIOD_MS);
     timerPeriodAfterMs = timeManager.availableTime() / 16;
     timerPeriodAfterMs = std::max(timerPeriodAfterMs,TimerResolution);
