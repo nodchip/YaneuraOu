@@ -20,10 +20,6 @@ enum NodeType {
 // 時間や探索深さの制限を格納する為の構造体
 struct LimitsType {
   LimitsType() { memset(this, 0, sizeof(LimitsType)); }
-  // TimeManager::init() で moveTime が 0 に設定される点に注意する
-  bool useTimeManagement() const {
-    return !(depth | nodes | moveTime | static_cast<int>(infinite));
-  }
 
   // コマンド受け取りスレッドから変更され
   // メインスレッドで読まれるため volatile をつける
@@ -32,7 +28,6 @@ struct LimitsType {
   volatile int movesToGo;
   volatile Ply depth;
   volatile u32 nodes;
-  // TimeManager::init() で moveTime が 0 に設定される点に注意する
   volatile int moveTime;
   volatile bool infinite;
   volatile bool ponder;

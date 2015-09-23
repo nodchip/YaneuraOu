@@ -13,7 +13,7 @@ namespace {
   static const double MaxRatio = 5.0; // 2時間切れ負け用。
 #endif
   static const double StealRatio = 0.33;
-  // 序盤で本来の思考時間に対する割合
+  // 序盤での本来の思考時間に対する割合
   static const double OPENING_GAME_SEARCH_TIME_COMPRESSION_RATIO = 0.2;
 
   // Stockfish とは異なる。
@@ -85,77 +85,104 @@ namespace {
   }
 }
 
-void TimeManager::pvInstability(int currChanges, int prevChanges) {
-  unstablePVExtraTime_ =
-    currChanges * (optimumSearchTime_ / 2) + prevChanges * (optimumSearchTime_ / 3);
+TimeManager::TimeManager(const LimitsType& limits, Ply currentPly, Color us, Searcher* searcher) :
+  limits_(limits),
+  currentPly_(currentPly),
+  us_(us),
+  searcher_(searcher),
+  softTimeLimitMs_(0),
+  hardTimeLimitMs_(0),
+  unstablePVExtraTime_(0)
+{
+  update();
 }
 
-void TimeManager::init(LimitsType& limits, Ply currentPly, Color us, Searcher* s) {
-  int emergencyMoveHorizon = s->options["Emergency_Move_Horizon"];
-  int emergencyBaseTime = s->options["Emergency_Base_Time"];
-  int emergencyMoveTime = s->options["Emergency_Move_Time"];
-  int minThinkingTime = s->options["Minimum_Thinking_Time"];
-  int slowMover = s->options["Slow_Mover"];
+void TimeManager::update()
+{
+  int emergencyMoveHorizon = searcher_->options["Emergency_Move_Horizon"];
+  int emergencyBaseTime = searcher_->options["Emergency_Base_Time"];
+  int emergencyMoveTime = searcher_->options["Emergency_Move_Time"];
+  int minThinkingTime = searcher_->options["Minimum_Thinking_Time"];
+  int slowMover = searcher_->options["Slow_Mover"];
 
-  unstablePVExtraTime_ = 0;
-  optimumSearchTime_ = maximumSearchTime_ = limits.time[us];
+  // 持ち時間+秒読みで初期化する
+  int softTimeLimitMs = limits_.time[us_] + limits_.moveTime;
+  int hardTimeLimitMs = limits_.time[us_] + limits_.moveTime;
 
-  for (int hypMTG = 1; hypMTG <= (limits.movesToGo ? std::min((int)limits.movesToGo, MoveHorizon) : MoveHorizon); ++hypMTG) {
+  for (int hypMTG = 1; hypMTG <= (limits_.movesToGo ? std::min((int)limits_.movesToGo, MoveHorizon) : MoveHorizon); ++hypMTG) {
     int hypMyTime =
-      limits.time[us]
-      + limits.increment[us] * (hypMTG - 1)
+      limits_.time[us_]
+      + limits_.increment[us_] * (hypMTG - 1)
+      + limits_.moveTime
       - emergencyBaseTime
       - emergencyMoveTime + std::min(hypMTG, emergencyMoveHorizon);
 
     hypMyTime = std::max(hypMyTime, 0);
 
-    int t1 = minThinkingTime + remaining<OptimumTime>(hypMyTime, hypMTG, currentPly, slowMover);
-    int t2 = minThinkingTime + remaining<MaxTime>(hypMyTime, hypMTG, currentPly, slowMover);
+    int t1 = minThinkingTime + remaining<OptimumTime>(hypMyTime, hypMTG, currentPly_, slowMover);
+    int t2 = minThinkingTime + remaining<MaxTime>(hypMyTime, hypMTG, currentPly_, slowMover);
 
-    optimumSearchTime_ = std::min(optimumSearchTime_, t1);
-    maximumSearchTime_ = std::min(maximumSearchTime_, t2);
+    softTimeLimitMs = std::min(softTimeLimitMs, t1);
+    hardTimeLimitMs = std::min(hardTimeLimitMs, t2);
   }
 
-  if (s->options["USI_Ponder"]) {
-    optimumSearchTime_ += optimumSearchTime_ / 4;
-  }
-
-  // こちらも minThinkingTime 以上にする。
-  optimumSearchTime_ = std::max(optimumSearchTime_, minThinkingTime);
-  optimumSearchTime_ = std::min(optimumSearchTime_, maximumSearchTime_);
-
-  if (limits.moveTime != 0) {
-    if (optimumSearchTime_ < limits.moveTime) {
-      optimumSearchTime_ = std::min((int)limits.time[us], (int)limits.moveTime);
-    }
-    if (maximumSearchTime_ < limits.moveTime) {
-      maximumSearchTime_ = std::min((int)limits.time[us], (int)limits.moveTime);
-    }
-    // TODO(nodchip): なぜ秒読み分を足しているのか？
-    optimumSearchTime_ += limits.moveTime;
-    maximumSearchTime_ += limits.moveTime;
-    if (limits.time[us] != 0) {
-      limits.moveTime = 0;
-    }
+  if (searcher_->options["USI_Ponder"]) {
+    softTimeLimitMs += softTimeLimitMs / 4;
   }
 
   // 序盤に時間を使わないようにする
   // 20手目: 本来の時間 * OPENING_GAME_SEARCH_TIME_COMPRESSION_RATIO
   // 20～44手目: シグモイド関数で補間
   // 44手目: 本来の時間
-  // TODO(nodchip): 上記の if 文の中の処理とつじつまを合わせる。
   double ratio = OPENING_GAME_SEARCH_TIME_COMPRESSION_RATIO;
-  optimumSearchTime_ = (int)(optimumSearchTime_ * (standardSigmoidFunction((currentPly - 32) * 0.5) * (1.0 - ratio) + ratio));
-  maximumSearchTime_ = (int)(maximumSearchTime_ * (standardSigmoidFunction((currentPly - 32) * 0.5) * (1.0 - ratio) + ratio));
-  // ??500 ms に合わせる
-  optimumSearchTime_ = (optimumSearchTime_ + 500 - 1) / 1000 * 1000 + 500;
-  maximumSearchTime_ = (maximumSearchTime_ + 500 - 1) / 1000 * 1000 + 500;
+  softTimeLimitMs = (int)(softTimeLimitMs * (standardSigmoidFunction((currentPly_ - 32) * 0.5) * (1.0 - ratio) + ratio));
+  hardTimeLimitMs = (int)(hardTimeLimitMs * (standardSigmoidFunction((currentPly_ - 32) * 0.5) * (1.0 - ratio) + ratio));
+
+  // 持ち時間を使いきっている場合は
+  // 秒読みギリギリまで利用する
+  if (softTimeLimitMs >= limits_.time[us_]) {
+    softTimeLimitMs = limits_.time[us_] + limits_.moveTime;
+    //SYNCCOUT << "info string soft time limit extended to byoyomi" << SYNCENDL;
+  }
+  if (hardTimeLimitMs >= limits_.time[us_]) {
+    hardTimeLimitMs = limits_.time[us_] + limits_.moveTime;
+    //SYNCCOUT << "info string hard time limit extended to byoyomi" << SYNCENDL;
+  }
+
+  // 時間切れにならないよう思考時間を制限する
+  if (softTimeLimitMs > limits_.time[us_] + limits_.moveTime) {
+    softTimeLimitMs = limits_.time[us_] + limits_.moveTime;
+    //SYNCCOUT << "info string soft time limit limited to byoyomi" << SYNCENDL;
+  }
+  if (hardTimeLimitMs > limits_.time[us_] + limits_.moveTime) {
+    hardTimeLimitMs = limits_.time[us_] + limits_.moveTime;
+    //SYNCCOUT << "info string hard time limit limited to byoyomi" << SYNCENDL;
+  }
+
+  // 秒節約のため hard time limit を ??500 ms に合わせる
+  // 探索のiterationがいつ終わるかわからないので soft hard limit は合わせない
+  hardTimeLimitMs = (hardTimeLimitMs + 500 - 1) / 1000 * 1000 + 500;
+
+  // soft > hard にならないようにする
+  softTimeLimitMs = std::min(softTimeLimitMs, hardTimeLimitMs);
+
   // こちらも minThinkingTime 以上にする。
-  optimumSearchTime_ = std::max(optimumSearchTime_, minThinkingTime);
-  maximumSearchTime_ = std::max(maximumSearchTime_, minThinkingTime);
+  softTimeLimitMs = std::max(softTimeLimitMs, minThinkingTime);
+  hardTimeLimitMs = std::max(hardTimeLimitMs, minThinkingTime);
 
   if (Searcher::outputInfo) {
-    SYNCCOUT << "info string optimum_search_time = " << optimumSearchTime_ << SYNCENDL;
-    SYNCCOUT << "info string maximum_search_time = " << maximumSearchTime_ << SYNCENDL;
+    SYNCCOUT << "info string soft_time_limit_ms = " << softTimeLimitMs << SYNCENDL;
+    SYNCCOUT << "info string hard_time_limit_ms = " << hardTimeLimitMs << SYNCENDL;
   }
+  softTimeLimitMs_ = softTimeLimitMs;
+  hardTimeLimitMs_ = hardTimeLimitMs;
+}
+
+void TimeManager::setPvInstability(int currChanges, int prevChanges) {
+  unstablePVExtraTime_ =
+    currChanges * (softTimeLimitMs_ / 2) + prevChanges * (softTimeLimitMs_ / 3);
+  // soft limit + extra が hard limit を超えないようにする
+  unstablePVExtraTime_ = std::min(
+    (int)unstablePVExtraTime_,
+    hardTimeLimitMs_ - softTimeLimitMs_);
 }

@@ -119,7 +119,7 @@ struct Searcher {
 
   STATIC size_t pvSize;
   STATIC size_t pvIdx;
-  STATIC TimeManager timeManager;
+  STATIC std::unique_ptr<TimeManager> timeManager;
   STATIC Ply bestMoveChanges;
   STATIC History history;
   STATIC Gains gains;

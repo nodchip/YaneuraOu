@@ -31,7 +31,7 @@ StateStackPtr Searcher::setUpStates;
 std::vector<RootMove> Searcher::rootMoves;
 size_t Searcher::pvSize;
 size_t Searcher::pvIdx;
-TimeManager Searcher::timeManager;
+std::unique_ptr<TimeManager> Searcher::timeManager;
 Ply Searcher::bestMoveChanges;
 History Searcher::history;
 Gains Searcher::gains;
@@ -655,15 +655,18 @@ void Searcher::idLoop(Position& pos) {
     //	skill.pickMove();
     //}
 
-    if (limits.useTimeManagement() && !signals.stopOnPonderHit) {
+    // 以下の条件下で反復深化を打ち切る
+    // - 持ち時間が残っている
+    // - 最善手がしばらく変わっていない
+    if (timeManager->isTimeLeft() && !signals.stopOnPonderHit) {
       bool stop = false;
 
       if (4 < depth && depth < 50 && pvSize == 1) {
-        timeManager.pvInstability(bestMoveChanges, prevBestMoveChanges);
+        timeManager->setPvInstability(bestMoveChanges, prevBestMoveChanges);
       }
 
       // 次のイテレーションを回す時間が無いなら、ストップ
-      if ((timeManager.availableTime() * 62) / 100 < searchTimer.elapsed()) {
+      if ((timeManager->getSoftTimeLimitMs() * 62) / 100 < searchTimer.elapsed()) {
         stop = true;
       }
 
@@ -679,7 +682,7 @@ void Searcher::idLoop(Position& pos) {
         // ここは確実にバグらせないようにする。
         && -ScoreInfinite + 2 * CapturePawnScore <= bestScore
         && (rootMoves.size() == 1
-          || timeManager.availableTime() * 40 / 100 < searchTimer.elapsed()))
+          || timeManager->getSoftTimeLimitMs() * 40 / 100 < searchTimer.elapsed()))
       {
         const Score rBeta = bestScore - 2 * CapturePawnScore;
         (ss + 1)->staticEvalRaw = ScoreNotEvaluated;
@@ -1552,7 +1555,7 @@ bool nyugyoku(const Position& pos) {
 void Searcher::think() {
   static Book book;
   Position& pos = rootPosition;
-  timeManager.init(limits, pos.gamePly(), pos.turn(), thisptr);
+  timeManager.reset(new TimeManager(limits, pos.gamePly(), pos.turn(), thisptr));
   std::uniform_int_distribution<int> dist(options["Min_Book_Ply"], options["Max_Book_Ply"]);
   const Ply book_ply = dist(g_randomTimeSeed);
 
@@ -1565,9 +1568,9 @@ void Searcher::think() {
 
   tt.setSize(options["USI_Hash"]); // operator int() 呼び出し。
 
-  if (outputInfo) {
-    SYNCCOUT << "info string book_ply " << book_ply << SYNCENDL;
-  }
+  //if (outputInfo) {
+  //  SYNCCOUT << "info string book_ply " << book_ply << SYNCENDL;
+  //}
   if (options["OwnBook"] && pos.gamePly() <= book_ply) {
     const std::tuple<Move, Score> bookMoveScore = book.probe(pos, options["Book_File"], options["Best_Book_Move"]);
     if (!std::get<0>(bookMoveScore).isNone() && std::find(rootMoves.begin(),
@@ -1604,9 +1607,9 @@ void Searcher::think() {
     // 秒読み時に通らなくなるので注意
     // TODO(nodchip): ponderhhit 時にはじめに設定した思考時間チェクタイミング以降に
     // 定期的に思考時間チェックが行われるのを抑制する
-    timerPeriodFirstMs = timeManager.maximumTime() - MAX_TIMER_PERIOD_MS * 2;
+    timerPeriodFirstMs = timeManager->getHardTimeLimitMs() - MAX_TIMER_PERIOD_MS * 2;
     timerPeriodFirstMs = std::max(timerPeriodFirstMs, MAX_TIMER_PERIOD_MS);
-    timerPeriodAfterMs = timeManager.availableTime() / 16;
+    timerPeriodAfterMs = timeManager->getSoftTimeLimitMs() / 16;
     timerPeriodAfterMs = std::max(timerPeriodAfterMs,TimerResolution);
     timerPeriodAfterMs = std::min(timerPeriodAfterMs, MAX_TIMER_PERIOD_MS);
     //SYNCCOUT << "info string *** think() : other" << SYNCENDL;
@@ -1686,19 +1689,17 @@ void Searcher::checkTime() {
     }
   }
 
-  const int e = searchTimer.elapsed();
+  const int elapsed = searchTimer.elapsed();
   const bool stillAtFirstMove =
     signals.firstRootMove
     && !signals.failedLowAtRoot
-    && timeManager.availableTime() < e;
+    && timeManager->getSoftTimeLimitMs() < elapsed;
 
   const bool noMoreTime =
-    timeManager.maximumTime() - 2 * TimerResolution < e
+    timeManager->getHardTimeLimitMs() - 2 * TimerResolution < elapsed
     || stillAtFirstMove;
 
-  if ((limits.useTimeManagement() && noMoreTime)
-    || (limits.moveTime != 0 && limits.moveTime < e)
-    || (limits.nodes != 0 && limits.nodes < nodes))
+  if (noMoreTime || (limits.nodes != 0 && limits.nodes < nodes))
   {
     signals.stop = true;
   }
