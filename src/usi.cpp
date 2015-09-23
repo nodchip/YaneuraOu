@@ -479,7 +479,14 @@ void Searcher::doUSICommandLoop(int argc, char* argv[]) {
         limits.ponder = false;
       }
       if (token == "ponderhit" && limits.moveTime != 0) {
-        limits.moveTime += searchTimer.elapsed();
+        // ponder した時間だけ制限時間が伸びたので
+        // 秒読み分に加算する
+        int elapsed = searchTimer.elapsed();
+        // 通信の遅れなどを考え 400ms ほど引いておく
+        // 最終的な思考時間は TimeManager の中で ??500ms に合わせる
+        elapsed = std::max(0, elapsed - 400);
+        limits.moveTime += elapsed;
+        Searcher::timeManager->update();
       }
     }
     else if (token == "usinewgame") {
