@@ -157,13 +157,6 @@ void ThreadPool::startThinking(
 {
   waitForThinkFinished();
   pos.searcher()->searchTimer.set(goReceivedTime);
-  using std::chrono::duration_cast;
-  using std::chrono::milliseconds;
-  auto goReceivedTimeMinusNow = duration_cast<milliseconds>(std::chrono::system_clock::now() - goReceivedTime).count();
-  SYNCCOUT
-    << "info string ThreadPool::startThinking goReceivedTime-now="
-    << goReceivedTimeMinusNow
-    << SYNCENDL;
 
   pos.searcher()->signals.stopOnPonderHit = pos.searcher()->signals.firstRootMove = false;
   pos.searcher()->signals.stop = pos.searcher()->signals.failedLowAtRoot = false;
