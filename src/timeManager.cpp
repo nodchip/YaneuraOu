@@ -14,7 +14,7 @@ namespace {
 #endif
   static const double StealRatio = 0.33;
   // 序盤での本来の思考時間に対する割合
-  static const double OPENING_GAME_SEARCH_TIME_COMPRESSION_RATIO = 0.2;
+  static const double OPENING_GAME_SEARCH_TIME_COMPRESSION_RATIO = 1.0 / 3.0;
 
   // Stockfish とは異なる。
   static const int MoveImportance[512] = {
@@ -130,6 +130,11 @@ void TimeManager::update()
     softTimeLimitMs += softTimeLimitMs / 4;
   }
 
+  // 後半で3～4秒程度しか読まなくなるのを防ぐため
+  // 秒読みの時間以上に設定する
+  softTimeLimitMs = std::max(softTimeLimitMs, (int)limits_.moveTime);
+  hardTimeLimitMs = std::max(hardTimeLimitMs, (int)limits_.moveTime);
+
   // 序盤に時間を使わないようにする
   // 20手目: 本来の時間 * OPENING_GAME_SEARCH_TIME_COMPRESSION_RATIO
   // 20～44手目: シグモイド関数で補間
@@ -142,21 +147,17 @@ void TimeManager::update()
   // 秒読みギリギリまで利用する
   if (softTimeLimitMs >= limits_.time[us_]) {
     softTimeLimitMs = limits_.time[us_] + limits_.moveTime;
-    //SYNCCOUT << "info string soft time limit extended to byoyomi" << SYNCENDL;
   }
   if (hardTimeLimitMs >= limits_.time[us_]) {
     hardTimeLimitMs = limits_.time[us_] + limits_.moveTime;
-    //SYNCCOUT << "info string hard time limit extended to byoyomi" << SYNCENDL;
   }
 
   // 時間切れにならないよう思考時間を制限する
   if (softTimeLimitMs > limits_.time[us_] + limits_.moveTime) {
     softTimeLimitMs = limits_.time[us_] + limits_.moveTime;
-    //SYNCCOUT << "info string soft time limit limited to byoyomi" << SYNCENDL;
   }
   if (hardTimeLimitMs > limits_.time[us_] + limits_.moveTime) {
     hardTimeLimitMs = limits_.time[us_] + limits_.moveTime;
-    //SYNCCOUT << "info string hard time limit limited to byoyomi" << SYNCENDL;
   }
 
   // 秒節約のため hard time limit を ??500 ms に合わせる
