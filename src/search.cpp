@@ -1603,8 +1603,6 @@ void Searcher::think() {
   else {
     // なるべく思考スレッドに処理時間を渡すため
     // 初回思考時間チェックは maximumTime の直前から行う
-    // この節をif文のはじめに持ってくると
-    // 秒読み時に通らなくなるので注意
     // TODO(nodchip): ponderhhit 時にはじめに設定した思考時間チェクタイミング以降に
     // 定期的に思考時間チェックが行われるのを抑制する
     timerPeriodFirstMs = timeManager->getHardTimeLimitMs() - MAX_TIMER_PERIOD_MS * 2;
