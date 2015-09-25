@@ -482,9 +482,9 @@ void Searcher::doUSICommandLoop(int argc, char* argv[]) {
         // ponder した時間だけ制限時間が伸びたので
         // 秒読み分に加算する
         int elapsed = searchTimer.elapsed();
-        // 通信の遅れなどを考え 400ms ほど引いておく
+        // 通信の遅れなどを考え 900ms ほど引いておく
         // 最終的な思考時間は TimeManager の中で ??500ms に合わせる
-        elapsed = std::max(0, elapsed - 400);
+        elapsed = std::max(0, elapsed - 900);
         limits.moveTime += elapsed;
         Searcher::timeManager->update();
       }
