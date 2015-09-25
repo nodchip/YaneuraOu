@@ -1600,7 +1600,7 @@ void Searcher::think() {
     timerPeriodAfterMs = 2 * TimerResolution;
     //SYNCCOUT << "info string *** think() : nodes" << SYNCENDL;
   }
-  else {
+  else if (timeManager->isTimeLeft() || timeManager->isInByoyomi()) {
     // なるべく思考スレッドに処理時間を渡すため
     // 初回思考時間チェックは maximumTime の直前から行う
     // TODO(nodchip): ponderhhit 時にはじめに設定した思考時間チェクタイミング以降に
@@ -1611,6 +1611,10 @@ void Searcher::think() {
     timerPeriodAfterMs = std::max(timerPeriodAfterMs,TimerResolution);
     timerPeriodAfterMs = std::min(timerPeriodAfterMs, MAX_TIMER_PERIOD_MS);
     //SYNCCOUT << "info string *** think() : other" << SYNCENDL;
+  }
+  else {
+    timerPeriodFirstMs = TimerThread::FOREVER;
+    timerPeriodAfterMs = TimerThread::FOREVER;
   }
 
   threads.timerThread()->first = true;
