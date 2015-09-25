@@ -6,15 +6,16 @@
 namespace {
 #if 1
   static const int MoveHorizon = 47; // 15分切れ負け用。
-  static const double MaxRatio = 3.0; // 15分切れ負け用。
-                              //const double MaxRatio = 5.0; // 15分 秒読み10秒用。
+  //static const double MaxRatio = 3.0; // 15分切れ負け用。
+  static const double MaxRatio = 5.0; // 15分 秒読み10秒用。
 #else
   static const int MoveHorizon = 35; // 2時間切れ負け用。(todo: もう少し時間使っても良いかも知れない。)
   static const double MaxRatio = 5.0; // 2時間切れ負け用。
 #endif
   static const double StealRatio = 0.33;
-  // 序盤での本来の思考時間に対する割合
+  // 序盤での本来の思考時間に対する割合0
   static const double OPENING_GAME_SEARCH_TIME_COMPRESSION_RATIO = 1.0 / 3.0;
+  static const double MIDDLE_GAME_SEARCH_TIME_COMPRESSION_RATIO = 2.0 / 1.0;
 
   // Stockfish とは異なる。
   static const int MoveImportance[512] = {
@@ -139,9 +140,10 @@ void TimeManager::update()
   // 20手目: 本来の時間 * OPENING_GAME_SEARCH_TIME_COMPRESSION_RATIO
   // 20～44手目: シグモイド関数で補間
   // 44手目: 本来の時間
-  double ratio = OPENING_GAME_SEARCH_TIME_COMPRESSION_RATIO;
-  softTimeLimitMs = (int)(softTimeLimitMs * (standardSigmoidFunction((currentPly_ - 32) * 0.5) * (1.0 - ratio) + ratio));
-  hardTimeLimitMs = (int)(hardTimeLimitMs * (standardSigmoidFunction((currentPly_ - 32) * 0.5) * (1.0 - ratio) + ratio));
+  double low = OPENING_GAME_SEARCH_TIME_COMPRESSION_RATIO;
+  double high = MIDDLE_GAME_SEARCH_TIME_COMPRESSION_RATIO;
+  softTimeLimitMs = (int)(softTimeLimitMs * (standardSigmoidFunction((currentPly_ - 32) * 0.5) * (high - low) + low));
+  hardTimeLimitMs = (int)(hardTimeLimitMs * (standardSigmoidFunction((currentPly_ - 32) * 0.5) * (high - low) + low));
 
   // 持ち時間を使いきっている場合は
   // 秒読みギリギリまで利用する
