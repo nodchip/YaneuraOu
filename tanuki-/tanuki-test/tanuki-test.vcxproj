@@ -75,16 +75,16 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
-    <LibraryPath>..\..\..\googletest\msvc\x64\Debug;$(LibraryPath)</LibraryPath>
-    <IncludePath>..\..\..\\googletest\include;$(IncludePath)</IncludePath>
+    <LibraryPath>..\..\..\googletest\googletest\Debug;$(LibraryPath)</LibraryPath>
+    <IncludePath>..\..\..\googletest\googletest\include;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
-    <IncludePath>..\..\..\\googletest\include;$(IncludePath)</IncludePath>
-    <LibraryPath>..\..\..\googletest\msvc\x64\Release;$(LibraryPath)</LibraryPath>
+    <IncludePath>..\..\..\googletest\googletest\include;$(IncludePath)</IncludePath>
+    <LibraryPath>..\..\..\googletest\googletest\Release;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -114,7 +114,7 @@
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>gtestd.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>gtest.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
