@@ -72,4 +72,7 @@
 #define USE_MASK_GATHER
 #endif
 
+#if 1
+#define RECORD_ITERATIVE_DEEPNING_SCORES
+#endif
 #endif // #ifndef APERY_IFDEF_HPP

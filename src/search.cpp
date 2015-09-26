@@ -497,6 +497,10 @@ Score Searcher::qsearch(Position& pos, SearchStack* ss, Score alpha, Score beta,
 
 // iterative deepening loop
 void Searcher::idLoop(Position& pos) {
+#ifdef RECORD_ITERATIVE_DEEPNING_SCORES
+  int scores[MaxPlyPlus2];
+#endif
+
   SearchStack ss[MaxPlyPlus2];
   Ply depth;
   Ply prevBestMoveChanges;
@@ -706,11 +710,24 @@ void Searcher::idLoop(Position& pos) {
         }
       }
     }
+
+#ifdef RECORD_ITERATIVE_DEEPNING_SCORES
+    scores[depth] = bestScore;
+#endif
   }
   skill.swapIfEnabled(thisptr);
   if (outputInfo) {
     SYNCCOUT << pvInfoToUSI(pos, depth - 1, alpha, beta) << SYNCENDL;
   }
+
+#ifdef RECORD_ITERATIVE_DEEPNING_SCORES
+  std::ofstream ofs("C:\\home\\develop\\tanuki-\\bin\\id_loop.txt", std::ios::app);
+  ofs << depth - 2;
+  for (int i = 1; i < depth - 1; ++i) {
+    ofs << " " << scores[i];
+  }
+  ofs << std::endl;
+#endif
 }
 
 #if defined INANIWA_SHIFT
