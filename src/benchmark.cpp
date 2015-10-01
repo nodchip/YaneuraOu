@@ -21,6 +21,7 @@ void benchmark(Position& pos) {
     pos.searcher()->setOption(str);
   }
 
+  Searcher::recordIterativeDeepningScores = false;
   std::ifstream ifs("benchmark.sfen");
   std::string sfen;
   u64 sumOfSearchedNodes = 0;

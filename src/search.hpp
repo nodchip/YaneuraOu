@@ -124,6 +124,7 @@ struct Searcher {
   STATIC History history;
   STATIC Gains gains;
   STATIC TranspositionTable tt;
+  STATIC bool recordIterativeDeepningScores;
 
 #if defined INANIWA_SHIFT
   STATIC InaniwaFlag inaniwaFlag;

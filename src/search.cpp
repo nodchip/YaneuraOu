@@ -47,6 +47,7 @@ ThreadPool Searcher::threads;
 OptionsMap Searcher::options;
 Searcher* Searcher::thisptr;
 bool Searcher::outputInfo = true;
+bool Searcher::recordIterativeDeepningScores = true;
 #endif
 
 void Searcher::init() {
@@ -756,12 +757,14 @@ void Searcher::idLoop(Position& pos) {
   }
 
 #ifdef RECORD_ITERATIVE_DEEPNING_SCORES
-  std::ofstream ofs("C:\\home\\develop\\tanuki-\\bin\\id_loop.txt", std::ios::app);
-  ofs << depth - 2;
-  for (int i = 1; i < depth - 1; ++i) {
-    ofs << " " << scores[i];
+  if (recordIterativeDeepningScores) {
+    std::ofstream ofs("C:\\home\\develop\\tanuki-\\bin\\id_loop.txt", std::ios::app);
+    ofs << depth - 2;
+    for (int i = 1; i < depth - 1; ++i) {
+      ofs << " " << scores[i];
+    }
+    ofs << std::endl;
   }
-  ofs << std::endl;
 #endif
 }
 
