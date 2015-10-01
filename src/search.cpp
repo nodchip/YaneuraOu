@@ -759,7 +759,10 @@ void Searcher::idLoop(Position& pos) {
 #ifdef RECORD_ITERATIVE_DEEPNING_SCORES
   if (recordIterativeDeepningScores) {
     std::ofstream ofs("C:\\home\\develop\\tanuki-\\bin\\id_loop.txt", std::ios::app);
-    ofs << depth - 2;
+    ofs << depth - 2 << " "
+      << limits.time[Black] << " "
+      << limits.time[White] << " "
+      << limits.byoyomi;
     for (int i = 1; i < depth - 1; ++i) {
       ofs << " " << scores[i];
     }
