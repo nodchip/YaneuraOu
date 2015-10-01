@@ -586,8 +586,43 @@ void Searcher::idLoop(Position& pos) {
       // alpha, beta をある程度絞ることで、探索効率を上げる。
       if (5 <= depth && abs(rootMoves[pvIdx].prevScore_) < ScoreKnownWin) {
         delta = static_cast<Score>(16);
-        alpha = rootMoves[pvIdx].prevScore_ - delta;
-        beta = rootMoves[pvIdx].prevScore_ + delta;
+        Score estimatedScore;
+#ifdef USE_ASPIRATION_WINDOW_PREDICTION
+        if (depth > 16) {
+          static const double WEIGHTS[] = {
+            -0.03969661146402359000,
+            -0.02047260478138923600,
+            0.03487274050712585400,
+            0.01985118351876735700,
+            0.07115927338600158700,
+            0.00263336231000721450,
+            -0.11503288894891739000,
+            0.06041983142495155300,
+            -0.17903171479701996000,
+            0.34210363030433655000,
+            -0.26073345541954041000,
+            0.08845593780279159500,
+            -0.30792021751403809000,
+            0.34906053543090820000,
+            -0.06275260448455810500,
+            1.02845573425292970000,
+          };
+          static const int NUMBER_OF_VARIABLES = sizeof(WEIGHTS) / sizeof(WEIGHTS[0]);
+          double sum = -0.00822925660759210590;
+          for (int i = 0; i < NUMBER_OF_VARIABLES; ++i) {
+            sum += WEIGHTS[i] * scores[depth - NUMBER_OF_VARIABLES + i];
+          }
+          estimatedScore = (Score)(int)round(sum);
+          //SYNCCOUT << "info string estimatedScore=" << estimatedScore << SYNCENDL;
+        }
+        else {
+          estimatedScore = rootMoves[pvIdx].prevScore_;
+        }
+#else
+        estimatedScore = rootMoves[pvIdx].prevScore_;
+#endif
+        alpha = estimatedScore - delta;
+        beta = estimatedScore + delta;
       }
       else {
         alpha = -ScoreInfinite;
