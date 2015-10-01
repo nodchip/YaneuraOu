@@ -28,7 +28,8 @@ struct LimitsType {
   volatile int movesToGo;
   volatile Ply depth;
   volatile u32 nodes;
-  volatile int moveTime;
+  volatile int byoyomi;
+  volatile int ponderTime;
   volatile bool infinite;
   volatile bool ponder;
 };

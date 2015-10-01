@@ -178,10 +178,7 @@ void go(const Position& pos, Scanner command) {
     else if (token == "infinite") { limits.infinite = true; }
     else if (token == "byoyomi" || token == "movetime") {
       // btime wtime の後に byoyomi が来る前提になっているので良くない。
-      limits.moveTime = command.nextInt();
-      if (limits.moveTime != 0) {
-        limits.moveTime -= pos.searcher()->options["Byoyomi_Margin"];
-      }
+      limits.byoyomi = command.nextInt();
     }
     else if (token == "depth") {
       limits.depth = command.nextInt();
@@ -478,14 +475,14 @@ void Searcher::doUSICommandLoop(int argc, char* argv[]) {
       else {
         limits.ponder = false;
       }
-      if (token == "ponderhit" && limits.moveTime != 0) {
+      if (token == "ponderhit" && limits.byoyomi != 0) {
         // ponder した時間だけ制限時間が伸びたので
         // 秒読み分に加算する
         int elapsed = searchTimer.elapsed();
-        // 通信の遅れなどを考え 900ms ほど引いておく
-        // 最終的な思考時間は TimeManager の中で ??500ms に合わせる
-        elapsed = std::max(0, elapsed - 900);
-        limits.moveTime += elapsed;
+        //// 通信の遅れなどを考え 900ms ほど引いておく
+        //// 最終的な思考時間は TimeManager の中で ??500ms に合わせる
+        //elapsed = std::max(0, elapsed - 900);
+        limits.ponderTime = elapsed;
         Searcher::timeManager->update();
       }
     }

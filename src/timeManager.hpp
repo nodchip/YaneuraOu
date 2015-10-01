@@ -24,7 +24,7 @@ public:
   // そうでない場合は false
   bool isInByoyomi() const {
     return limits_.time[us_] == 0 &&
-      limits_.moveTime != 0;
+      limits_.byoyomi != 0;
   }
 
 private:
