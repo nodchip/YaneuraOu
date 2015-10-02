@@ -106,17 +106,20 @@ void TimeManager::update()
   int byoyomi = limits_.byoyomi;
   int byoyomiWithMargin = std::max(0, limits_.byoyomi - byoyomiMargin);
   int ponderTime = limits_.ponderTime;
+  int ponderTimeMargin = searcher_->options["Ponder_Time_Margin"];
+  int ponderTimeWithMargin = std::max(0, ponderTime - ponderTimeMargin);
+  int myTime = limits_.time[us_];
 
-  // 持ち時間+秒読みで初期化する
-  int softTimeLimitMs = limits_.time[us_] + byoyomiWithMargin - ponderTime;
-  int hardTimeLimitMs = limits_.time[us_] + byoyomiWithMargin - ponderTime;
+  // 持ち時間+秒読み+ponder時間で初期化する
+  int softTimeLimitMs = myTime + byoyomiWithMargin + ponderTimeWithMargin;
+  int hardTimeLimitMs = myTime + byoyomiWithMargin + ponderTimeWithMargin;
 
   for (int hypMTG = 1; hypMTG <= (limits_.movesToGo ? std::min((int)limits_.movesToGo, MoveHorizon) : MoveHorizon); ++hypMTG) {
     int hypMyTime =
-      limits_.time[us_]
+      myTime
       + limits_.increment[us_] * (hypMTG - 1)
       + byoyomiWithMargin
-      + ponderTime
+      + ponderTimeWithMargin
       - emergencyBaseTime
       - emergencyMoveTime + std::min(hypMTG, emergencyMoveHorizon);
 
@@ -149,16 +152,12 @@ void TimeManager::update()
 
   // 持ち時間を使いきっている場合は
   // 秒読みギリギリまで利用する
-  if (softTimeLimitMs >= limits_.time[us_]) {
-    softTimeLimitMs = limits_.time[us_] + byoyomiWithMargin + ponderTime;
+  if (softTimeLimitMs >= myTime) {
+    softTimeLimitMs = myTime + byoyomiWithMargin + ponderTimeWithMargin;
   }
-  if (hardTimeLimitMs >= limits_.time[us_]) {
-    hardTimeLimitMs = limits_.time[us_] + byoyomiWithMargin + ponderTime;
+  if (hardTimeLimitMs >= myTime) {
+    hardTimeLimitMs = myTime + byoyomiWithMargin + ponderTimeWithMargin;
   }
-
-  // 時間切れにならないよう思考時間を制限する
-  softTimeLimitMs = std::min(softTimeLimitMs, limits_.time[us_] + byoyomiWithMargin + ponderTime);
-  hardTimeLimitMs = std::min(hardTimeLimitMs, limits_.time[us_] + byoyomiWithMargin + ponderTime);
 
   // 秒節約のため hard time limit を ??500 ms に合わせる
   // 探索のiterationがいつ終わるかわからないので soft hard limit は合わせない
@@ -171,21 +170,21 @@ void TimeManager::update()
   softTimeLimitMs = std::max(softTimeLimitMs, minThinkingTime);
   hardTimeLimitMs = std::max(hardTimeLimitMs, minThinkingTime);
 
-  // 双方とも時間を使いきっている場合は秒読みの時間×2未満とする
-  if (limits_.time[Black] == 0 && limits_.time[White] == 0) {
-    hardTimeLimitMs = std::min(hardTimeLimitMs, byoyomi * 2 - 1500);
-    softTimeLimitMs = std::min(softTimeLimitMs, byoyomi * 2 - 1500);
-  }
+  // 時間切れにならないよう思考時間を制限する
+  softTimeLimitMs = std::min(softTimeLimitMs, myTime + byoyomiWithMargin + ponderTimeWithMargin);
+  hardTimeLimitMs = std::min(hardTimeLimitMs, myTime + byoyomiWithMargin + ponderTimeWithMargin);
 
   // 切れ負けで残り時間が足りない場合は最低思考時間とする
-  if (byoyomi == 0 && (256 - currentPly_) / 2 * 1000 + 10 * 1000 > limits_.time[us_]) {
+  if (byoyomi == 0 && (256 - currentPly_) / 2 * 1000 + 10 * 1000 > myTime) {
     softTimeLimitMs = minThinkingTime;
     hardTimeLimitMs = minThinkingTime;
   }
 
   if (Searcher::outputInfo) {
-    SYNCCOUT << "info string soft_time_limit_ms = " << softTimeLimitMs << SYNCENDL;
-    SYNCCOUT << "info string hard_time_limit_ms = " << hardTimeLimitMs << SYNCENDL;
+    char buffer[1024];
+    sprintf(buffer, "info string soft_time_limit_ms=%d hard_time_limit_ms=%d btime=%d wtime=%d byoyomi=%d ponderTime=%d",
+      softTimeLimitMs, hardTimeLimitMs, limits_.time[Black], limits_.time[White], byoyomi, ponderTime);
+    SYNCCOUT << buffer << SYNCENDL;
   }
   softTimeLimitMs_ = softTimeLimitMs;
   hardTimeLimitMs_ = hardTimeLimitMs;
