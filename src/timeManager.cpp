@@ -108,6 +108,11 @@ void TimeManager::update()
   int ponderTime = limits_.ponderTime;
   int ponderTimeMargin = searcher_->options["Ponder_Time_Margin"];
   int ponderTimeWithMargin = std::max(0, ponderTime - ponderTimeMargin);
+  // 将棋所上で双方が秒読みに入った時に ponderTime > byoyomi となる場合があるので
+  // 秒読み時間以下に設定する
+  if (limits_.time[Black] == 0 && limits_.time[White] == 0 && limits_.byoyomi > 0) {
+    ponderTimeWithMargin = std::min(ponderTimeWithMargin, byoyomiWithMargin);
+  }
   int myTime = limits_.time[us_];
 
   // 持ち時間+秒読み+ponder時間で初期化する
