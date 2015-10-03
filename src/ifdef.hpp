@@ -76,7 +76,7 @@
 #define RECORD_ITERATIVE_DEEPNING_SCORES
 #endif
 
-#if 0
+#if 1
 #define USE_ASPIRATION_WINDOW_PREDICTION
 #endif
 
