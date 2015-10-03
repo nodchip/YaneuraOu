@@ -17,6 +17,9 @@ namespace {
   }
 }
 
+///////////////////////////////////////////////////////////////////////////////
+// Thread
+///////////////////////////////////////////////////////////////////////////////
 Thread::Thread(Searcher* s) /*: splitPoints()*/ {
   searcher = s;
   exit = false;
@@ -26,45 +29,6 @@ Thread::Thread(Searcher* s) /*: splitPoints()*/ {
   activeSplitPoint = nullptr;
   activePosition = nullptr;
   idx = s->threads.size();
-}
-
-void TimerThread::idleLoop() {
-  while (!exit) {
-    int timerPeriodMs = first ? timerPeriodFirstMs : timerPeriodAfterMs;
-    first = false;
-    {
-      std::unique_lock<std::mutex> lock(sleepLock);
-      if (!exit) {
-        sleepCond.wait_for(lock, std::chrono::milliseconds(timerPeriodMs));
-      }
-    }
-    if (timerPeriodMs != FOREVER) {
-      searcher->checkTime();
-    }
-  }
-}
-
-void MainThread::idleLoop() {
-  while (true) {
-    {
-      std::unique_lock<std::mutex> lock(sleepLock);
-      thinking = false;
-      while (!thinking && !exit) {
-        // UI 関連だから要らないのかも。
-        searcher->threads.sleepCond_.notify_one();
-        sleepCond.wait(lock);
-      }
-    }
-
-    if (exit) {
-      return;
-    }
-
-    searching = true;
-    searcher->think();
-    assert(searching);
-    searching = false;
-  }
 }
 
 void Thread::notifyOne() {
@@ -264,3 +228,66 @@ template void Thread::split<true >(Position& pos, SearchStack* ss, const Score a
 template void Thread::split<false>(Position& pos, SearchStack* ss, const Score alpha, const Score beta, Score& bestScore,
   Move& bestMove, const Depth depth, const Move threatMove, const int moveCount,
   MovePicker& mp, const NodeType nodeType, const bool cutNode);
+
+///////////////////////////////////////////////////////////////////////////////
+// TimerThread
+///////////////////////////////////////////////////////////////////////////////
+const int TimerThread::FOREVER = INT_MAX;
+
+TimerThread::TimerThread(Searcher* s) :
+  Thread(s),
+  timerPeriodFirstMs(FOREVER),
+  timerPeriodAfterMs(FOREVER),
+  first(true)
+{
+}
+
+void TimerThread::idleLoop() {
+  while (!exit) {
+    int timerPeriodMs = first ? timerPeriodFirstMs : timerPeriodAfterMs;
+    first = false;
+    {
+      std::unique_lock<std::mutex> lock(sleepLock);
+      if (!exit) {
+        sleepCond.wait_for(lock, std::chrono::milliseconds(timerPeriodMs));
+      }
+    }
+    if (timerPeriodMs != FOREVER) {
+      searcher->checkTime();
+    }
+  }
+}
+
+void TimerThread::restartTimer(int firstMs, int afterMs)
+{
+  this->timerPeriodFirstMs = firstMs;
+  this->timerPeriodAfterMs = afterMs;
+  first = true;
+  notifyOne();
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// MainThread
+///////////////////////////////////////////////////////////////////////////////
+void MainThread::idleLoop() {
+  while (true) {
+    {
+      std::unique_lock<std::mutex> lock(sleepLock);
+      thinking = false;
+      while (!thinking && !exit) {
+        // UI 関連だから要らないのかも。
+        searcher->threads.sleepCond_.notify_one();
+        sleepCond.wait(lock);
+      }
+    }
+
+    if (exit) {
+      return;
+    }
+
+    searching = true;
+    searcher->think();
+    assert(searching);
+    searching = false;
+  }
+}

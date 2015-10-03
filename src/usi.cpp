@@ -477,14 +477,15 @@ void Searcher::doUSICommandLoop(int argc, char* argv[]) {
         limits.ponder = false;
       }
       if (token == "ponderhit" && limits.byoyomi != 0) {
-        // ponder した時間だけ制限時間が伸びたので
-        // 秒読み分に加算する
+        // ponder した時間だけ制限時間が伸びたので limits に追加する
         int elapsed = searchTimer.elapsed();
-        //// 通信の遅れなどを考え 900ms ほど引いておく
-        //// 最終的な思考時間は TimeManager の中で ??500ms に合わせる
-        //elapsed = std::max(0, elapsed - 900);
         limits.ponderTime = elapsed;
         Searcher::timeManager->update();
+
+        int firstMs = Searcher::timeManager->getHardTimeLimitMs() - elapsed - Searcher::MAX_TIMER_PERIOD_MS * 2;
+        firstMs = std::max(firstMs, Searcher::MIN_TIMER_PERIOD_MS);
+        int afterMs = MAX_TIMER_PERIOD_MS;
+        threads.timerThread()->restartTimer(firstMs, afterMs);
       }
     }
     else if (token == "usinewgame") {

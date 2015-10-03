@@ -92,15 +92,18 @@ struct MainThread : public Thread {
   volatile bool thinking;
 };
 
-struct TimerThread : public Thread {
-  static const int FOREVER = INT_MAX;
-  explicit TimerThread(Searcher* s) :
-    Thread(s),
-    timerPeriodFirstMs(FOREVER),
-    timerPeriodAfterMs(FOREVER),
-    first(true) { }
+class TimerThread : public Thread {
+public:
+  static const int FOREVER;
+  explicit TimerThread(Searcher* s);
   // 待機時間だけ待ったのち思考時間のチェックを行う
   virtual void idleLoop();
+  // 思考スレッドの監視を始める
+  // firstMs: 初回待機時間
+  // afterMs: 次回以降の待機時間
+  void restartTimer(int firstMs, int afterMs);
+
+private:
   // 初回の待機時間
   // FOREVERの場合は思考時間のチェックを行わない
   volatile int timerPeriodFirstMs;

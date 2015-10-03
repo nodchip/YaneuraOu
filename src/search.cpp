@@ -48,6 +48,8 @@ OptionsMap Searcher::options;
 Searcher* Searcher::thisptr;
 bool Searcher::outputInfo = true;
 bool Searcher::recordIterativeDeepningScores = true;
+const int Searcher::MIN_TIMER_PERIOD_MS = 5;
+const int Searcher::MAX_TIMER_PERIOD_MS = 100;
 #endif
 
 void Searcher::init() {
@@ -64,8 +66,6 @@ namespace {
   // info を標準出力へ出力するスロットル
   // 前回出力してから以下の時間を経過していない場合は出力しない
   static const int THROTTLE_TO_OUTPUT_INFO_MS = 1000;
-  // 思考スレッド監視スレッドの実行周期の最大値
-  static const int MAX_TIMER_PERIOD_MS = 100;
   // true にすると、シングルスレッドで動作する。デバッグ用。
   const bool FakeSplit = false;
 
@@ -86,9 +86,6 @@ namespace {
   template <bool PVNode> inline Depth reduction(const Depth depth, const int moveCount) {
     return static_cast<Depth>(Reductions[PVNode][std::min(Depth(depth / OnePly), Depth(63))][std::min(moveCount, 63)]);
   }
-
-  // checkTime() を呼び出す最大間隔(msec)
-  const int TimerResolution = 5;
 
   struct Skill {
     Skill(const int l, const int mr)
@@ -1654,20 +1651,15 @@ void Searcher::think() {
   int timerPeriodFirstMs;
   int timerPeriodAfterMs;
   if (limits.nodes) {
-    timerPeriodFirstMs = 2 * TimerResolution;
-    timerPeriodAfterMs = 2 * TimerResolution;
-    //SYNCCOUT << "info string *** think() : nodes" << SYNCENDL;
+    timerPeriodFirstMs = MIN_TIMER_PERIOD_MS;
+    timerPeriodAfterMs = MIN_TIMER_PERIOD_MS;
   }
   else if (timeManager->isTimeLeft() || timeManager->isInByoyomi()) {
     // なるべく思考スレッドに処理時間を渡すため
     // 初回思考時間チェックは maximumTime の直前から行う
-    // TODO(nodchip): ponderhhit 時にはじめに設定した思考時間チェクタイミング以降に
-    // 定期的に思考時間チェックが行われるのを抑制する
     timerPeriodFirstMs = timeManager->getHardTimeLimitMs() - MAX_TIMER_PERIOD_MS * 2;
-    timerPeriodFirstMs = std::max(timerPeriodFirstMs, MAX_TIMER_PERIOD_MS);
-    timerPeriodAfterMs = timeManager->getSoftTimeLimitMs() / 16;
-    timerPeriodAfterMs = std::max(timerPeriodAfterMs,TimerResolution);
-    timerPeriodAfterMs = std::min(timerPeriodAfterMs, MAX_TIMER_PERIOD_MS);
+    timerPeriodFirstMs = std::max(timerPeriodFirstMs, MIN_TIMER_PERIOD_MS);
+    timerPeriodAfterMs = MAX_TIMER_PERIOD_MS;
     //SYNCCOUT << "info string *** think() : other" << SYNCENDL;
   }
   else {
@@ -1675,10 +1667,7 @@ void Searcher::think() {
     timerPeriodAfterMs = TimerThread::FOREVER;
   }
 
-  threads.timerThread()->first = true;
-  threads.timerThread()->timerPeriodFirstMs = timerPeriodFirstMs;
-  threads.timerThread()->timerPeriodAfterMs = timerPeriodAfterMs;
-  threads.timerThread()->notifyOne();
+  threads.timerThread()->restartTimer(timerPeriodFirstMs, timerPeriodAfterMs);
 
 #if defined INANIWA_SHIFT
   detectInaniwa(pos);
@@ -1689,9 +1678,7 @@ void Searcher::think() {
   idLoop(pos);
 
   // timer を止める。
-  threads.timerThread()->first = true;
-  threads.timerThread()->timerPeriodFirstMs = TimerThread::FOREVER;
-  threads.timerThread()->timerPeriodAfterMs = TimerThread::FOREVER;
+  threads.timerThread()->restartTimer(TimerThread::FOREVER, TimerThread::FOREVER);
   threads.sleep();
 
 finalize:
@@ -1756,7 +1743,7 @@ void Searcher::checkTime() {
     && timeManager->getSoftTimeLimitMs() < elapsed;
 
   const bool noMoreTime =
-    timeManager->getHardTimeLimitMs() - 2 * TimerResolution < elapsed
+    timeManager->getHardTimeLimitMs() - 2 * MIN_TIMER_PERIOD_MS < elapsed
     || stillAtFirstMove;
 
   if (noMoreTime || (limits.nodes != 0 && limits.nodes < nodes))
