@@ -126,9 +126,9 @@ struct Searcher {
   STATIC TranspositionTable tt;
   STATIC bool recordIterativeDeepningScores;
   // 思考スレッドの監視スレッドの実行周期の最小値
-  STATIC const int MIN_TIMER_PERIOD_MS;
+  STATIC constexpr int MIN_TIMER_PERIOD_MS = 5;
   // 思考スレッドの監視スレッドの実行周期の最大値
-  STATIC const int MAX_TIMER_PERIOD_MS;
+  STATIC constexpr int MAX_TIMER_PERIOD_MS = 100;
 
 #if defined INANIWA_SHIFT
   STATIC InaniwaFlag inaniwaFlag;

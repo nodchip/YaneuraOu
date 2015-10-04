@@ -50,9 +50,9 @@ enum {
   fe_end = e_dragon + 81
 };
 
-const int FVScale = 32;
+constexpr int FVScale = 32;
 
-const int KPPIndexArray[] = {
+constexpr int KPPIndexArray[] = {
   f_hand_pawn, e_hand_pawn, f_hand_lance, e_hand_lance, f_hand_knight,
   e_hand_knight, f_hand_silver, e_hand_silver, f_hand_gold, e_hand_gold,
   f_hand_bishop, e_hand_bishop, f_hand_rook, e_hand_rook, /*fe_hand_end,*/
@@ -141,7 +141,7 @@ struct KPPBoardIndexStartToPiece {
 extern KPPBoardIndexStartToPiece g_kppBoardIndexStartToPiece;
 
 template <typename KPPType, typename KKPType, typename KKType> struct EvaluaterBase {
-  static const int R_Mid = 8; // 相対位置の中心のindex
+  static constexpr int R_Mid = 8; // 相対位置の中心のindex
                               //static const int MaxWeight = 1 << 18; // KPE自体が1/8の寄与。更にKPEの遠隔駒の利きが1マスごとに1/2に減衰する分(最大でKEEの際に8マス離れが2枚だから 1/128**2)
   constexpr int MaxWeight() const { return 1 << 18; } // なぜか clang で static const int MaxWeight を使っても Undefined symbols for architecture x86_64 と言われる。
   union {
@@ -209,9 +209,9 @@ template <typename KPPType, typename KKPType, typename KKType> struct EvaluaterB
   size_t kks_begin_index() const { return &kk[0][0] - &oneArrayKK[0]; }
   size_t kks_end_index() const { return kks_begin_index() + (sizeof(kk) + sizeof(k) + sizeof(r_kk)) / sizeof(KKType); }
 
-  static const int KPPIndicesMax = 3000;
-  static const int KKPIndicesMax = 130;
-  static const int KKIndicesMax = 5;
+  static constexpr int KPPIndicesMax = 3000;
+  static constexpr int KKPIndicesMax = 130;
+  static constexpr int KKIndicesMax = 5;
   // KPP に関する相対位置などの次元を落とした位置などのインデックスを全て返す。
   // 負のインデックスは、正のインデックスに変換した位置の点数を引く事を意味する。
   // 0 の時だけは正負が不明だが、0 は歩の持ち駒 0 枚を意味していて無効な値なので問題なし。
@@ -891,9 +891,24 @@ struct Evaluater : public EvaluaterBase<s16, s32, s32> {
   }
 };
 
-extern const int kppArray[31];
-extern const int kkpArray[15];
-extern const int kppHandArray[ColorNum][HandPieceNum];
+constexpr int kppArray[31] = {
+  0,        f_pawn,   f_lance,  f_knight,
+  f_silver, f_bishop, f_rook,   f_gold,
+  0,        f_gold,   f_gold,   f_gold,
+  f_gold,   f_horse,  f_dragon,
+  0,
+  0,        e_pawn,   e_lance,  e_knight,
+  e_silver, e_bishop, e_rook,   e_gold,
+  0,        e_gold,   e_gold,   e_gold,
+  e_gold,   e_horse,  e_dragon
+};
+
+constexpr int kppHandArray[ColorNum][HandPieceNum] = {
+  { f_hand_pawn, f_hand_lance, f_hand_knight, f_hand_silver,
+  f_hand_gold, f_hand_bishop, f_hand_rook },
+  { e_hand_pawn, e_hand_lance, e_hand_knight, e_hand_silver,
+  e_hand_gold, e_hand_bishop, e_hand_rook }
+};
 
 class Position;
 struct SearchStack;
@@ -905,7 +920,7 @@ struct SearchStack;
 //#define EVALUATE_TABLE_SIZE (16LL * 1024LL * 1024LL * 1024LL) >> 3;
 #endif
 
-const size_t EvaluateTableSize = EVALUATE_TABLE_SIZE;
+constexpr size_t EvaluateTableSize = EVALUATE_TABLE_SIZE;
 // 64bit 変数1つなのは理由があって、
 // データを取得している最中に他のスレッドから書き換えられることが無くなるから。
 // lockless hash と呼ばれる。

@@ -1,13 +1,13 @@
 ﻿#include "move.hpp"
 
 namespace {
-  const std::string HandPieceToStringTable[HandPieceNum] = { "P*", "L*", "N*", "S*", "G*", "B*", "R*" };
-  inline std::string handPieceToString(const HandPiece hp) { return HandPieceToStringTable[hp]; }
+  const char* HandPieceToStringTable[HandPieceNum] = { "P*", "L*", "N*", "S*", "G*", "B*", "R*" };
+  inline const char* handPieceToString(const HandPiece hp) { return HandPieceToStringTable[hp]; }
 
-  const std::string PieceTypeToStringTable[PieceTypeNum] = {
+  const char* PieceTypeToStringTable[PieceTypeNum] = {
     "", "FU", "KY", "KE", "GI", "KA", "HI", "KI", "OU", "TO", "NY", "NK", "NG", "UM", "RY"
   };
-  inline std::string pieceTypeToString(const PieceType pt) { return PieceTypeToStringTable[pt]; }
+  inline const char* pieceTypeToString(const PieceType pt) { return PieceTypeToStringTable[pt]; }
 }
 
 std::string Move::toUSI() const {

@@ -6,8 +6,8 @@
 
 using Ply = int;
 
-const Ply MaxPly = 128;
-const Ply MaxPlyPlus2 = MaxPly + 2;
+constexpr Ply MaxPly = 128;
+constexpr Ply MaxPlyPlus2 = MaxPly + 2;
 
 enum Bound {
   BoundNone = 0,

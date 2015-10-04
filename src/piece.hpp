@@ -54,12 +54,12 @@ inline Color pieceToColor(const Piece p) {
 
 inline Piece colorAndPieceTypeToPiece(const Color c, const PieceType pt) { return static_cast<Piece>((c << 4) | pt); }
 
-const u32 IsSliderVal = 0x60646064;
+constexpr u32 IsSliderVal = 0x60646064;
 // pc が遠隔駒であるか
 inline bool isSlider(const Piece     pc) { return (IsSliderVal & (1 << pc)) != 0; }
 inline bool isSlider(const PieceType pt) { return (IsSliderVal & (1 << pt)) != 0; }
 
-const HandPiece PieceTypeToHandPieceTable[PieceTypeNum] = {
+constexpr HandPiece PieceTypeToHandPieceTable[PieceTypeNum] = {
   HandPieceNum, HPawn, HLance, HKnight, HSilver, HBishop, HRook, HGold, HandPieceNum, HPawn, HLance, HKnight, HSilver, HBishop, HRook
 };
 inline HandPiece pieceTypeToHandPiece(const PieceType pt) { return PieceTypeToHandPieceTable[pt]; }

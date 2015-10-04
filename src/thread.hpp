@@ -94,7 +94,7 @@ struct MainThread : public Thread {
 
 class TimerThread : public Thread {
 public:
-  static const int FOREVER;
+  static constexpr int FOREVER = INT_MAX;
   explicit TimerThread(Searcher* s);
   // 待機時間だけ待ったのち思考時間のチェックを行う
   virtual void idleLoop();

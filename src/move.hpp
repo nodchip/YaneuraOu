@@ -87,10 +87,10 @@ public:
   // 正解のPV, MoveNone, その他0のPV, MoveNone, その他1のPV, MoveNone, MovePVsEnd という感じに並ぶ。
   static Move movePVsEnd() { return Move(MovePVsEnd); }
 
-  static const u32 PromoteFlag = 1 << 14;
-  static const u32 MoveNone = 0;
-  static const u32 MoveNull = 129;
-  static const u32 MovePVsEnd = 1 << 15; // for learn
+  static constexpr u32 PromoteFlag = 1 << 14;
+  static constexpr u32 MoveNone = 0;
+  static constexpr u32 MoveNull = 129;
+  static constexpr u32 MovePVsEnd = 1 << 15; // for learn
 
 private:
   u32 value_;

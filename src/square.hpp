@@ -101,7 +101,7 @@ inline constexpr Square makeSquare(const File f, const Rank r) {
   return static_cast<Square>(static_cast<int>(f) * 9 + static_cast<int>(r));
 }
 
-const Rank SquareToRank[SquareNum] = {
+constexpr Rank SquareToRank[SquareNum] = {
   Rank9, Rank8, Rank7, Rank6, Rank5, Rank4, Rank3, Rank2, Rank1,
   Rank9, Rank8, Rank7, Rank6, Rank5, Rank4, Rank3, Rank2, Rank1,
   Rank9, Rank8, Rank7, Rank6, Rank5, Rank4, Rank3, Rank2, Rank1,
@@ -113,7 +113,7 @@ const Rank SquareToRank[SquareNum] = {
   Rank9, Rank8, Rank7, Rank6, Rank5, Rank4, Rank3, Rank2, Rank1
 };
 
-const File SquareToFile[SquareNum] = {
+constexpr File SquareToFile[SquareNum] = {
   FileI, FileI, FileI, FileI, FileI, FileI, FileI, FileI, FileI,
   FileH, FileH, FileH, FileH, FileH, FileH, FileH, FileH, FileH,
   FileG, FileG, FileG, FileG, FileG, FileG, FileG, FileG, FileG,

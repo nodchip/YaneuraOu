@@ -5,17 +5,17 @@
 
 namespace {
 #if 1
-  static const int MoveHorizon = 47; // 15分切れ負け用。
-  //static const double MaxRatio = 3.0; // 15分切れ負け用。
-  static const double MaxRatio = 5.0; // 15分 秒読み10秒用。
+  static constexpr int MoveHorizon = 47; // 15分切れ負け用。
+  //static constexpr double MaxRatio = 3.0; // 15分切れ負け用。
+  static constexpr double MaxRatio = 5.0; // 15分 秒読み10秒用。
 #else
-  static const int MoveHorizon = 35; // 2時間切れ負け用。(todo: もう少し時間使っても良いかも知れない。)
-  static const double MaxRatio = 5.0; // 2時間切れ負け用。
+  static constexpr int MoveHorizon = 35; // 2時間切れ負け用。(todo: もう少し時間使っても良いかも知れない。)
+  static constexpr double MaxRatio = 5.0; // 2時間切れ負け用。
 #endif
-  static const double StealRatio = 0.33;
+  static constexpr double StealRatio = 0.33;
 
   // Stockfish とは異なる。
-  static const int MoveImportance[512] = {
+  static constexpr int MoveImportance[512] = {
     7780, 7780, 7780, 7780, 7780, 7780, 7780, 7780, 7780, 7780, 7780, 7780, 7780, 7780, 7780, 7780,
     7780, 7780, 7780, 7780, 7780, 7780, 7780, 7780, 7780, 7780, 7780, 7780, 7780, 7780, 7780, 7780,
     7780, 7780, 7780, 7780, 7780, 7780, 7780, 7780, 7780, 7780, 7780, 7780, 7780, 7780, 7780, 7780,

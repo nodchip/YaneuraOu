@@ -2,11 +2,6 @@
 #include "position.hpp"
 #include "evaluate.hpp"
 
-const Square HandPieceToSquareHand[ColorNum][HandPieceNum] = {
-  { B_hand_pawn, B_hand_lance, B_hand_knight, B_hand_silver, B_hand_gold, B_hand_bishop, B_hand_rook },
-  { W_hand_pawn, W_hand_lance, W_hand_knight, W_hand_silver, W_hand_gold, W_hand_bishop, W_hand_rook }
-};
-
 void EvalList::set(const Position& pos) {
   const Hand handB = pos.hand(Black);
   const Hand handW = pos.hand(White);

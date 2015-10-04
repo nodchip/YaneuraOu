@@ -232,8 +232,6 @@ template void Thread::split<false>(Position& pos, SearchStack* ss, const Score a
 ///////////////////////////////////////////////////////////////////////////////
 // TimerThread
 ///////////////////////////////////////////////////////////////////////////////
-const int TimerThread::FOREVER = INT_MAX;
-
 TimerThread::TimerThread(Searcher* s) :
   Thread(s),
   timerPeriodFirstMs(FOREVER),
@@ -260,6 +258,7 @@ void TimerThread::idleLoop() {
 
 void TimerThread::restartTimer(int firstMs, int afterMs)
 {
+  // TODO(nodchip): スレッド競合に対処する
   this->timerPeriodFirstMs = firstMs;
   this->timerPeriodAfterMs = afterMs;
   first = true;

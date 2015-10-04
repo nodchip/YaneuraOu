@@ -48,8 +48,6 @@ OptionsMap Searcher::options;
 Searcher* Searcher::thisptr;
 bool Searcher::outputInfo = true;
 bool Searcher::recordIterativeDeepningScores = true;
-const int Searcher::MIN_TIMER_PERIOD_MS = 5;
-const int Searcher::MAX_TIMER_PERIOD_MS = 100;
 #endif
 
 void Searcher::init() {
@@ -308,7 +306,7 @@ std::string Searcher::pvInfoToUSI(Position& pos, const Ply depth, const Score al
 
 template <NodeType NT, bool INCHECK>
 Score Searcher::qsearch(Position& pos, SearchStack* ss, Score alpha, Score beta, const Depth depth) {
-  const bool PVNode = (NT == PV);
+  constexpr bool PVNode = (NT == PV);
 
   assert(NT == PV || NT == NonPV);
   assert(INCHECK == pos.inCheck());
@@ -587,7 +585,7 @@ void Searcher::idLoop(Position& pos) {
         Score estimatedScore;
 #ifdef USE_ASPIRATION_WINDOW_PREDICTION
         if (depth > 16) {
-          static const double WEIGHTS[] = {
+          static constexpr double WEIGHTS[] = {
             -0.02524311840534210200,
             -0.05372891947627067600,
             0.10016616433858871000,
@@ -605,7 +603,7 @@ void Searcher::idLoop(Position& pos) {
             0.37330868840217590000,
             0.62886494398117065000,
           };
-          static const int NUMBER_OF_VARIABLES = sizeof(WEIGHTS) / sizeof(WEIGHTS[0]);
+          static constexpr int NUMBER_OF_VARIABLES = sizeof(WEIGHTS) / sizeof(WEIGHTS[0]);
           double sum = 0.00247147073969244960;
           for (int i = 0; i < NUMBER_OF_VARIABLES; ++i) {
             sum += WEIGHTS[i] * scores[depth - NUMBER_OF_VARIABLES + i];
@@ -844,9 +842,9 @@ template <bool DO> void Position::doNullMove(StateInfo& backUpSt) {
 
 template <NodeType NT>
 Score Searcher::search(Position& pos, SearchStack* ss, Score alpha, Score beta, const Depth depth, const bool cutNode) {
-  const bool PVNode = (NT == PV || NT == Root || NT == SplitPointPV || NT == SplitPointRoot);
-  const bool SPNode = (NT == SplitPointPV || NT == SplitPointNonPV || NT == SplitPointRoot);
-  const bool RootNode = (NT == Root || NT == SplitPointRoot);
+  constexpr bool PVNode = (NT == PV || NT == Root || NT == SplitPointPV || NT == SplitPointRoot);
+  constexpr bool SPNode = (NT == SplitPointPV || NT == SplitPointNonPV || NT == SplitPointRoot);
+  constexpr bool RootNode = (NT == Root || NT == SplitPointRoot);
 
   assert(-ScoreInfinite <= alpha && alpha < beta && beta <= ScoreInfinite);
   assert(PVNode || (alpha == beta - 1));

@@ -25,25 +25,6 @@ const s32 Evaluater::K_Fix_Offset[SquareNum] = {
 
 EvaluateHashTable g_evalTable;
 
-const int kppArray[31] = {
-  0,        f_pawn,   f_lance,  f_knight,
-  f_silver, f_bishop, f_rook,   f_gold,
-  0,        f_gold,   f_gold,   f_gold,
-  f_gold,   f_horse,  f_dragon,
-  0,
-  0,        e_pawn,   e_lance,  e_knight,
-  e_silver, e_bishop, e_rook,   e_gold,
-  0,        e_gold,   e_gold,   e_gold,
-  e_gold,   e_horse,  e_dragon
-};
-
-const int kppHandArray[ColorNum][HandPieceNum] = {
-  { f_hand_pawn, f_hand_lance, f_hand_knight, f_hand_silver,
-  f_hand_gold, f_hand_bishop, f_hand_rook },
-  { e_hand_pawn, e_hand_lance, e_hand_knight, e_hand_silver,
-  e_hand_gold, e_hand_bishop, e_hand_rook }
-};
-
 namespace {
 #ifdef HAVE_AVX2
   static const __m256i MASK[9] = {
