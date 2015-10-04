@@ -898,22 +898,27 @@ extern const int kppHandArray[ColorNum][HandPieceNum];
 class Position;
 struct SearchStack;
 
-const size_t EvaluateTableSize = 0x1000000; // 134MB
-                                            //const size_t EvaluateTableSize = 0x80000000; // 17GB
+#ifndef EVALUATE_TABLE_SIZE
+// 128MB
+#define EVALUATE_TABLE_SIZE (128LL * 1024LL * 1024LL) >> 3
+// 16GB
+//#define EVALUATE_TABLE_SIZE (16LL * 1024LL * 1024LL * 1024LL) >> 3;
+#endif
 
-                                            // 64bit 変数1つなのは理由があって、
-                                            // データを取得している最中に他のスレッドから書き換えられることが無くなるから。
-                                            // lockless hash と呼ばれる。
-                                            // 128bit とかだったら、64bitずつ2回データを取得しないといけないので、
-                                            // key と score が対応しない可能性がある。
-                                            // transposition table は正にその問題を抱えているが、
-                                            // 静的評価値のように差分評価をする訳ではないので、問題になることは少ない。
-                                            // 64bitに収まらない場合や、transposition table なども安全に扱いたいなら、
-                                            // lockする、SSEやAVX命令を使う、チェックサムを持たせる、key を複数の変数に分けて保持するなどの方法がある。
-                                            // 32bit OS 場合、64bit 変数を 32bitずつ2回データ取得するので、下位32bitを上位32bitでxorして
-                                            // データ取得時に壊れていないか確認する。
-                                            // 31- 0 keyhigh32
-                                            // 63-32 score
+const size_t EvaluateTableSize = EVALUATE_TABLE_SIZE;
+// 64bit 変数1つなのは理由があって、
+// データを取得している最中に他のスレッドから書き換えられることが無くなるから。
+// lockless hash と呼ばれる。
+// 128bit とかだったら、64bitずつ2回データを取得しないといけないので、
+// key と score が対応しない可能性がある。
+// transposition table は正にその問題を抱えているが、
+// 静的評価値のように差分評価をする訳ではないので、問題になることは少ない。
+// 64bitに収まらない場合や、transposition table なども安全に扱いたいなら、
+// lockする、SSEやAVX命令を使う、チェックサムを持たせる、key を複数の変数に分けて保持するなどの方法がある。
+// 32bit OS 場合、64bit 変数を 32bitずつ2回データ取得するので、下位32bitを上位32bitでxorして
+// データ取得時に壊れていないか確認する。
+// 31- 0 keyhigh32
+// 63-32 score
 struct EvaluateHashEntry {
   u32 key() const { return static_cast<u32>(word); }
   Score score() const { return static_cast<Score>(static_cast<s64>(word) >> 32); }
