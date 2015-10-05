@@ -950,7 +950,11 @@ struct EvaluateHashEntry {
   u64 word;
 };
 
-struct EvaluateHashTable : HashTable<EvaluateHashEntry, EvaluateTableSize> {};
+struct EvaluateHashTable : HashTable<EvaluateHashEntry, EvaluateTableSize>
+{
+  // ハッシュの使用率をパーミル(1/1000)単位で返す
+  int getUtilizationPerMill() const;
+};
 
 Score evaluateUnUseDiff(const Position& pos);
 Score evaluate(Position& pos, SearchStack* ss);

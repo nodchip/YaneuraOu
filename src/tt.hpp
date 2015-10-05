@@ -72,6 +72,8 @@ public:
   size_t size() const { return size_; }
   TTCluster* entries() const { return entries_; }
   u8 generation() const { return generation_; }
+  // ハッシュの使用率をパーミル(1/1000)単位で返す
+  int getUtilizationPerMill() const;
 
 private:
   TranspositionTable(const TranspositionTable&);

@@ -437,3 +437,15 @@ bool Evaluater::writeSynthesized(const std::string& dirName) {
   }
   return true;
 }
+
+// ハッシュの使用率をパーミル(1/1000)単位で返す
+int EvaluateHashTable::getUtilizationPerMill() const
+{
+  long long numberOfUsed = 0;
+  for (const auto& entry : entries_) {
+    if (entry.word != 0) {
+      ++numberOfUsed;
+    }
+  }
+  return numberOfUsed * 1000 / EvaluateTableSize;
+}

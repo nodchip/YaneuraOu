@@ -254,7 +254,7 @@ struct HashTable {
   // Size が 2のべき乗であることのチェック
   static_assert((Size & (Size - 1)) == 0, "");
 
-private:
+protected:
   std::vector<T> entries_;
 };
 

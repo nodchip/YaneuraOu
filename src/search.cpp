@@ -299,7 +299,9 @@ std::string Searcher::pvInfoToUSI(Position& pos, const Ply depth, const Score al
       ss << " " << rootMoves[i].pv_[j].toUSI();
     }
 
-    ss << std::endl;
+    if (i) {
+      ss << std::endl;
+    }
   }
   return ss.str();
 }
@@ -657,7 +659,15 @@ void Searcher::idLoop(Position& pos) {
 
         if (lastTimeToOutputInfoMs + THROTTLE_TO_OUTPUT_INFO_MS < searchTimer.elapsed()) {
           if (outputInfo) {
-            SYNCCOUT << pvInfoToUSI(pos, depth, alpha, beta) << SYNCENDL;
+            SYNCCOUT
+              << pvInfoToUSI(pos, depth, alpha, beta)
+#ifdef OUTPUT_TRANSPOSITION_TABLE_UTILIZATION
+              << " hashfull " << tt.getUtilizationPerMill()
+#endif
+#ifdef OUTPUT_EVALUATE_HASH_TABLE_UTILIZATION
+              << " hashfull " << g_evalTable.getUtilizationPerMill()
+#endif
+              << SYNCENDL;
           }
           lastTimeToOutputInfoMs = searchTimer.elapsed();
         }
@@ -748,7 +758,15 @@ void Searcher::idLoop(Position& pos) {
   }
   skill.swapIfEnabled(thisptr);
   if (outputInfo) {
-    SYNCCOUT << pvInfoToUSI(pos, depth - 1, alpha, beta) << SYNCENDL;
+    SYNCCOUT
+      << pvInfoToUSI(pos, depth - 1, alpha, beta)
+#ifdef OUTPUT_TRANSPOSITION_TABLE_UTILIZATION
+      << " hashfull " << tt.getUtilizationPerMill()
+#endif
+#ifdef OUTPUT_EVALUATE_HASH_TABLE_UTILIZATION
+      << " hashfull " << g_evalTable.getUtilizationPerMill()
+#endif
+      << SYNCENDL;
   }
 
 #ifdef RECORD_ITERATIVE_DEEPNING_SCORES
