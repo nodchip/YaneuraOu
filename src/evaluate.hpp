@@ -914,8 +914,8 @@ class Position;
 struct SearchStack;
 
 #ifndef EVALUATE_TABLE_SIZE
-// 128MB
-#define EVALUATE_TABLE_SIZE (128LL * 1024LL * 1024LL) >> 3
+// 512MB
+#define EVALUATE_TABLE_SIZE (512LL * 1024LL * 1024LL) >> 3
 // 16GB
 //#define EVALUATE_TABLE_SIZE (16LL * 1024LL * 1024LL * 1024LL) >> 3;
 #endif
