@@ -75,7 +75,6 @@ pgo:
 	$(MAKE) profuse
 	@./$(TARGET) bench | grep "info nodes"
 	@./$(TARGET) bench | grep "info nodes"
-	@./$(TARGET) bench | grep "info nodes"
 
 clean:
 	rm -f $(OBJECTS) $(DEPENDS) $(TARGET) ${OBJECTS:.o=.gcda}
