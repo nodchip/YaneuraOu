@@ -82,8 +82,8 @@ public:
   Position& operator = (const Position& pos);
   void set(const std::string& sfen, Thread* th);
 
-  Bitboard bbOf(const PieceType pt) const { return byTypeBB_[pt]; }
-  Bitboard bbOf(const Color c) const { return byColorBB_[c]; }
+  const Bitboard& bbOf(const PieceType pt) const { return byTypeBB_[pt]; }
+  const Bitboard& bbOf(const Color c) const { return byColorBB_[c]; }
   Bitboard bbOf(const PieceType pt, const Color c) const { return bbOf(pt) & bbOf(c); }
   Bitboard bbOf(const PieceType pt1, const PieceType pt2) const { return bbOf(pt1) | bbOf(pt2); }
   Bitboard bbOf(const PieceType pt1, const PieceType pt2, const Color c) const { return bbOf(pt1, pt2) & bbOf(c); }
@@ -96,7 +96,7 @@ public:
   {
     return bbOf(pt1, pt2, pt3, pt4) | bbOf(pt5);
   }
-  Bitboard occupiedBB() const { return bbOf(Occupied); }
+  const Bitboard& occupiedBB() const { return bbOf(Occupied); }
   // emptyBB() よりもわずかに速いはず。
   // emptyBB() とは異なり、全く使用しない位置(0 から数えて、right の 63bit目、left の 18 ~ 63bit目)
   // の bit が 1 になっても構わないとき、こちらを使う。
@@ -104,7 +104,7 @@ public:
   Bitboard nOccupiedBB() const { return ~occupiedBB(); }
   Bitboard emptyBB() const { return occupiedBB() ^ allOneBB(); }
   // 金、成り金 の Bitboard
-  Bitboard goldsBB() const { return goldsBB_; }
+  const Bitboard& goldsBB() const { return goldsBB_; }
   Bitboard goldsBB(const Color c) const { return goldsBB() & bbOf(c); }
 
   Piece piece(const Square sq) const { return piece_[sq]; }
