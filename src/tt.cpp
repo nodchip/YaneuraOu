@@ -80,7 +80,7 @@ TTEntry* TranspositionTable::probe(const Key posKey) const {
 int TranspositionTable::getUtilizationPerMill() const
 {
   long long numberOfUsed = 0;
-  for (int i = 0; i < size_; ++i) {
+  for (int i = 0; i < (int)size_; ++i) {
     for (int j = 0; j < ClusterSize; ++j) {
       if (entries_[i].data[j].key() != 0) {
         ++numberOfUsed;
