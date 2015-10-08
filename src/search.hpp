@@ -78,7 +78,7 @@ public:
 template <bool Gain>
 class Stats {
 public:
-  static const Score MaxScore = static_cast<Score>(2000);
+  static constexpr Score MaxScore = static_cast<Score>(2000);
 
   void clear() { memset(table_, 0, sizeof(table_)); }
   Score value(const bool isDrop, const Piece pc, const Square to) const {
@@ -128,7 +128,7 @@ struct Searcher {
   // 思考スレッドの監視スレッドの実行周期の最小値
   STATIC constexpr int MIN_TIMER_PERIOD_MS = 5;
   // 思考スレッドの監視スレッドの実行周期の最大値
-  STATIC constexpr int MAX_TIMER_PERIOD_MS = 100;
+  STATIC constexpr int MAX_TIMER_PERIOD_MS = 32;
 
 #if defined INANIWA_SHIFT
   STATIC InaniwaFlag inaniwaFlag;
