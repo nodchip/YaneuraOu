@@ -1,5 +1,5 @@
 #!/bin/sh
-OUTPUT_DIRECTORY=benchmark
+OUTPUT_DIRECTORY=benchmark/kpp_padding
 RESULT_FILE=${OUTPUT_DIRECTORY}/result.csv
 PATH_BASE=${PATH}
 rm -rf ${OUTPUT_DIRECTORY}
