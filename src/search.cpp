@@ -63,7 +63,7 @@ void Searcher::init() {
 namespace {
   // info を標準出力へ出力するスロットル
   // 前回出力してから以下の時間を経過していない場合は出力しない
-  static const int THROTTLE_TO_OUTPUT_INFO_MS = 1000;
+  static constexpr int THROTTLE_TO_OUTPUT_INFO_MS = 1000;
   // true にすると、シングルスレッドで動作する。デバッグ用。
   const bool FakeSplit = false;
 
