@@ -72,7 +72,7 @@ namespace {
 }
 
 void OptionsMap::init(Searcher* s) {
-  (*this)["USI_Hash"] = USIOption(32, 1, 65536, onHashSize, s);
+  (*this)["USI_Hash"] = USIOption(4096, 1, 65536, onHashSize, s);
   (*this)["Clear_Hash"] = USIOption(onClearHash, s);
   (*this)["Book_File"] = USIOption("../bin/book.bin");
   (*this)["Best_Book_Move"] = USIOption(false);
@@ -83,8 +83,8 @@ void OptionsMap::init(Searcher* s) {
   (*this)["Eval_Dir"] = USIOption("../bin/20150501", onEvalDir);
   (*this)["Write_Synthesized_Eval"] = USIOption(false);
   (*this)["USI_Ponder"] = USIOption(true);
-  (*this)["Byoyomi_Margin"] = USIOption(200, 0, INT_MAX);
-  (*this)["Ponder_Time_Margin"] = USIOption(200, 0, INT_MAX);
+  (*this)["Byoyomi_Margin"] = USIOption(300, 0, INT_MAX);
+  (*this)["Ponder_Time_Margin"] = USIOption(300, 0, INT_MAX);
   (*this)["MultiPV"] = USIOption(1, 1, MaxLegalMoves);
   (*this)["Skill_Level"] = USIOption(20, 0, 20);
   (*this)["Max_Random_Score_Diff"] = USIOption(0, 0, ScoreMate0Ply);
