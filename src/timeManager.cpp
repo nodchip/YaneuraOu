@@ -150,7 +150,7 @@ void TimeManager::update()
   // 20手目: 本来の時間 * OPENING_GAME_SEARCH_TIME_COMPRESSION_RATIO
   // 20～44手目: シグモイド関数で補間
   // 44手目: 本来の時間
-  double low = 1.0 / 4.0;
+  double low = 1.0 / 3.0;
   double high = byoyomi != 0 ? 1.75 : 1.0;
   softTimeLimitMs = (int)(softTimeLimitMs * (standardSigmoidFunction((currentPly_ - 32) * 0.5) * (high - low) + low));
   hardTimeLimitMs = (int)(hardTimeLimitMs * (standardSigmoidFunction((currentPly_ - 32) * 0.5) * (high - low) + low));
@@ -164,9 +164,9 @@ void TimeManager::update()
     hardTimeLimitMs = myTime + byoyomiWithMargin + ponderTimeWithMargin;
   }
 
-  // 秒節約のため hard time limit を ??500 ms に合わせる
-  // 探索のiterationがいつ終わるかわからないので soft hard limit は合わせない
-  hardTimeLimitMs = hardTimeLimitMs / 1000 * 1000 + 500;
+  //// 秒節約のため hard time limit を ??500 ms に合わせる
+  //// 探索のiterationがいつ終わるかわからないので soft hard limit は合わせない
+  //hardTimeLimitMs = hardTimeLimitMs / 1000 * 1000 + 500;
 
   // soft > hard にならないようにする
   softTimeLimitMs = std::min(softTimeLimitMs, hardTimeLimitMs);
