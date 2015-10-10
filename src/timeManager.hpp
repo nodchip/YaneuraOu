@@ -34,9 +34,9 @@ private:
   const Ply currentPly_;
   const Color us_;
   const Searcher* searcher_;
-  volatile int softTimeLimitMs_;
-  volatile int hardTimeLimitMs_;
-  volatile int unstablePVExtraTime_;
+  std::atomic<int> softTimeLimitMs_;
+  std::atomic<int> hardTimeLimitMs_;
+  std::atomic<int> unstablePVExtraTime_;
 };
 
 #endif // #ifndef APERY_TIMEMANAGER_HPP
