@@ -56,9 +56,9 @@ bool Thread::isAvailableTo(Thread* master) const {
   return !spCount || (splitPoints[spCount - 1].slavesMask & (UINT64_C(1) << master->idx));
 }
 
-void Thread::waitFor(volatile const bool& b) {
+void Thread::waitFor(const std::atomic<bool>& b) {
   std::unique_lock<std::mutex> lock(sleepLock);
-  sleepCond.wait(lock, [&] { return b; });
+  sleepCond.wait(lock, [&] () -> bool { return b; });
 }
 
 void ThreadPool::init(Searcher* s) {
@@ -126,7 +126,7 @@ void ThreadPool::startThinking(
   pos.searcher()->signals.stop = pos.searcher()->signals.failedLowAtRoot = false;
 
   pos.searcher()->rootPosition = pos;
-  pos.searcher()->limits = limits;
+  pos.searcher()->limits.set(limits);
   pos.searcher()->rootMoves.clear();
 
 #if defined LEARN

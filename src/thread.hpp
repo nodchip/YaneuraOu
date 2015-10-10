@@ -1,13 +1,16 @@
 ﻿#ifndef APERY_THREAD_HPP
 #define APERY_THREAD_HPP
 
+#include <atomic>
+
 #include "common.hpp"
 #include "evaluate.hpp"
-#include "usi.hpp"
+#include "limits_type.hpp"
 #include "tt.hpp"
+#include "usi.hpp"
 
-const int MaxThreads = 64;
-const int MaxSplitPointsPerThread = 8;
+constexpr int MaxThreads = 64;
+constexpr int MaxSplitPointsPerThread = 8;
 
 struct Thread;
 struct SearchStack;
@@ -15,23 +18,6 @@ class MovePicker;
 
 enum NodeType {
   Root, PV, NonPV, SplitPointRoot, SplitPointPV, SplitPointNonPV
-};
-
-// 時間や探索深さの制限を格納する為の構造体
-struct LimitsType {
-  LimitsType() { memset(this, 0, sizeof(LimitsType)); }
-
-  // コマンド受け取りスレッドから変更され
-  // メインスレッドで読まれるため volatile をつける
-  volatile int time[ColorNum];
-  volatile int increment[ColorNum];
-  volatile int movesToGo;
-  volatile Ply depth;
-  volatile u32 nodes;
-  volatile int byoyomi;
-  volatile int ponderTime;
-  volatile bool infinite;
-  volatile bool ponder;
 };
 
 struct SplitPoint {
@@ -65,7 +51,7 @@ struct Thread {
   void notifyOne();
   bool cutoffOccurred() const;
   bool isAvailableTo(Thread* master) const;
-  void waitFor(volatile const bool& b);
+  void waitFor(const std::atomic<bool>& b);
 
   template <bool Fake>
   void split(Position& pos, SearchStack* ss, const Score alpha, const Score beta, Score& bestScore,

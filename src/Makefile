@@ -24,7 +24,7 @@ endif
 SOURCES  = main.cpp bitboard.cpp init.cpp mt64bit.cpp position.cpp evalList.cpp \
            move.cpp movePicker.cpp square.cpp usi.cpp generateMoves.cpp evaluate.cpp \
            search.cpp hand.cpp tt.cpp timeManager.cpp book.cpp benchmark.cpp \
-           thread.cpp common.cpp pieceScore.cpp scanner.cpp string_util.cpp
+           thread.cpp common.cpp pieceScore.cpp scanner.cpp string_util.cpp limits_type.cpp
 OBJECTS  = $(addprefix $(OBJDIR)/, $(SOURCES:.cpp=.o))
 DEPENDS  = $(OBJECTS:.o=.d)
 PGO_TARGET = native

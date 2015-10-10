@@ -188,8 +188,9 @@ void TimeManager::update()
   if (Searcher::outputInfo) {
     char buffer[1024];
     sprintf(buffer, "info string soft_time_limit_ms=%d hard_time_limit_ms=%d btime=%d wtime=%d byoyomi=%d ponderTime=%d",
-      softTimeLimitMs, hardTimeLimitMs, limits_.time[Black], limits_.time[White], byoyomi, ponderTime);
+      softTimeLimitMs, hardTimeLimitMs, limits_.time[Black].load(), limits_.time[White].load(), byoyomi, ponderTime);
     SYNCCOUT << buffer << SYNCENDL;
+    //SYNCCOUT << limits_.outputInfoString() << SYNCENDL;
   }
   softTimeLimitMs_ = softTimeLimitMs;
   hardTimeLimitMs_ = hardTimeLimitMs;

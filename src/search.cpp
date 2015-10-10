@@ -22,7 +22,7 @@ FORCE_INLINE void ThreadPool::sleep() {
 }
 
 #if defined USE_GLOBAL
-volatile SignalsType Searcher::signals;
+SignalsType Searcher::signals;
 LimitsType Searcher::limits;
 std::vector<Move> Searcher::searchMoves;
 Time Searcher::searchTimer;

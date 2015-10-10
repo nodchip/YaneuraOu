@@ -1,5 +1,6 @@
 ﻿#include "benchmark.hpp"
 #include "common.hpp"
+#include "limits_type.hpp"
 #include "position.hpp"
 #include "scanner.hpp"
 #include "search.hpp"

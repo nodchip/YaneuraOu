@@ -2,6 +2,7 @@
 #define APERY_TIMEMANAGER_HPP
 
 #include "evaluate.hpp"
+#include "limits_type.hpp"
 #include "thread.hpp"
 
 struct LimitsType;

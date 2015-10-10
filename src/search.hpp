@@ -1,6 +1,7 @@
 ﻿#ifndef APERY_SEARCH_HPP
 #define APERY_SEARCH_HPP
 
+#include <atomic>
 #include "move.hpp"
 #include "pieceScore.hpp"
 #include "scanner.hpp"
@@ -25,10 +26,10 @@ struct SearchStack {
 };
 
 struct SignalsType {
-  volatile bool stopOnPonderHit;
-  volatile bool firstRootMove;
-  volatile bool stop;
-  volatile bool failedLowAtRoot;
+  std::atomic<bool> stopOnPonderHit;
+  std::atomic<bool> firstRootMove;
+  std::atomic<bool> stop;
+  std::atomic<bool> failedLowAtRoot;
 };
 
 enum InaniwaFlag {
@@ -109,7 +110,7 @@ struct Searcher {
   // static メンバ関数からだとthis呼べないので代わりに thisptr を使う。
   // static じゃないときは this を入れることにする。
   STATIC Searcher* thisptr;
-  STATIC volatile SignalsType signals;
+  STATIC SignalsType signals;
   STATIC LimitsType limits;
   STATIC std::vector<Move> searchMoves;
   STATIC Time searchTimer;
