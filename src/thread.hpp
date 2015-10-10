@@ -34,13 +34,14 @@ struct SplitPoint {
   SplitPoint* parentSplitPoint;
 
   std::mutex mutex;
-  volatile u64 slavesMask;
-  volatile s64 nodes;
-  volatile Score alpha;
-  volatile Score bestScore;
+  std::atomic<u64> slavesMask;
+  std::atomic<s64> nodes;
+  std::atomic<Score> alpha;
+  std::atomic<Score> bestScore;
+  // TODO(nodchip): Remove volatile.
   volatile Move bestMove;
-  volatile int moveCount;
-  volatile bool cutoff;
+  std::atomic<int> moveCount;
+  std::atomic<bool> cutoff;
 };
 
 struct Thread {
@@ -65,17 +66,17 @@ struct Thread {
   std::mutex sleepLock;
   std::condition_variable sleepCond;
   std::thread handle;
-  SplitPoint* volatile activeSplitPoint;
-  volatile int splitPointsSize;
-  volatile bool searching;
-  volatile bool exit;
+  std::atomic<SplitPoint*> activeSplitPoint;
+  std::atomic<int> splitPointsSize;
+  std::atomic<bool> searching;
+  std::atomic<bool> exit;
   Searcher* searcher;
 };
 
 struct MainThread : public Thread {
   explicit MainThread(Searcher* s) : Thread(s), thinking(true) {}
   virtual void idleLoop();
-  volatile bool thinking;
+  std::atomic<bool> thinking;
 };
 
 class TimerThread : public Thread {
@@ -92,13 +93,13 @@ public:
 private:
   // 初回の待機時間
   // FOREVERの場合は思考時間のチェックを行わない
-  volatile int timerPeriodFirstMs;
+  std::atomic<int> timerPeriodFirstMs;
   // 次回以降回の待機時間
   // FOREVERの場合は思考時間のチェックを行わない
-  volatile int timerPeriodAfterMs;
+  std::atomic<int> timerPeriodAfterMs;
   // 初回の待機時間を使用する場合は true
   // そうでない場合は false
-  volatile int first;
+  std::atomic<int> first;
 };
 
 class ThreadPool : public std::vector<Thread*> {

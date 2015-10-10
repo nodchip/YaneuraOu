@@ -1769,7 +1769,7 @@ void Searcher::checkTime() {
 }
 
 void Thread::idleLoop() {
-  SplitPoint* thisSp = splitPointsSize ? activeSplitPoint : nullptr;
+  SplitPoint* thisSp = splitPointsSize ? activeSplitPoint.load() : nullptr;
   assert(!thisSp || (thisSp->masterThread == this && searching));
 
   while (true) {
