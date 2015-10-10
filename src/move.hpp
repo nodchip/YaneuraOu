@@ -16,14 +16,8 @@
 //       from, to , promo だけだったら、16bit で済む。
 class Move {
 public:
-  Move() {}
-  explicit Move(const u32 u) : value_(u) {}
-  Move& operator = (const Move& m) { value_ = m.value_; return *this; }
-  Move& operator = (const volatile Move& m) { value_ = m.value_; return *this; }
-  // volatile Move& 型の *this を返すとなぜか警告が出るので、const Move& 型の m を返すことにする。
-  const Move& operator = (const Move& m) volatile { value_ = m.value_; return m; }
-  Move(const Move& m) { value_ = m.value_; }
-  Move(const volatile Move& m) { value_ = m.value_; }
+  Move() = default;
+  Move(const u32 u) : value_(u) {}
 
   // 移動先
   Square to() const { return static_cast<Square>((value() >> 0) & 0x7f); }

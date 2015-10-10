@@ -38,10 +38,11 @@ struct SplitPoint {
   std::atomic<s64> nodes;
   std::atomic<Score> alpha;
   std::atomic<Score> bestScore;
-  // TODO(nodchip): Remove volatile.
-  volatile Move bestMove;
+  std::atomic<Move> bestMove;
   std::atomic<int> moveCount;
   std::atomic<bool> cutoff;
+
+  //SplitPoint() : bestMove(Move::MoveNone) { }
 };
 
 struct Thread {
