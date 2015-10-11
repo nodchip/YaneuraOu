@@ -375,7 +375,7 @@ private:
   Searcher* searcher_;
 
   static Key zobrist_[PieceTypeNum][SquareNum][ColorNum];
-  static const Key zobTurn_ = 1;
+  static constexpr Key zobTurn_ = 1;
   static Key zobHand_[HandPieceNum][ColorNum];
   static Key zobExclusion_; // todo: これが必要か、要検討
 };
@@ -398,7 +398,7 @@ template <> inline Bitboard Position::attacksFrom<Dragon>(const Color, const Squ
 
 // position sfen R8/2K1S1SSk/4B4/9/9/9/9/9/1L1L1L3 b PLNSGBR17p3n3g 1
 // の局面が最大合法手局面で 593 手。番兵の分、+ 1 しておく。
-const int MaxLegalMoves = 593 + 1;
+constexpr int MaxLegalMoves = 593 + 1;
 
 class CharToPieceUSI : public std::map<char, Piece> {
 public:

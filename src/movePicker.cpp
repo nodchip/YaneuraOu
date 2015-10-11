@@ -167,7 +167,7 @@ template <> Move MovePicker::nextMove<true>() {
   return ss_->splitPoint->movePicker->nextMove<false>();
 }
 
-const Score LVATable[PieceTypeNum] = {
+constexpr Score LVATable[PieceTypeNum] = {
   Score(0), Score(1), Score(2), Score(3), Score(4), Score(7), Score(8), Score(6), Score(10000),
   Score(5), Score(5), Score(5), Score(5), Score(9), Score(10)
 };

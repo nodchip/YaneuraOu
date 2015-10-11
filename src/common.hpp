@@ -95,11 +95,11 @@ using u64 = uint64_t;
 // Binary<11110>::value とすれば、30 となる。
 // 符合なし64bitなので19桁まで表記可能。
 template <u64 n> struct Binary {
-  static const u64 value = n % 10 + (Binary<n / 10>::value << 1);
+  static constexpr u64 value = n % 10 + (Binary<n / 10>::value << 1);
 };
 // template 特殊化
 template <> struct Binary<0> {
-  static const u64 value = 0;
+  static constexpr u64 value = 0;
 };
 
 #if defined(_MSC_VER) && !defined(__INTEL_COMPILER) && defined(_WIN64)
@@ -210,7 +210,7 @@ template <> struct Unroller<0> {
   template <typename T> FORCE_INLINE void operator () (T) {}
 };
 
-const size_t CacheLineSize = 64; // 64byte
+constexpr size_t CacheLineSize = 64; // 64byte
 
                                  // Stockfish ほとんどそのまま
 template <typename T> inline void prefetch(T* addr) {
