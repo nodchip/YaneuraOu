@@ -80,16 +80,21 @@ private:
   TranspositionTable& operator = (const TranspositionTable&);
 
   size_t size_; // 置換表のバイト数。2のべき乗である必要がある。
+  // 置換表へのポインタ
+  // メモリの確保・開放はこちらを通して行う
+  TTCluster* entriesRaw_;
+  // 置換表を実際に参照する際に使用するポインタ
+  // CacheLineSizeにアラインメントしてある
   TTCluster* entries_;
   // iterative deepening していくとき、過去の探索で調べたものかを判定する。
   u8 generation_;
 };
 
 inline TranspositionTable::TranspositionTable()
-  : size_(0), entries_(nullptr), generation_(0) {}
+  : size_(0), entries_(nullptr), entriesRaw_(nullptr), generation_(0) {}
 
 inline TranspositionTable::~TranspositionTable() {
-  delete[] entries_;
+  delete[] entriesRaw_;
 }
 
 inline TTEntry* TranspositionTable::firstEntry(const Key posKey) const {
