@@ -83,8 +83,8 @@ void OptionsMap::init(Searcher* s) {
   (*this)["Eval_Dir"] = USIOption("../bin/20150501", onEvalDir);
   (*this)["Write_Synthesized_Eval"] = USIOption(false);
   (*this)["USI_Ponder"] = USIOption(true);
-  (*this)["Byoyomi_Margin"] = USIOption(300, 0, INT_MAX);
-  (*this)["Ponder_Time_Margin"] = USIOption(300, 0, INT_MAX);
+  (*this)["Byoyomi_Margin"] = USIOption(500, 0, INT_MAX);
+  (*this)["Ponder_Time_Margin"] = USIOption(500, 0, INT_MAX);
   (*this)["MultiPV"] = USIOption(1, 1, MaxLegalMoves);
   (*this)["Skill_Level"] = USIOption(20, 0, 20);
   (*this)["Max_Random_Score_Diff"] = USIOption(0, 0, ScoreMate0Ply);
