@@ -1493,7 +1493,7 @@ split_point_start:
 void RootMove::extractPvFromTT(Position& pos) {
   StateInfo state[MaxPlyPlus2];
   StateInfo* st = state;
-  TTEntry* tte;
+  const TTEntry* tte;
   Ply ply = 0;
   Move m = pv_[0];
   alignas(16) TTEntry entries[ClusterSize];
@@ -1528,8 +1528,7 @@ void RootMove::insertPvInTT(Position& pos) {
   Ply ply = 0;
 
   do {
-    alignas(16) TTEntry entries[ClusterSize];
-    tte = pos.csearcher()->tt.probe(pos.getKey(), entries);
+    tte = pos.csearcher()->tt.probeRaw(pos.getKey());
 
     if (tte == nullptr
       || move16toMove(tte->move(), pos) != pv_[ply])

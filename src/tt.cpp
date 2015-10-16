@@ -66,7 +66,7 @@ void TranspositionTable::store(const Key posKey, const Score score, const Bound 
     bound, this->generation(), evalScore);
 }
 
-TTEntry* TranspositionTable::probe(const Key posKey, TTEntry entries[ClusterSize]) const {
+const TTEntry* TranspositionTable::probe(const Key posKey, TTEntry entries[ClusterSize]) const {
   assert((u64(entries) & 0xf) == 0);
   const Key posKeyHigh32 = posKey >> 32;
   TTEntry* tte = firstEntry(posKey);
