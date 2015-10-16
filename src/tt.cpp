@@ -66,7 +66,30 @@ void TranspositionTable::store(const Key posKey, const Score score, const Bound 
     bound, this->generation(), evalScore);
 }
 
-TTEntry* TranspositionTable::probe(const Key posKey) const {
+TTEntry* TranspositionTable::probe(const Key posKey, TTEntry entries[ClusterSize]) const {
+  assert((u64(entries) & 0xf) == 0);
+  const Key posKeyHigh32 = posKey >> 32;
+  TTEntry* tte = firstEntry(posKey);
+
+  _mm_store_si128((__m128i*)entries, _mm_stream_load_si128((__m128i*)tte));
+  for (int i = 0; i < ClusterSize; ++i, ++entries) {
+    if (entries->key() == posKeyHigh32) {
+      return entries;
+    }
+  }
+  return nullptr;
+
+  //// firstEntry() で、posKey の下位 (size() - 1) ビットを hash key に使用した。
+  //// ここでは posKey の上位 32bit が 保存されている hash key と同じか調べる。
+  //for (int i = 0; i < ClusterSize; ++i, ++tte) {
+  //  if (tte->key() == posKeyHigh32) {
+  //    return tte;
+  //  }
+  //}
+  //return nullptr;
+}
+
+TTEntry* TranspositionTable::probeRaw(const Key posKey) const {
   const Key posKeyHigh32 = posKey >> 32;
   TTEntry* tte = firstEntry(posKey);
 
