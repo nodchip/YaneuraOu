@@ -64,8 +64,7 @@ public:
   void clear();
   void store(const Key posKey, const Score score, const Bound bound, Depth depth,
     Move move, const Score evalScore);
-  const TTEntry* probe(const Key posKey, TTEntry entries[ClusterSize]) const;
-  TTEntry* probeRaw(const Key posKey) const;
+  TTEntry* probe(const Key posKey) const;
   void newSearch();
   TTEntry* firstEntry(const Key posKey) const;
   void refresh(const TTEntry* tte) const;

@@ -346,8 +346,7 @@ Score Searcher::qsearch(Position& pos, SearchStack* ss, Score alpha, Score beta,
   ttDepth = ((INCHECK || DepthQChecks <= depth) ? DepthQChecks : DepthQNoChecks);
 
   posKey = pos.getKey();
-  alignas(16) TTEntry entries[ClusterSize];
-  tte = tt.probe(posKey, entries);
+  tte = tt.probe(posKey);
   ttMove = (tte != nullptr ? move16toMove(tte->move(), pos) : Move::moveNone());
   ttScore = (tte != nullptr ? scoreFromTT(tte->score(), ss->ply) : ScoreNone);
 
@@ -850,7 +849,7 @@ template <bool DO> void Position::doNullMove(StateInfo& backUpSt) {
 
   if (DO) {
     st_->boardKey ^= zobTurn();
-    //prefetch(csearcher()->tt.firstEntry(st_->key()));
+    prefetch(csearcher()->tt.firstEntry(st_->key()));
     st_->pliesFromNull = 0;
     st_->continuousCheck[turn()] = 0;
   }
@@ -959,8 +958,7 @@ Score Searcher::search(Position& pos, SearchStack* ss, Score alpha, Score beta, 
   // trans position table lookup
   excludedMove = ss->excludedMove;
   posKey = (excludedMove.isNone() ? pos.getKey() : pos.getExclusionKey());
-  alignas(16) TTEntry entries[ClusterSize];
-  tte = tt.probe(posKey, entries);
+  tte = tt.probe(posKey);
   ttMove =
     RootNode ? rootMoves[pvIdx].pv_[0] :
     tte != nullptr ?
@@ -976,7 +974,7 @@ Score Searcher::search(Position& pos, SearchStack* ss, Score alpha, Score beta, 
       : (beta <= ttScore ? (tte->type() & BoundLower)
         : (tte->type() & BoundUpper))))
   {
-    tt.refresh(tt.probeRaw(posKey));
+    tt.refresh(tte);
     ss->currentMove = ttMove; // Move::moveNone() もありえる。
 
     if (beta <= ttScore
@@ -1163,7 +1161,7 @@ iid_start:
     search<PVNode ? PV : NonPV>(pos, ss, alpha, beta, d, true);
     ss->skipNullMove = false;
 
-    tte = tt.probe(posKey, entries);
+    tte = tt.probe(posKey);
     ttMove = (tte != nullptr ?
       move16toMove(tte->move(), pos) :
       Move::moveNone());
@@ -1493,10 +1491,9 @@ split_point_start:
 void RootMove::extractPvFromTT(Position& pos) {
   StateInfo state[MaxPlyPlus2];
   StateInfo* st = state;
-  const TTEntry* tte;
+  TTEntry* tte;
   Ply ply = 0;
   Move m = pv_[0];
-  alignas(16) TTEntry entries[ClusterSize];
 
   assert(!m.isNone() && pos.moveIsPseudoLegal(m));
 
@@ -1507,7 +1504,7 @@ void RootMove::extractPvFromTT(Position& pos) {
 
     assert(pos.moveIsLegal(pv_[ply]));
     pos.doMove(pv_[ply++], *st++);
-    tte = pos.csearcher()->tt.probe(pos.getKey(), entries);
+    tte = pos.csearcher()->tt.probe(pos.getKey());
   } while (tte != nullptr
     // このチェックは少し無駄。駒打ちのときはmove16toMove() 呼ばなくて良い。
     && pos.moveIsPseudoLegal(m = move16toMove(tte->move(), pos))
@@ -1528,7 +1525,7 @@ void RootMove::insertPvInTT(Position& pos) {
   Ply ply = 0;
 
   do {
-    tte = pos.csearcher()->tt.probeRaw(pos.getKey());
+    tte = pos.csearcher()->tt.probe(pos.getKey());
 
     if (tte == nullptr
       || move16toMove(tte->move(), pos) != pv_[ply])
