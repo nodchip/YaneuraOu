@@ -94,4 +94,18 @@
 #endif
 #endif
 
+#if 1
+#define OUTPUT_TRANSPOSITION_HIT_RATE
+#endif
+
+#if 0
+#define OUTPUT_EVALUATE_HASH_HIT_RATE
+#endif
+
+#ifdef OUTPUT_TRANSPOSITION_HIT_RATE
+#ifdef OUTPUT_EVALUATE_HASH_HIT_RATE
+#error Do not define OUTPUT_TRANSPOSITION_HIT_RATE and OUTPUT_EVALUATE_HASH_HIT_RATE at the same time.
+#endif
+#endif
+
 #endif // #ifndef APERY_IFDEF_HPP

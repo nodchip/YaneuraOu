@@ -64,7 +64,7 @@ public:
   void clear();
   void store(const Key posKey, const Score score, const Bound bound, Depth depth,
     Move move, const Score evalScore);
-  TTEntry* probe(const Key posKey) const;
+  TTEntry* probe(const Key posKey);
   void newSearch();
   TTEntry* firstEntry(const Key posKey) const;
   void refresh(const TTEntry* tte) const;
@@ -72,8 +72,14 @@ public:
   size_t size() const { return size_; }
   TTCluster* entries() const { return entries_; }
   u8 generation() const { return generation_; }
+#ifdef OUTPUT_TRANSPOSITION_TABLE_UTILIZATION
   // ハッシュの使用率をパーミル(1/1000)単位で返す
   int getUtilizationPerMill() const;
+#endif
+#ifdef OUTPUT_TRANSPOSITION_HIT_RATE
+  // ヒット率を返す
+  double getHitRate() const;
+#endif
 
 private:
   TranspositionTable(const TranspositionTable&);
@@ -88,13 +94,24 @@ private:
   TTCluster* entries_;
   // iterative deepening していくとき、過去の探索で調べたものかを判定する。
   u8 generation_;
+#ifdef OUTPUT_TRANSPOSITION_HIT_RATE
+  u64 numberOfHits;
+  u64 numberOfMissHits;
+#endif
 };
 
 inline TranspositionTable::TranspositionTable()
-  : size_(0), entries_(nullptr), entriesRaw_(nullptr), generation_(0) {}
+  : size_(0), entries_(nullptr), entriesRaw_(nullptr), generation_(0)
+#ifdef OUTPUT_TRANSPOSITION_HIT_RATE
+  , numberOfHits(0), numberOfMissHits(0)
+#endif
+{
+}
 
 inline TranspositionTable::~TranspositionTable() {
   delete[] entriesRaw_;
+  entriesRaw_ = nullptr;
+  entries_ = nullptr;
 }
 
 inline TTEntry* TranspositionTable::firstEntry(const Key posKey) const {

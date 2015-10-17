@@ -782,6 +782,14 @@ void Searcher::idLoop(Position& pos) {
     ofs << std::endl;
   }
 #endif
+
+#ifdef OUTPUT_TRANSPOSITION_HIT_RATE
+  {
+    char buffer[1024];
+    sprintf(buffer, "info string transposition_hit_rate=%f", tt.getHitRate());
+    SYNCCOUT << buffer << SYNCENDL;
+  }
+#endif
 }
 
 #if defined INANIWA_SHIFT

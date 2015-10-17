@@ -66,7 +66,7 @@ void TranspositionTable::store(const Key posKey, const Score score, const Bound 
     bound, this->generation(), evalScore);
 }
 
-TTEntry* TranspositionTable::probe(const Key posKey) const {
+TTEntry* TranspositionTable::probe(const Key posKey) {
   const Key posKeyHigh32 = posKey >> 32;
   TTEntry* tte = firstEntry(posKey);
 
@@ -74,12 +74,19 @@ TTEntry* TranspositionTable::probe(const Key posKey) const {
   // ここでは posKey の上位 32bit が 保存されている hash key と同じか調べる。
   for (int i = 0; i < ClusterSize; ++i, ++tte) {
     if (tte->key() == posKeyHigh32) {
+#ifdef OUTPUT_TRANSPOSITION_HIT_RATE
+      ++numberOfHits;
+#endif
       return tte;
     }
   }
+#ifdef OUTPUT_TRANSPOSITION_HIT_RATE
+  ++numberOfMissHits;
+#endif
   return nullptr;
 }
 
+#ifdef OUTPUT_TRANSPOSITION_TABLE_UTILIZATION
 int TranspositionTable::getUtilizationPerMill() const
 {
   long long numberOfUsed = 0;
@@ -93,3 +100,11 @@ int TranspositionTable::getUtilizationPerMill() const
 
   return numberOfUsed * 1000 / (size_ * ClusterSize);
 }
+#endif
+
+#ifdef OUTPUT_TRANSPOSITION_HIT_RATE
+double TranspositionTable::getHitRate() const
+{
+  return numberOfHits / double(numberOfHits + numberOfMissHits);
+}
+#endif
