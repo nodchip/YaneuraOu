@@ -752,6 +752,21 @@ void Searcher::idLoop(Position& pos) {
       }
     }
 
+    if (ScoreKnownWin <= abs(bestScore)) {
+      if (outputInfo) {
+        SYNCCOUT
+          << pvInfoToUSI(pos, depth, alpha, beta)
+#ifdef OUTPUT_TRANSPOSITION_TABLE_UTILIZATION
+          << " hashfull " << tt.getUtilizationPerMill()
+#endif
+#ifdef OUTPUT_EVALUATE_HASH_TABLE_UTILIZATION
+          << " hashfull " << g_evalTable.getUtilizationPerMill()
+#endif
+          << SYNCENDL;
+      }
+      lastTimeToOutputInfoMs = searchTimer.elapsed();
+    }
+
 #ifdef RECORD_ITERATIVE_DEEPNING_SCORES
     scores[depth] = bestScore;
 #endif
