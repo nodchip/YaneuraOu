@@ -1,6 +1,5 @@
 ﻿#include "position.hpp"
 #include "move.hpp"
-#include "mt64bit.hpp"
 #include "generateMoves.hpp"
 #include "tt.hpp"
 #include "search.hpp"
@@ -19,6 +18,9 @@ namespace {
   inline const char* pieceToCharCSA(const Piece pc) {
     return PieceToCharCSATable[pc];
   }
+
+  std::random_device randomDevice;
+  std::mt19937_64 random(randomDevice());
 }
 
 CheckInfo::CheckInfo(const Position& pos) {
@@ -1492,15 +1494,15 @@ void Position::initZobrist() {
   for (PieceType pt = Occupied; pt < PieceTypeNum; ++pt) {
     for (Square sq = I9; sq < SquareNum; ++sq) {
       for (Color c = Black; c < ColorNum; ++c) {
-        zobrist_[pt][sq][c] = g_mt64bit.random() & ~UINT64_C(1);
+        zobrist_[pt][sq][c] = random() & ~UINT64_C(1);
       }
     }
   }
   for (HandPiece hp = HPawn; hp < HandPieceNum; ++hp) {
-    zobHand_[hp][Black] = g_mt64bit.random() & ~UINT64_C(1);
-    zobHand_[hp][White] = g_mt64bit.random() & ~UINT64_C(1);
+    zobHand_[hp][Black] = random() & ~UINT64_C(1);
+    zobHand_[hp][White] = random() & ~UINT64_C(1);
   }
-  zobExclusion_ = g_mt64bit.random() & ~UINT64_C(1);
+  zobExclusion_ = random() & ~UINT64_C(1);
 }
 
 void Position::print() const {

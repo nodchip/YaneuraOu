@@ -94,7 +94,7 @@
 #endif
 #endif
 
-#if 1
+#if 0
 #define OUTPUT_TRANSPOSITION_HIT_RATE
 #endif
 

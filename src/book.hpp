@@ -1,7 +1,6 @@
 ﻿#ifndef APERY_BOOK_HPP
 #define APERY_BOOK_HPP
 
-#include "mt64bit.hpp"
 #include "position.hpp"
 #include "scanner.hpp"
 
@@ -14,7 +13,7 @@ struct BookEntry {
 
 class Book : private std::ifstream {
 public:
-  Book() : random_((unsigned int)std::chrono::system_clock::now().time_since_epoch().count()) {}
+  Book() : random_(std::random_device()()) {}
   std::tuple<Move, Score> probe(const Position& pos, const std::string& fName, const bool pickBest);
   static void init();
   static Key bookKey(const Position& pos);
@@ -23,8 +22,8 @@ private:
   bool open(const char* fName);
   void binary_search(const Key key);
 
-  static MT64bit mt64bit_; // 定跡のhash生成用なので、seedは固定でデフォルト値を使う。
-  MT64bit random_; // 時刻をseedにして色々指すようにする。
+  static std::mt19937_64 mt64bit_; // 定跡のhash生成用なので、seedは固定でデフォルト値を使う。
+  std::mt19937_64 random_; // ハードウェア乱数をseedにして色々指すようにする。
   std::string fileName_;
   size_t size_;
 

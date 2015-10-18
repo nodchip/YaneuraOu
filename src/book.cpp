@@ -5,7 +5,7 @@
 #include "thread.hpp"
 #include "search.hpp"
 
-MT64bit Book::mt64bit_; // 定跡のhash生成用なので、seedは固定でデフォルト値を使う。
+std::mt19937_64 Book::mt64bit_; // 定跡のhash生成用なので、seedは固定でデフォルト値を使う。
 Key Book::ZobPiece[PieceNone][SquareNum];
 Key Book::ZobHand[HandPieceNum][19]; // 持ち駒の同一種類の駒の数ごと
 Key Book::ZobTurn;
@@ -13,15 +13,15 @@ Key Book::ZobTurn;
 void Book::init() {
   for (Piece p = Empty; p < PieceNone; ++p) {
     for (Square sq = I9; sq < SquareNum; ++sq) {
-      ZobPiece[p][sq] = mt64bit_.random();
+      ZobPiece[p][sq] = mt64bit_();
     }
   }
   for (HandPiece hp = HPawn; hp < HandPieceNum; ++hp) {
     for (int num = 0; num < 19; ++num) {
-      ZobHand[hp][num] = mt64bit_.random();
+      ZobHand[hp][num] = mt64bit_();
     }
   }
-  ZobTurn = mt64bit_.random();
+  ZobTurn = mt64bit_();
 }
 
 bool Book::open(const char* fName) {
@@ -118,7 +118,7 @@ std::tuple<Move, Score> Book::probe(const Position& pos, const std::string& fNam
     // 指された確率に従って手が選択される。
     // count が大きい順に並んでいる必要はない。
     if (min_book_score <= entry.score
-      && ((random_.random() % sum < entry.count)
+      && ((random_() % sum < entry.count)
         || (pickBest && entry.count == best)))
     {
       const Move tmp = Move(entry.fromToPro);

@@ -1,6 +1,5 @@
 ﻿#include "common.hpp"
 #include "init.hpp"
-#include "mt64bit.hpp"
 #include "evaluate.hpp"
 #include "book.hpp"
 #include "search.hpp"
