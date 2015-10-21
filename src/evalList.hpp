@@ -9,7 +9,7 @@ class Position;
 struct EvalList {
   static constexpr int ListSize = 38;
 
-  ALIGNED32(int list0[ListSize]);
+  alignas(64) int list0[ListSize];
   int list1[ListSize];
   Square listToSquareHand[ListSize];
   int squareHandToList[SquareHandNum];
