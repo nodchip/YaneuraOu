@@ -63,6 +63,12 @@ namespace {
     return 1.0 / (1.0 + exp(-x));
   }
 
+  double sigmoidFunction(double x, double left, double right, double bottom, double top) {
+    x = (x - left) / (right - left);
+    x = x * 12.0 - 6.0;
+    return standardSigmoidFunction(x) * (top - bottom) + bottom;
+  }
+
   template <TimeType T> int remaining(const int myTime, int movesToGo, Ply currentPly, int slowMover) {
     double TMaxRatio = (T == OptimumTime ? 1 : MaxRatio);
     double TStealRatio = (T == OptimumTime ? 0 : StealRatio);
@@ -90,7 +96,8 @@ TimeManager::TimeManager(const LimitsType& limits, Ply currentPly, Color us, Sea
   searcher_(searcher),
   softTimeLimitMs_(0),
   hardTimeLimitMs_(0),
-  unstablePVExtraTime_(0)
+  unstablePVExtraTime_(0),
+  backfootExtraTime_(0)
 {
   update();
 }
@@ -150,10 +157,13 @@ void TimeManager::update()
   // 28手目: 本来の時間 * OPENING_GAME_SEARCH_TIME_COMPRESSION_RATIO
   // 28～52手目: シグモイド関数で補間
   // 52手目: 本来の時間
-  double low = 1.0 / 2.0;
-  double high = byoyomi != 0 ? 2.0 : 1.0;
-  softTimeLimitMs = (int)(softTimeLimitMs * (standardSigmoidFunction((currentPly_ - 40) * 0.5) * (high - low) + low));
-  hardTimeLimitMs = (int)(hardTimeLimitMs * (standardSigmoidFunction((currentPly_ - 40) * 0.5) * (high - low) + low));
+  double left = 28;
+  double right = 52;
+  double bottom = 1.0 / 2.0;
+  double top = byoyomi != 0 ? 2.0 : 1.0;
+  double sig = sigmoidFunction(currentPly_, left, right, bottom, top);
+  softTimeLimitMs = (int)(softTimeLimitMs * sig);
+  hardTimeLimitMs = (int)(hardTimeLimitMs * sig);
 
   // 持ち時間を使いきっている場合は
   // 秒読みギリギリまで利用する
@@ -196,11 +206,25 @@ void TimeManager::update()
   hardTimeLimitMs_ = hardTimeLimitMs;
 }
 
-void TimeManager::setPvInstability(int currChanges, int prevChanges) {
-  unstablePVExtraTime_ =
-    currChanges * (softTimeLimitMs_ / 2) + prevChanges * (softTimeLimitMs_ / 3);
-  // soft limit + extra が hard limit を超えないようにする
-  unstablePVExtraTime_ = std::min(
-    (int)unstablePVExtraTime_,
-    hardTimeLimitMs_ - softTimeLimitMs_);
+void TimeManager::setSearchStatus(int currentChanges, int previousChanges, Score score) {
+  unstablePVExtraTime_ = currentChanges * (softTimeLimitMs_ / 2)
+    + previousChanges * (softTimeLimitMs_ / 3);
+
+  double left = 0.0;
+  double right = -800.0;
+  double bottom = 0.0;
+  double top = 1.0;
+  double sig = sigmoidFunction(score, left, right, bottom, top);
+  backfootExtraTime_ = int(softTimeLimitMs_ * sig);
+
+  //if (Searcher::outputInfo) {
+  //  char buffer[1024];
+  //  sprintf(buffer, "info string soft_time_limit_ms=%d hard_time_limit_ms=%d unstable_pv_extra_time=%d backfoot_extra_time=%d",
+  //    softTimeLimitMs_.load(),
+  //    hardTimeLimitMs_.load(),
+  //    unstablePVExtraTime_.load(),
+  //    backfootExtraTime_.load());
+  //  SYNCCOUT << buffer << SYNCENDL;
+  //  //SYNCCOUT << limits_.outputInfoString() << SYNCENDL;
+  //}
 }

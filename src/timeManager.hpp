@@ -12,10 +12,12 @@ public:
   TimeManager(const LimitsType& limits, Ply currentPly, Color us, Searcher* searcher);
   void update();
   int getSoftTimeLimitMs() const {
-    return softTimeLimitMs_ + unstablePVExtraTime_;
+    return std::min<int>(
+      softTimeLimitMs_ + unstablePVExtraTime_ + backfootExtraTime_,
+      hardTimeLimitMs_);
   }
   int getHardTimeLimitMs() const { return hardTimeLimitMs_; }
-  void setPvInstability(int currChanges, int prevChanges);
+  void setSearchStatus(int currentChanges, int previousChanges, Score score);
   // 持ち時間が残っている場合は true
   // そうでない場合は false
   bool isTimeLeft() const {
@@ -37,6 +39,7 @@ private:
   std::atomic<int> softTimeLimitMs_;
   std::atomic<int> hardTimeLimitMs_;
   std::atomic<int> unstablePVExtraTime_;
+  std::atomic<int> backfootExtraTime_;
 };
 
 #endif // #ifndef APERY_TIMEMANAGER_HPP

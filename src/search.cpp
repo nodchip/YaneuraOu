@@ -707,7 +707,7 @@ void Searcher::idLoop(Position& pos) {
       bool stop = false;
 
       if (4 < depth && depth < 50 && pvSize == 1) {
-        timeManager->setPvInstability(bestMoveChanges, prevBestMoveChanges);
+        timeManager->setSearchStatus(bestMoveChanges, prevBestMoveChanges, bestScore);
       }
 
       // 次のイテレーションを回す時間が無いなら、ストップ
