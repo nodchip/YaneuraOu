@@ -12,7 +12,7 @@ void benchmark(Position& pos) {
   LimitsType limits;
 
   std::string options[] = {
-    "name Threads value 1",
+    "name Threads value 4",
     "name MultiPV value 1",
     "name OwnBook value false",
     "name Max_Random_Score_Diff value 0",

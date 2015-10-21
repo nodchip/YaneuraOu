@@ -66,7 +66,7 @@ profgen:
 	$(MAKE) CFLAGS='$(CFLAGS) -fprofile-generate -lgcov' LDFLAGS='$(LDFLAGS) -fprofile-generate -lgcov' $(PGO_TARGET)
 
 profuse:
-	$(MAKE) CFLAGS='$(CFLAGS) -fprofile-use -lgcov' LDFLAGS='$(LDFLAGS) -fprofile-use -lgcov' $(PGO_TARGET)
+	$(MAKE) CFLAGS='$(CFLAGS) -fprofile-use -fprofile-correction -lgcov' LDFLAGS='$(LDFLAGS) -fprofile-use -lgcov' $(PGO_TARGET)
 
 pgo:
 	$(MAKE) profgen
