@@ -16,7 +16,7 @@ void benchmark(Position& pos) {
     "name MultiPV value 1",
     "name OwnBook value false",
     "name Max_Random_Score_Diff value 0",
-    "name USI_Hash value 4096",
+    "name USI_Hash value 8192",
   };
   for (auto& str : options) {
     pos.searcher()->setOption(str);
