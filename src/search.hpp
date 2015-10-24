@@ -106,6 +106,11 @@ using Gains = Stats<true>;
 
 class TranspositionTable;
 
+// 思考スレッドの監視スレッドの実行周期の最小値
+constexpr int MIN_TIMER_PERIOD_MS = 5;
+// 思考スレッドの監視スレッドの実行周期の最大値
+constexpr int MAX_TIMER_PERIOD_MS = 100;
+
 struct Searcher {
   // static メンバ関数からだとthis呼べないので代わりに thisptr を使う。
   // static じゃないときは this を入れることにする。
@@ -126,10 +131,6 @@ struct Searcher {
   STATIC Gains gains;
   STATIC TranspositionTable tt;
   STATIC bool recordIterativeDeepningScores;
-  // 思考スレッドの監視スレッドの実行周期の最小値
-  STATIC constexpr int MIN_TIMER_PERIOD_MS = 5;
-  // 思考スレッドの監視スレッドの実行周期の最大値
-  STATIC constexpr int MAX_TIMER_PERIOD_MS = 100;
 
 #if defined INANIWA_SHIFT
   STATIC InaniwaFlag inaniwaFlag;

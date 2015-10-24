@@ -20,7 +20,7 @@ namespace {
   }
 
   std::random_device randomDevice;
-  std::mt19937_64 random(randomDevice());
+  std::mt19937_64 mt64(randomDevice());
 }
 
 CheckInfo::CheckInfo(const Position& pos) {
@@ -1494,15 +1494,15 @@ void Position::initZobrist() {
   for (PieceType pt = Occupied; pt < PieceTypeNum; ++pt) {
     for (Square sq = I9; sq < SquareNum; ++sq) {
       for (Color c = Black; c < ColorNum; ++c) {
-        zobrist_[pt][sq][c] = random() & ~UINT64_C(1);
+        zobrist_[pt][sq][c] = mt64() & ~UINT64_C(1);
       }
     }
   }
   for (HandPiece hp = HPawn; hp < HandPieceNum; ++hp) {
-    zobHand_[hp][Black] = random() & ~UINT64_C(1);
-    zobHand_[hp][White] = random() & ~UINT64_C(1);
+    zobHand_[hp][Black] = mt64() & ~UINT64_C(1);
+    zobHand_[hp][White] = mt64() & ~UINT64_C(1);
   }
-  zobExclusion_ = random() & ~UINT64_C(1);
+  zobExclusion_ = mt64() & ~UINT64_C(1);
 }
 
 void Position::print() const {

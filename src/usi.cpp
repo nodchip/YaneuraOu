@@ -482,8 +482,8 @@ void Searcher::doUSICommandLoop(int argc, char* argv[]) {
         limits.ponderTime = elapsed;
         Searcher::timeManager->update();
 
-        int firstMs = Searcher::timeManager->getHardTimeLimitMs() - elapsed - Searcher::MAX_TIMER_PERIOD_MS * 2;
-        firstMs = std::max(firstMs, Searcher::MIN_TIMER_PERIOD_MS);
+        int firstMs = Searcher::timeManager->getHardTimeLimitMs() - elapsed - MAX_TIMER_PERIOD_MS * 2;
+        firstMs = std::max(firstMs, MIN_TIMER_PERIOD_MS);
         int afterMs = MAX_TIMER_PERIOD_MS;
         threads.timerThread()->restartTimer(firstMs, afterMs);
       }
