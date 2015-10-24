@@ -14,7 +14,7 @@ FORCE_INLINE void ThreadPool::wakeUp(Searcher* s) {
   for (size_t i = 0; i < size(); ++i) {
     (*this)[i]->maxPly = 0;
   }
-  sleepWhileIdle_ = s->options["Use_Sleeping_Threads"];
+  sleepWhileIdle_ = s->options[OptionNames::USE_SLEEPING_THREADS];
 }
 // 一箇所でしか呼ばないので、FORCE_INLINE
 FORCE_INLINE void ThreadPool::sleep() {
@@ -57,7 +57,7 @@ void Searcher::init() {
 #endif
   options.init(thisptr);
   threads.init(thisptr);
-  tt.setSize(options["USI_Hash"]);
+  tt.setSize(options[OptionNames::USI_HASH]);
 }
 
 namespace {
@@ -525,10 +525,10 @@ void Searcher::idLoop(Position& pos) {
   history.clear();
   gains.clear();
 
-  pvSize = options["MultiPV"];
-  Skill skill(options["Skill_Level"], options["Max_Random_Score_Diff"]);
+  pvSize = options[OptionNames::MULTIPV];
+  Skill skill(options[OptionNames::SKILL_LEVEL], options[OptionNames::MAX_RANDOM_SCORE_DIFF]);
 
-  if (options["Max_Random_Score_Diff_Ply"] < pos.gamePly()) {
+  if (options[OptionNames::MAX_RANDOM_SCORE_DIFF_PLY] < pos.gamePly()) {
     skill.max_random_score_diff = ScoreZero;
     pvSize = 1;
     assert(!skill.enabled()); // level による設定が出来るようになるまでは、これで良い。
@@ -1397,7 +1397,7 @@ split_point_start:
           || (bishopInDangerFlag == BlackBishopInDangerIn78 && move.toCSA() == "0032KA")
           || (bishopInDangerFlag == WhiteBishopInDangerIn78 && move.toCSA() == "0078KA"))
         {
-          rm.score_ -= options["Danger_Demerit_Score"];
+          rm.score_ -= options[OptionNames::DANGER_DEMERIT_SCORE];
         }
 #endif
         rm.extractPvFromTT(pos);
@@ -1632,7 +1632,7 @@ void Searcher::think() {
   static Book book;
   Position& pos = rootPosition;
   timeManager.reset(new TimeManager(limits, pos.gamePly(), pos.turn(), thisptr));
-  std::uniform_int_distribution<int> dist(options["Min_Book_Ply"], options["Max_Book_Ply"]);
+  std::uniform_int_distribution<int> dist(options[OptionNames::MIN_BOOK_PLY], options[OptionNames::MAX_BOOK_PLY]);
   const Ply book_ply = dist(g_randomTimeSeed);
 
   bool nyugyokuWin = false;
@@ -1642,13 +1642,13 @@ void Searcher::think() {
   }
   pos.setNodesSearched(0);
 
-  tt.setSize(options["USI_Hash"]); // operator int() 呼び出し。
+  tt.setSize(options[OptionNames::USI_HASH]); // operator int() 呼び出し。
 
   //if (outputInfo) {
   //  SYNCCOUT << "info string book_ply " << book_ply << SYNCENDL;
   //}
-  if (options["OwnBook"] && pos.gamePly() <= book_ply) {
-    const std::tuple<Move, Score> bookMoveScore = book.probe(pos, options["Book_File"], options["Best_Book_Move"]);
+  if (options[OptionNames::OWNBOOK] && pos.gamePly() <= book_ply) {
+    const std::tuple<Move, Score> bookMoveScore = book.probe(pos, options[OptionNames::BOOK_FILE], options[OptionNames::BEST_BOOK_MOVE]);
     if (!std::get<0>(bookMoveScore).isNone() && std::find(rootMoves.begin(),
       rootMoves.end(),
       std::get<0>(bookMoveScore)) != rootMoves.end())

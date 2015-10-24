@@ -12,7 +12,7 @@ int main(int argc, char **argv) {
   auto s = std::unique_ptr<Searcher>(new Searcher);
   s->init();
   // 一時オブジェクトの生成と破棄
-  std::unique_ptr<Evaluater>(new Evaluater)->init(s->options["Eval_Dir"], true);
+  std::unique_ptr<Evaluater>(new Evaluater)->init(s->options[OptionNames::EVAL_DIR], true);
   int statusCode = RUN_ALL_TESTS();
   s->threads.exit();
   return statusCode;

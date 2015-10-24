@@ -72,33 +72,33 @@ namespace {
 }
 
 void OptionsMap::init(Searcher* s) {
-  (*this)["USI_Hash"] = USIOption(4096, 1, 65536, onHashSize, s);
-  (*this)["Clear_Hash"] = USIOption(onClearHash, s);
-  (*this)["Book_File"] = USIOption("../bin/book.bin");
-  (*this)["Best_Book_Move"] = USIOption(false);
-  (*this)["OwnBook"] = USIOption(true);
-  (*this)["Min_Book_Ply"] = USIOption(SHRT_MAX, 0, SHRT_MAX);
-  (*this)["Max_Book_Ply"] = USIOption(SHRT_MAX, 0, SHRT_MAX);
-  (*this)["Min_Book_Score"] = USIOption(-180, -ScoreInfinite, ScoreInfinite);
-  (*this)["Eval_Dir"] = USIOption("../bin/20150501", onEvalDir);
-  (*this)["Write_Synthesized_Eval"] = USIOption(false);
-  (*this)["USI_Ponder"] = USIOption(true);
-  (*this)["Byoyomi_Margin"] = USIOption(500, 0, INT_MAX);
-  (*this)["Ponder_Time_Margin"] = USIOption(500, 0, INT_MAX);
-  (*this)["MultiPV"] = USIOption(1, 1, MaxLegalMoves);
-  (*this)["Skill_Level"] = USIOption(20, 0, 20);
-  (*this)["Max_Random_Score_Diff"] = USIOption(0, 0, ScoreMate0Ply);
-  (*this)["Max_Random_Score_Diff_Ply"] = USIOption(40, 0, SHRT_MAX);
-  (*this)["Emergency_Move_Horizon"] = USIOption(40, 0, 50);
-  (*this)["Emergency_Base_Time"] = USIOption(200, 0, 30000);
-  (*this)["Emergency_Move_Time"] = USIOption(70, 0, 5000);
-  (*this)["Slow_Mover"] = USIOption(100, 10, 1000);
-  (*this)["Minimum_Thinking_Time"] = USIOption(1500, 0, INT_MAX);
-  (*this)["Max_Threads_per_Split_Point"] = USIOption(5, 4, 8, onThreads, s);
-  (*this)["Threads"] = USIOption(cpuCoreCount(), 1, MaxThreads, onThreads, s);
-  (*this)["Use_Sleeping_Threads"] = USIOption(false);
+  (*this)[OptionNames::USI_HASH] = USIOption(32, 1, 65536, onHashSize, s);
+  (*this)[OptionNames::CLEAR_HASH] = USIOption(onClearHash, s);
+  (*this)[OptionNames::BOOK_FILE] = USIOption("../bin/book.bin");
+  (*this)[OptionNames::BEST_BOOK_MOVE] = USIOption(false);
+  (*this)[OptionNames::OWNBOOK] = USIOption(true);
+  (*this)[OptionNames::MIN_BOOK_PLY] = USIOption(SHRT_MAX, 0, SHRT_MAX);
+  (*this)[OptionNames::MAX_BOOK_PLY] = USIOption(SHRT_MAX, 0, SHRT_MAX);
+  (*this)[OptionNames::MIN_BOOK_SCORE] = USIOption(-180, -ScoreInfinite, ScoreInfinite);
+  (*this)[OptionNames::EVAL_DIR] = USIOption("../bin/20150501", onEvalDir);
+  (*this)[OptionNames::WRITE_SYNTHESIZED_EVAL] = USIOption(false);
+  (*this)[OptionNames::USI_PONDER] = USIOption(true);
+  (*this)[OptionNames::BYOYOMI_MARGIN] = USIOption(500, 0, INT_MAX);
+  (*this)[OptionNames::PONDER_TIME_MARGIN] = USIOption(500, 0, INT_MAX);
+  (*this)[OptionNames::MULTIPV] = USIOption(1, 1, MaxLegalMoves);
+  (*this)[OptionNames::SKILL_LEVEL] = USIOption(20, 0, 20);
+  (*this)[OptionNames::MAX_RANDOM_SCORE_DIFF] = USIOption(0, 0, ScoreMate0Ply);
+  (*this)[OptionNames::MAX_RANDOM_SCORE_DIFF_PLY] = USIOption(40, 0, SHRT_MAX);
+  (*this)[OptionNames::EMERGENCY_MOVE_HORIZON] = USIOption(40, 0, 50);
+  (*this)[OptionNames::EMERGENCY_BASE_TIME] = USIOption(200, 0, 30000);
+  (*this)[OptionNames::EMERGENCY_MOVE_TIME] = USIOption(70, 0, 5000);
+  (*this)[OptionNames::SLOW_MOVER] = USIOption(100, 10, 1000);
+  (*this)[OptionNames::MINIMUM_THINKING_TIME] = USIOption(1500, 0, INT_MAX);
+  (*this)[OptionNames::MAX_THREADS_PER_SPLIT_POINT] = USIOption(5, 4, 8, onThreads, s);
+  (*this)[OptionNames::THREADS] = USIOption(cpuCoreCount(), 1, MaxThreads, onThreads, s);
+  (*this)[OptionNames::USE_SLEEPING_THREADS] = USIOption(false);
 #if defined BISHOP_IN_DANGER
-  (*this)["Danger_Demerit_Score"] = USIOption(700, SHRT_MIN, SHRT_MAX);
+  (*this)[OptionNames::DANGER_DEMERIT_SCORE] = USIOption(700, SHRT_MIN, SHRT_MAX);
 #endif
 }
 
@@ -531,15 +531,15 @@ void Searcher::doUSICommandLoop(int argc, char* argv[]) {
     }
     else if (token == "adjust_weights") {
       hayabusa::adjustWeights();
-      Evaluater::writeSynthesized(options["Eval_Dir"]);
+      Evaluater::writeSynthesized(options[OptionNames::EVAL_DIR]);
     }
 #endif
 #endif
     else { SYNCCOUT << "unknown command: " << cmd << SYNCENDL; }
   } while (token != "quit" && argc == 1);
 
-  if (options["Write_Synthesized_Eval"])
-    Evaluater::writeSynthesized(options["Eval_Dir"]);
+  if (options[OptionNames::WRITE_SYNTHESIZED_EVAL])
+    Evaluater::writeSynthesized(options[OptionNames::EVAL_DIR]);
 
   threads.waitForThinkFinished();
 }

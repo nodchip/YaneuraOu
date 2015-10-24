@@ -101,7 +101,7 @@ std::tuple<Move, Score> Book::probe(const Position& pos, const std::string& fNam
   u32 sum = 0;
   Move move = Move::moveNone();
   const Key key = bookKey(pos);
-  const Score min_book_score = static_cast<Score>(static_cast<int>(pos.searcher()->options["Min_Book_Score"]));
+  const Score min_book_score = static_cast<Score>(static_cast<int>(pos.searcher()->options[OptionNames::MIN_BOOK_SCORE]));
   Score score;
 
   if (fileName_ != fName && !open(fName.c_str())) {
