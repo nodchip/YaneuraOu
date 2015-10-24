@@ -154,13 +154,13 @@ void TimeManager::update()
   hardTimeLimitMs = std::max(hardTimeLimitMs, byoyomiWithMargin);
 
   // 序盤に時間を使わないようにする
-  // 28手目: 本来の時間 * OPENING_GAME_SEARCH_TIME_COMPRESSION_RATIO
-  // 28～52手目: シグモイド関数で補間
-  // 52手目: 本来の時間
-  double left = 28;
-  double right = 52;
-  double bottom = 1.0 / 2.0;
-  double top = byoyomi != 0 ? 2.0 : 1.0;
+  // 20手目: 本来の時間 * OPENING_GAME_SEARCH_TIME_COMPRESSION_RATIO
+  // 20～44手目: シグモイド関数で補間
+  // 44手目: 本来の時間
+  double left = 20;
+  double right = 44;
+  double bottom = 1.0 / 3.0;
+  double top = byoyomi != 0 ? 1.75 : 1.0;
   double sig = sigmoidFunction(currentPly_, left, right, bottom, top);
   softTimeLimitMs = (int)(softTimeLimitMs * sig);
   hardTimeLimitMs = (int)(hardTimeLimitMs * sig);
