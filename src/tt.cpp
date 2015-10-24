@@ -72,12 +72,12 @@ TTEntry* TranspositionTable::probe(const Key posKey) {
 
   // firstEntry() で、posKey の下位 (size() - 1) ビットを hash key に使用した。
   // ここでは posKey の上位 32bit が 保存されている hash key と同じか調べる。
-  for (int i = 0; i < ClusterSize; ++i, ++tte) {
-    if (tte->key() == posKeyHigh32) {
+  for (int i = 0; i < ClusterSize && tte[i].key(); ++i) {
+    if (tte[i].key() == posKeyHigh32) {
 #ifdef OUTPUT_TRANSPOSITION_HIT_RATE
       ++numberOfHits;
 #endif
-      return tte;
+      return &tte[i];
     }
   }
 #ifdef OUTPUT_TRANSPOSITION_HIT_RATE
