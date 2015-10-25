@@ -6,7 +6,7 @@ TARGET_PREFIX = tanuki-clang
 
 # TODO(nodchip): -flto ‚ðCLAGS‚ÆLDFLAGS‚Ì—¼•û‚É‚Â‚¯‚é
 COMPILER = clang++-3.7
-CFLAGS   = -std=c++11 -fno-exceptions -fno-rtti -m64 -Wextra -Ofast -DKPP_PADDING0=$(KPP_PADDING0) -DKPP_PADDING1=$(KPP_PADDING1) -DEVALUATE_TABLE_SIZE=$(EVALUATE_TABLE_SIZE) -DMY_NAME=\"$(TARGET_PREFIX)\" 
+CFLAGS   = -flto -std=c++11 -fno-exceptions -fno-rtti -m64 -Wextra -Ofast -DKPP_PADDING0=$(KPP_PADDING0) -DKPP_PADDING1=$(KPP_PADDING1) -DEVALUATE_TABLE_SIZE=$(EVALUATE_TABLE_SIZE) -DMY_NAME=\"$(TARGET_PREFIX)\" 
 #CFLAGS   = -std=c++11 -fno-exceptions -fno-rtti -m64 -Wextra -O0 -g -DKPP_PADDING0=$(KPP_PADDING0) -DKPP_PADDING1=$(KPP_PADDING1) -DEVALUATE_TABLE_SIZE=$(EVALUATE_TABLE_SIZE) -DMY_NAME=\"$(TARGET_PREFIX)\" 
 LDFLAGS  = -flto -lpthread -lgcov
 LIBS     =
