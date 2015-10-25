@@ -17,6 +17,7 @@ void benchmark(Position& pos) {
     "name OwnBook value false",
     "name Max_Random_Score_Diff value 0",
     "name USI_Hash value 8192",
+    "name Use_Sleeping_Threads value true",
   };
   for (auto& str : options) {
     pos.searcher()->setOption(str);
