@@ -2,15 +2,13 @@ KPP_PADDING0 = 5
 KPP_PADDING1 = 4
 # 2GB
 EVALUATE_TABLE_SIZE = 0x10000000LL
+TARGET_PREFIX = tanuki-gcc
 
 COMPILER = g++
-#COMPILER = mpicxx
-CFLAGS   = -std=c++11 -fno-exceptions -fno-rtti -m64 -Wextra -Ofast -DKPP_PADDING0=$(KPP_PADDING0) -DKPP_PADDING1=$(KPP_PADDING1) -DEVALUATE_TABLE_SIZE=$(EVALUATE_TABLE_SIZE) #-MMD -MP
-#CFLAGS   = -std=c++11 -fno-exceptions -fno-rtti -m64 -Wextra -O0 -g -DKPP_PADDING0=$(KPP_PADDING0) -DKPP_PADDING1=$(KPP_PADDING1) -DEVALUATE_TABLE_SIZE=$(EVALUATE_TABLE_SIZE) #-MMD -MP
-LDFLAGS  = -lpthread #-lboost_mpi -lboost_serialization
+CFLAGS   = -std=c++11 -fno-exceptions -fno-rtti -m64 -Wextra -Ofast -DKPP_PADDING0=$(KPP_PADDING0) -DKPP_PADDING1=$(KPP_PADDING1) -DEVALUATE_TABLE_SIZE=$(EVALUATE_TABLE_SIZE) -DMY_NAME=\"$(TARGET_PREFIX)\" #-MMD -MP
+LDFLAGS  = -lpthread -lgcov
 LIBS     =
 INCLUDE  = #-I../include
-TARGET_PREFIX = tanuki-gcc
 ifeq ($(OS),Windows_NT)
   TARGET = $(TARGET_PREFIX).exe
   LDFLAGS += -static
@@ -40,25 +38,25 @@ $(OBJDIR)/%.o: %.cpp
 all: clean $(TARGET)
 
 native:
-	$(MAKE) CFLAGS='$(CFLAGS) -DNDEBUG -DMY_NAME=\"$(TARGET_PREFIX)\" -DHAVE_SSE4 -DHAVE_SSE42 -DHAVE_BMI2 -DHAVE_AVX2 -march=native' LDFLAGS='$(LDFLAGS) -flto' $(TARGET)
+	$(MAKE) CFLAGS='$(CFLAGS) -DNDEBUG -DHAVE_SSE4 -DHAVE_SSE42 -DHAVE_BMI2 -DHAVE_AVX2 -march=native' LDFLAGS='$(LDFLAGS) -flto' $(TARGET)
 
 broadwell:
-	$(MAKE) CFLAGS='$(CFLAGS) -DNDEBUG -DMY_NAME=\"$(TARGET_PREFIX)\" -DHAVE_SSE4 -DHAVE_SSE42 -DHAVE_BMI2 -DHAVE_AVX2 -march=broadwell' LDFLAGS='$(LDFLAGS) -flto' $(TARGET)
+	$(MAKE) CFLAGS='$(CFLAGS) -DNDEBUG -DHAVE_SSE4 -DHAVE_SSE42 -DHAVE_BMI2 -DHAVE_AVX2 -march=broadwell' LDFLAGS='$(LDFLAGS) -flto' $(TARGET)
 
 avx2:
-	$(MAKE) CFLAGS='$(CFLAGS) -DNDEBUG -DMY_NAME=\"$(TARGET_PREFIX)\" -DHAVE_SSE4 -DHAVE_SSE42 -DHAVE_BMI2 -DHAVE_AVX2 -mavx2 -mbmi2' LDFLAGS='$(LDFLAGS) -flto' $(TARGET)
+	$(MAKE) CFLAGS='$(CFLAGS) -DNDEBUG -DHAVE_SSE4 -DHAVE_SSE42 -DHAVE_BMI2 -DHAVE_AVX2 -mavx2 -mbmi2' LDFLAGS='$(LDFLAGS) -flto' $(TARGET)
 
 bmi2:
-	$(MAKE) CFLAGS='$(CFLAGS) -DNDEBUG -DMY_NAME=\"$(TARGET_PREFIX)\" -DHAVE_SSE4 -DHAVE_SSE42 -DHAVE_BMI2 -msse4.2 -mbmi2' LDFLAGS='$(LDFLAGS) -flto' $(TARGET)
+	$(MAKE) CFLAGS='$(CFLAGS) -DNDEBUG -DHAVE_SSE4 -DHAVE_SSE42 -DHAVE_BMI2 -msse4.2 -mbmi2' LDFLAGS='$(LDFLAGS) -flto' $(TARGET)
 
 sse:
-	$(MAKE) CFLAGS='$(CFLAGS) -DNDEBUG -DMY_NAME=\"$(TARGET_PREFIX)\" -DHAVE_SSE4 -DHAVE_SSE42 -msse4.2' LDFLAGS='$(LDFLAGS) -flto' $(TARGET)
+	$(MAKE) CFLAGS='$(CFLAGS) -DNDEBUG -DHAVE_SSE4 -DHAVE_SSE42 -msse4.2' LDFLAGS='$(LDFLAGS) -flto' $(TARGET)
 
 sse41:
-	$(MAKE) CFLAGS='$(CFLAGS) -DNDEBUG -DMY_NAME=\"$(TARGET_PREFIX)\" -DHAVE_SSE4 -msse4.1' LDFLAGS='$(LDFLAGS) -flto' $(TARGET)
+	$(MAKE) CFLAGS='$(CFLAGS) -DNDEBUG -DHAVE_SSE4 -msse4.1' LDFLAGS='$(LDFLAGS) -flto' $(TARGET)
 
 nosse:
-	$(MAKE) CFLAGS='$(CFLAGS) -DNDEBUG -DMY_NAME=\"$(TARGET_PREFIX)\"' LDFLAGS='$(LDFLAGS) -flto' $(TARGET)
+	$(MAKE) CFLAGS='$(CFLAGS) -DNDEBUG ' LDFLAGS='$(LDFLAGS) -flto' $(TARGET)
 
 prof:
 	$(MAKE) CFLAGS='$(CFLAGS) -pg' bmi2
@@ -67,7 +65,7 @@ profgen:
 	$(MAKE) CFLAGS='$(CFLAGS) -fprofile-generate -lgcov' LDFLAGS='$(LDFLAGS) -fprofile-generate -lgcov' $(PGO_TARGET)
 
 profuse:
-	$(MAKE) CFLAGS='$(CFLAGS) -fprofile-use -fprofile-correction -lgcov' LDFLAGS='$(LDFLAGS) -fprofile-use -lgcov' $(PGO_TARGET)
+	$(MAKE) CFLAGS='$(CFLAGS) -fprofile-use -fprofile-correction -lgcov' LDFLAGS='$(LDFLAGS) -fprofile-use -fprofile-correction -lgcov' $(PGO_TARGET)
 
 pgo:
 	$(MAKE) profgen
