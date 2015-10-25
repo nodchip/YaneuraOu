@@ -4,6 +4,7 @@ KPP_PADDING1 = 4
 EVALUATE_TABLE_SIZE = 0x10000000LL
 TARGET_PREFIX = tanuki-gcc
 
+# TODO(nodchip): -flto ‚ðCLAGS‚ÆLDFLAGS‚Ì—¼•û‚É‚Â‚¯‚é
 COMPILER = g++
 CFLAGS   = -std=c++11 -fno-exceptions -fno-rtti -m64 -Wextra -Ofast -DKPP_PADDING0=$(KPP_PADDING0) -DKPP_PADDING1=$(KPP_PADDING1) -DEVALUATE_TABLE_SIZE=$(EVALUATE_TABLE_SIZE) -DMY_NAME=\"$(TARGET_PREFIX)\" 
 #CFLAGS   = -std=c++11 -fno-exceptions -fno-rtti -m64 -Wextra -O0 -g -DKPP_PADDING0=$(KPP_PADDING0) -DKPP_PADDING1=$(KPP_PADDING1) -DEVALUATE_TABLE_SIZE=$(EVALUATE_TABLE_SIZE) -DMY_NAME=\"$(TARGET_PREFIX)\" 
@@ -63,10 +64,10 @@ prof:
 	$(MAKE) CFLAGS='$(CFLAGS) -pg' bmi2
 
 profgen:
-	$(MAKE) CFLAGS='$(CFLAGS) -fprofile-generate -lgcov' LDFLAGS='$(LDFLAGS) -fprofile-generate -lgcov' $(PGO_TARGET)
+	$(MAKE) CFLAGS='$(CFLAGS) -fprofile-generate' LDFLAGS='$(LDFLAGS) -fprofile-generate' $(PGO_TARGET)
 
 profuse:
-	$(MAKE) CFLAGS='$(CFLAGS) -fprofile-use -fprofile-correction -lgcov' LDFLAGS='$(LDFLAGS) -fprofile-use -fprofile-correction -lgcov' $(PGO_TARGET)
+	$(MAKE) CFLAGS='$(CFLAGS) -fprofile-use -fprofile-correction' LDFLAGS='$(LDFLAGS) -fprofile-use -fprofile-correction' $(PGO_TARGET)
 
 pgo:
 	$(MAKE) profgen
