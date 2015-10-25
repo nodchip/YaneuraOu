@@ -34,13 +34,14 @@ bool Book::open(const char* fName) {
   std::ifstream::open(fName, std::ifstream::in | std::ifstream::binary | std::ios::ate);
 
   if (!is_open()) {
+    SYNCCOUT << "info string Failed to open book file (0): " << fName << SYNCENDL;
     return false;
   }
 
   size_ = tellg() / sizeof(BookEntry);
 
   if (!good()) {
-    std::cerr << "Failed to open book file " << fName << std::endl;
+    SYNCCOUT << "info string Failed to open book file (1): " << fName << SYNCENDL;
     exit(EXIT_FAILURE);
   }
 
