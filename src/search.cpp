@@ -9,6 +9,35 @@
 #include "timeManager.hpp"
 #include "book.hpp"
 
+namespace
+{
+  static constexpr int NUMBER_OF_VARIABLES = 12;
+  static constexpr double COEFFICIENTS[] = {
+    -0.02581155858933925600,
+    0.00616716733202338220,
+    -0.02327142469584941900,
+    -0.00578600028529763220,
+    -0.00548148062080144880,
+    -0.00135272589977830650,
+    0.01317663118243217500,
+    -0.04907137900590896600,
+    0.00746853882446885110,
+    0.03219838067889213600,
+    0.15451282262802124000,
+    0.89867216348648071000,
+  };
+
+  Score predictNextIterationScore(const int* scores, int depth)
+  {
+    double predictScore = 0.0;
+    int coefficientIndex = 0;
+    for (int i = 0; i < NUMBER_OF_VARIABLES; ++i) {
+      predictScore += COEFFICIENTS[coefficientIndex++] * scores[depth - NUMBER_OF_VARIABLES + i];
+    }
+    return (Score)(int)predictScore;
+  }
+}
+
 // 一箇所でしか呼ばないので、FORCE_INLINE
 FORCE_INLINE void ThreadPool::wakeUp(Searcher* s) {
   for (size_t i = 0; i < size(); ++i) {
@@ -586,28 +615,8 @@ void Searcher::idLoop(Position& pos) {
         delta = static_cast<Score>(16);
         Score estimatedScore;
 #ifdef USE_ASPIRATION_WINDOW_PREDICTION
-        static constexpr double WEIGHTS[] = {
-          -0.02581155858933925600,
-          0.00616716733202338220,
-          -0.02327142469584941900,
-          -0.00578600028529763220,
-          -0.00548148062080144880,
-          -0.00135272589977830650,
-          0.01317663118243217500,
-          -0.04907137900590896600,
-          0.00746853882446885110,
-          0.03219838067889213600,
-          0.15451282262802124000,
-          0.89867216348648071000,
-        };
-        static constexpr int NUMBER_OF_VARIABLES = sizeof(WEIGHTS) / sizeof(WEIGHTS[0]);
         if (depth > NUMBER_OF_VARIABLES) {
-          double sum = -0.00448495009914040570;
-          for (int i = 0; i < NUMBER_OF_VARIABLES; ++i) {
-            sum += WEIGHTS[i] * scores[depth - NUMBER_OF_VARIABLES + i];
-          }
-          estimatedScore = (Score)(int)round(sum);
-          //SYNCCOUT << "info string estimatedScore=" << estimatedScore << SYNCENDL;
+          estimatedScore = predictNextIterationScore(scores, depth);
         }
         else {
           estimatedScore = rootMoves[pvIdx].prevScore_;
@@ -615,6 +624,10 @@ void Searcher::idLoop(Position& pos) {
 #else
         estimatedScore = rootMoves[pvIdx].prevScore_;
 #endif
+        //char buffer[1024];
+        //sprintf(buffer, "info string prevScore=%d estimatedScore=%d", rootMoves[pvIdx].prevScore_, estimatedScore);
+        //SYNCCOUT << buffer << SYNCENDL;
+
         alpha = estimatedScore - delta;
         beta = estimatedScore + delta;
       }
