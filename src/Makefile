@@ -2,13 +2,13 @@ KPP_PADDING0 = 5
 KPP_PADDING1 = 4
 # 2GB
 EVALUATE_TABLE_SIZE = 0x10000000LL
-TARGET_PREFIX = tanuki-gcc
+TARGET_PREFIX = tanuki-clang
 
 # TODO(nodchip): -flto ‚ðCLAGS‚ÆLDFLAGS‚Ì—¼•û‚É‚Â‚¯‚é
-COMPILER = g++
-CFLAGS   = -std=c++11 -fno-exceptions -fno-rtti -m64 -Wextra -Ofast -DKPP_PADDING0=$(KPP_PADDING0) -DKPP_PADDING1=$(KPP_PADDING1) -DEVALUATE_TABLE_SIZE=$(EVALUATE_TABLE_SIZE) -DMY_NAME=\"$(TARGET_PREFIX)\" 
+COMPILER = clang++-3.7
+CFLAGS   = -flto -std=c++11 -fno-exceptions -fno-rtti -m64 -Wextra -Ofast -DKPP_PADDING0=$(KPP_PADDING0) -DKPP_PADDING1=$(KPP_PADDING1) -DEVALUATE_TABLE_SIZE=$(EVALUATE_TABLE_SIZE) -DMY_NAME=\"$(TARGET_PREFIX)\" 
 #CFLAGS   = -std=c++11 -fno-exceptions -fno-rtti -m64 -Wextra -O0 -g -DKPP_PADDING0=$(KPP_PADDING0) -DKPP_PADDING1=$(KPP_PADDING1) -DEVALUATE_TABLE_SIZE=$(EVALUATE_TABLE_SIZE) -DMY_NAME=\"$(TARGET_PREFIX)\" 
-LDFLAGS  = -flto -lpthread -lgcov 
+LDFLAGS  = -flto -lpthread -lgcov
 LIBS     =
 INCLUDE  = #-I../include
 ifeq ($(OS),Windows_NT)
@@ -40,7 +40,7 @@ $(OBJDIR)/%.o: %.cpp
 all: clean $(TARGET)
 
 native:
-	$(MAKE) CFLAGS='$(CFLAGS) -DNDEBUG -DHAVE_SSE4 -DHAVE_SSE42 -DHAVE_BMI2 -DHAVE_AVX2 -march=native' LDFLAGS='$(LDFLAGS)' $(TARGET)
+	$(MAKE) CFLAGS='$(CFLAGS) -DNDEBUG -DHAVE_SSE4 -DHAVE_SSE42 -march=native' LDFLAGS='$(LDFLAGS)' $(TARGET)
 
 broadwell:
 	$(MAKE) CFLAGS='$(CFLAGS) -DNDEBUG -DHAVE_SSE4 -DHAVE_SSE42 -DHAVE_BMI2 -DHAVE_AVX2 -march=broadwell' LDFLAGS='$(LDFLAGS)' $(TARGET)
@@ -72,6 +72,7 @@ profuse:
 pgo:
 	$(MAKE) profgen
 	@./$(TARGET) bench | grep "info nodes"
+	llvm-profdata-3.7 merge -output=default.profdata *.profraw
 	@touch *.[ch]pp
 	$(MAKE) profuse
 	@./$(TARGET) bench | grep "info nodes"
