@@ -80,6 +80,11 @@ public:
   // ヒット率を返す
   double getHitRate() const;
 #endif
+#ifdef OUTPUT_TRANSPOSITION_CACHE_EXPIRATION_RATE
+  int getCacheExpirationRatePerMill() const;
+  u64 getNumberOfSaves() const;
+  u64 getNumberOfCacheExpirations() const;
+#endif
 
 private:
   TranspositionTable(const TranspositionTable&);
@@ -95,8 +100,12 @@ private:
   // iterative deepening していくとき、過去の探索で調べたものかを判定する。
   u8 generation_;
 #ifdef OUTPUT_TRANSPOSITION_HIT_RATE
-  u64 numberOfHits;
-  u64 numberOfMissHits;
+  std::atomic<u64> numberOfHits;
+  std::atomic<u64> numberOfMissHits;
+#endif
+#ifdef OUTPUT_TRANSPOSITION_CACHE_EXPIRATION_RATE
+  std::atomic<u64> numberOfSaves;
+  std::atomic<u64> numberOfCacheExpirations;
 #endif
 };
 
@@ -104,6 +113,9 @@ inline TranspositionTable::TranspositionTable()
   : size_(0), entries_(nullptr), entriesRaw_(nullptr), generation_(0)
 #ifdef OUTPUT_TRANSPOSITION_HIT_RATE
   , numberOfHits(0), numberOfMissHits(0)
+#endif
+#ifdef OUTPUT_TRANSPOSITION_CACHE_EXPIRATION_RATE
+  , numberOfCacheExpirations(0), numberOfSaves(0)
 #endif
 {
 }

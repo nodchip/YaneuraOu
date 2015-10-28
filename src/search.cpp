@@ -322,6 +322,15 @@ std::string Searcher::pvInfoToUSI(Position& pos, const Ply depth, const Score al
       << " nps " << (0 < t ? pos.nodesSearched() * 1000 / t : 0)
       << " time " << t
       << " multipv " << i + 1
+#ifdef OUTPUT_TRANSPOSITION_TABLE_UTILIZATION
+      << " hashfull " << tt.getUtilizationPerMill()
+#endif
+#ifdef OUTPUT_EVALUATE_HASH_TABLE_UTILIZATION
+      << " hashfull " << g_evalTable.getUtilizationPerMill()
+#endif
+#ifdef OUTPUT_TRANSPOSITION_CACHE_EXPIRATION_RATE
+      << " hashfull " << tt.getCacheExpirationRatePerMill()
+#endif
       << " pv ";
 
     for (int j = 0; !rootMoves[i].pv_[j].isNone(); ++j) {
@@ -332,6 +341,12 @@ std::string Searcher::pvInfoToUSI(Position& pos, const Ply depth, const Score al
       ss << std::endl;
     }
   }
+
+#ifdef OUTPUT_TRANSPOSITION_CACHE_EXPIRATION_RATE
+  ss << std::endl
+    << "info string numSaves=" << tt.getNumberOfSaves()
+    << " numExpirations=" << tt.getNumberOfCacheExpirations() << std::endl;
+#endif
   return ss.str();
 }
 
@@ -594,7 +609,7 @@ void Searcher::idLoop(Position& pos) {
   {
     if (rootMoves.size() != 1)
       pvSize = std::max<size_t>(pvSize, 2);
-  }
+}
 #endif
 
   // 反復深化で探索を行う。
@@ -630,7 +645,7 @@ void Searcher::idLoop(Position& pos) {
 
         alpha = estimatedScore - delta;
         beta = estimatedScore + delta;
-      }
+        }
       else {
         alpha = -ScoreInfinite;
         beta = ScoreInfinite;
@@ -655,20 +670,12 @@ void Searcher::idLoop(Position& pos) {
         if (ScoreMateInMaxPly <= abs(bestScore) && abs(bestScore) < ScoreInfinite) {
           SYNCCOUT << pvInfoToUSI(pos, ply, alpha, beta) << SYNCENDL;
           signals.stop = true;
-        }
+      }
 #endif
 
         if (lastTimeToOutputInfoMs + THROTTLE_TO_OUTPUT_INFO_MS < searchTimer.elapsed()) {
           if (outputInfo) {
-            SYNCCOUT
-              << pvInfoToUSI(pos, depth, alpha, beta)
-#ifdef OUTPUT_TRANSPOSITION_TABLE_UTILIZATION
-              << " hashfull " << tt.getUtilizationPerMill()
-#endif
-#ifdef OUTPUT_EVALUATE_HASH_TABLE_UTILIZATION
-              << " hashfull " << g_evalTable.getUtilizationPerMill()
-#endif
-              << SYNCENDL;
+            SYNCCOUT << pvInfoToUSI(pos, depth, alpha, beta) << SYNCENDL;
           }
           lastTimeToOutputInfoMs = searchTimer.elapsed();
         }
@@ -768,15 +775,7 @@ void Searcher::idLoop(Position& pos) {
   skill.swapIfEnabled(thisptr);
 
   if (outputInfo) {
-    SYNCCOUT
-      << pvInfoToUSI(pos, depth, alpha, beta)
-#ifdef OUTPUT_TRANSPOSITION_TABLE_UTILIZATION
-      << " hashfull " << tt.getUtilizationPerMill()
-#endif
-#ifdef OUTPUT_EVALUATE_HASH_TABLE_UTILIZATION
-      << " hashfull " << g_evalTable.getUtilizationPerMill()
-#endif
-      << SYNCENDL;
+    SYNCCOUT << pvInfoToUSI(pos, depth, alpha, beta) << SYNCENDL;
   }
 
 #ifdef RECORD_ITERATIVE_DEEPNING_SCORES
@@ -1232,9 +1231,9 @@ split_point_start:
         SYNCCOUT << "info depth " << depth / OnePly
           << " currmove " << move.toUSI()
           << " currmovenumber " << moveCount + pvIdx << SYNCENDL;
-      }
-#endif
     }
+#endif
+  }
 
     extension = Depth0;
     captureOrPawnPromotion = move.isCaptureOrPawnPromotion();
@@ -1411,18 +1410,18 @@ split_point_start:
           || (bishopInDangerFlag == WhiteBishopInDangerIn78 && move.toCSA() == "0078KA"))
         {
           rm.score_ -= options[OptionNames::DANGER_DEMERIT_SCORE];
-        }
+      }
 #endif
         rm.extractPvFromTT(pos);
 
         if (!isPVMove) {
           ++bestMoveChanges;
         }
-      }
+    }
       else {
         rm.score_ = -ScoreInfinite;
       }
-    }
+}
 
     if (bestScore < score) {
       bestScore = (SPNode ? splitPoint->bestScore = score : score);
@@ -1456,7 +1455,7 @@ split_point_start:
         break;
       }
     }
-  }
+      }
 
   if (SPNode) {
     return bestScore;
@@ -1504,7 +1503,7 @@ split_point_start:
   assert(-ScoreInfinite < bestScore && bestScore < ScoreInfinite);
 
   return bestScore;
-}
+    }
 
 void RootMove::extractPvFromTT(Position& pos) {
   StateInfo state[MaxPlyPlus2];

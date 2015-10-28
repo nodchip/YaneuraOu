@@ -108,4 +108,8 @@
 #endif
 #endif
 
+#if 0
+#define OUTPUT_TRANSPOSITION_CACHE_EXPIRATION_RATE
+#endif
+
 #endif // #ifndef APERY_IFDEF_HPP

@@ -33,6 +33,10 @@ void TranspositionTable::clear() {
 void TranspositionTable::store(const Key posKey, const Score score, const Bound bound, Depth depth,
   Move move, const Score evalScore)
 {
+#ifdef OUTPUT_TRANSPOSITION_CACHE_EXPIRATION_RATE
+  ++numberOfSaves;
+#endif
+
   TTEntry* tte = firstEntry(posKey);
   TTEntry* replace = tte;
   const u32 posKeyHigh32 = posKey >> 32;
@@ -62,6 +66,13 @@ void TranspositionTable::store(const Key posKey, const Score score, const Bound 
       replace = tte;
     }
   }
+
+#ifdef OUTPUT_TRANSPOSITION_CACHE_EXPIRATION_RATE
+  if (replace->key() != 0 && replace->key() != posKeyHigh32) {
+    ++numberOfCacheExpirations;
+  }
+#endif
+
   replace->save(depth, score, move, posKeyHigh32,
     bound, this->generation(), evalScore);
 }
@@ -105,6 +116,29 @@ int TranspositionTable::getUtilizationPerMill() const
 #ifdef OUTPUT_TRANSPOSITION_HIT_RATE
 double TranspositionTable::getHitRate() const
 {
+  if (numberOfHits == 0) {
+    return 0.0;
+  }
   return numberOfHits / double(numberOfHits + numberOfMissHits);
+}
+#endif
+
+#ifdef OUTPUT_TRANSPOSITION_CACHE_EXPIRATION_RATE
+int TranspositionTable::getCacheExpirationRatePerMill() const
+{
+  if (numberOfCacheExpirations == 0) {
+    return 0;
+  }
+  return numberOfCacheExpirations * 1000 / numberOfSaves;
+}
+
+u64 TranspositionTable::getNumberOfSaves() const
+{
+  return numberOfSaves;
+}
+
+u64 TranspositionTable::getNumberOfCacheExpirations() const
+{
+  return numberOfCacheExpirations;
 }
 #endif
