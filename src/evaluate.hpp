@@ -889,6 +889,29 @@ struct Evaluater : public EvaluaterBase<s16, s32, s32> {
     SYNCCOUT << "info string end setting eval table" << SYNCENDL;
 #endif
   }
+
+#ifdef OUTPUT_EVALUATE_HASH_HIT_RATE
+  static std::atomic<u64> numberOfHits;
+  static std::atomic<u64> numberOfMissHits;
+  static int getHitRatePerMills()
+  {
+    if (numberOfHits == 0) {
+      return 0;
+    }
+    return numberOfHits * 1000 / (numberOfHits + numberOfMissHits);
+  }
+#endif
+#ifdef OUTPUT_EVALUATE_HASH_EXPIRATION_RATE
+  static std::atomic<u64> numberOfEvaluations;
+  static std::atomic<u64> numberOfExpirations;
+  static int getExpirationRatePerMills()
+  {
+    if (numberOfExpirations == 0) {
+      return 0;
+    }
+    return numberOfExpirations * 1000 / numberOfEvaluations;
+  }
+#endif
 };
 
 constexpr int kppArray[31] = {

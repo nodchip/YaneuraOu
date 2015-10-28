@@ -521,6 +521,7 @@ void Searcher::doUSICommandLoop(int argc, char* argv[]) {
 #if !defined MINIMUL
     // 以下、デバッグ用
     else if (token == "bench") { benchmark(pos); }
+    else if (token == "benchmark_elapsed_for_depth_n") { benchmarkElapsedForDepthN(pos); }
     else if (token == "d") { pos.print(); }
     else if (token == "s") { measureGenerateMoves(pos); }
     else if (token == "t") { std::cout << pos.mateMoveIn1Ply().toCSA() << std::endl; }

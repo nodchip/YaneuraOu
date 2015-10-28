@@ -9,6 +9,16 @@ s16 Evaluater::KPP[SquareNum][fe_end + KPP_PADDING1][fe_end + KPP_PADDING0];
 s32 Evaluater::KKP[SquareNum][SquareNum][fe_end];
 s32 Evaluater::KK[SquareNum][SquareNum];
 
+#ifdef OUTPUT_EVALUATE_HASH_HIT_RATE
+std::atomic<u64> Evaluater::numberOfHits;
+std::atomic<u64> Evaluater::numberOfMissHits;
+#endif
+#ifdef OUTPUT_EVALUATE_HASH_EXPIRATION_RATE
+std::atomic<u64> Evaluater::numberOfEvaluations;
+std::atomic<u64> Evaluater::numberOfExpirations;
+#endif
+
+
 #if defined USE_K_FIX_OFFSET
 const s32 Evaluater::K_Fix_Offset[SquareNum] = {
   2000 * FVScale, 1700 * FVScale, 1350 * FVScale, 1000 * FVScale,  650 * FVScale,  350 * FVScale,  100 * FVScale,    0 * FVScale,    0 * FVScale,
@@ -344,16 +354,33 @@ Score evaluate(Position& pos, SearchStack* ss) {
     return (pos.turn() == Black ? ss->staticEvalRaw : -ss->staticEvalRaw) / FVScale;
   }
 
+#ifdef OUTPUT_EVALUATE_HASH_EXPIRATION_RATE
+  ++Evaluater::numberOfEvaluations;
+#endif
+
   const u32 keyHigh32 = static_cast<u32>(pos.getKey() >> 32);
   const Key keyExcludeTurn = pos.getKeyExcludeTurn();
   // ポインタで取得してはいけない。lockless hash なので key と score を同時に取得する。
   EvaluateHashEntry entry = *g_evalTable[keyExcludeTurn];
   entry.decode();
   if (entry.key() == keyHigh32) {
+#ifdef OUTPUT_EVALUATE_HASH_HIT_RATE
+    ++Evaluater::numberOfHits;
+#endif
+
     ss->staticEvalRaw = entry.score();
     assert((pos.turn() == Black ? ss->staticEvalRaw : -ss->staticEvalRaw) == evaluateUnUseDiff(pos));
     return (pos.turn() == Black ? entry.score() : -entry.score()) / FVScale;
   }
+
+#ifdef OUTPUT_EVALUATE_HASH_HIT_RATE
+  ++Evaluater::numberOfMissHits;
+#endif
+#ifdef OUTPUT_EVALUATE_HASH_EXPIRATION_RATE
+  if (entry.key() != 0) {
+    ++Evaluater::numberOfExpirations;
+  }
+#endif
 
   const Score score = static_cast<Score>(evaluateBody(pos, ss));
   entry.save(pos.getKey(), score);
