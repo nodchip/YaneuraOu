@@ -328,8 +328,14 @@ std::string Searcher::pvInfoToUSI(Position& pos, const Ply depth, const Score al
 #ifdef OUTPUT_EVALUATE_HASH_TABLE_UTILIZATION
       << " hashfull " << g_evalTable.getUtilizationPerMill()
 #endif
-#ifdef OUTPUT_TRANSPOSITION_CACHE_EXPIRATION_RATE
+#ifdef OUTPUT_TRANSPOSITION_EXPIRATION_RATE
       << " hashfull " << tt.getCacheExpirationRatePerMill()
+#endif
+#ifdef OUTPUT_EVALUATE_HASH_HIT_RATE
+      << " hashfull " << Evaluater::getHitRatePerMills()
+#endif
+#ifdef OUTPUT_EVALUATE_HASH_EXPIRATION_RATE
+      << " hashfull " << Evaluater::getExpirationRatePerMills()
 #endif
       << " pv ";
 
@@ -342,7 +348,7 @@ std::string Searcher::pvInfoToUSI(Position& pos, const Ply depth, const Score al
     }
   }
 
-#ifdef OUTPUT_TRANSPOSITION_CACHE_EXPIRATION_RATE
+#ifdef OUTPUT_TRANSPOSITION_EXPIRATION_RATE
   ss << std::endl
     << "info string numSaves=" << tt.getNumberOfSaves()
     << " numExpirations=" << tt.getNumberOfCacheExpirations() << std::endl;

@@ -78,9 +78,9 @@ public:
 #endif
 #ifdef OUTPUT_TRANSPOSITION_HIT_RATE
   // ヒット率を返す
-  double getHitRate() const;
+  int getHitRatePerMill() const;
 #endif
-#ifdef OUTPUT_TRANSPOSITION_CACHE_EXPIRATION_RATE
+#ifdef OUTPUT_TRANSPOSITION_EXPIRATION_RATE
   int getCacheExpirationRatePerMill() const;
   u64 getNumberOfSaves() const;
   u64 getNumberOfCacheExpirations() const;
@@ -103,7 +103,7 @@ private:
   std::atomic<u64> numberOfHits;
   std::atomic<u64> numberOfMissHits;
 #endif
-#ifdef OUTPUT_TRANSPOSITION_CACHE_EXPIRATION_RATE
+#ifdef OUTPUT_TRANSPOSITION_EXPIRATION_RATE
   std::atomic<u64> numberOfSaves;
   std::atomic<u64> numberOfCacheExpirations;
 #endif
@@ -114,7 +114,7 @@ inline TranspositionTable::TranspositionTable()
 #ifdef OUTPUT_TRANSPOSITION_HIT_RATE
   , numberOfHits(0), numberOfMissHits(0)
 #endif
-#ifdef OUTPUT_TRANSPOSITION_CACHE_EXPIRATION_RATE
+#ifdef OUTPUT_TRANSPOSITION_EXPIRATION_RATE
   , numberOfCacheExpirations(0), numberOfSaves(0)
 #endif
 {
