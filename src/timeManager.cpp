@@ -7,7 +7,7 @@ namespace {
 #if 1
   static constexpr int MoveHorizon = 47; // 15分切れ負け用。
   //static constexpr double MaxRatio = 3.0; // 15分切れ負け用。
-  static constexpr double MaxRatio = 5.0; // 15分 秒読み10秒用。
+  static constexpr double MaxRatio = 3.0; // 15分 秒読み10秒用。
 #else
   static constexpr int MoveHorizon = 35; // 2時間切れ負け用。(todo: もう少し時間使っても良いかも知れない。)
   static constexpr double MaxRatio = 5.0; // 2時間切れ負け用。
@@ -160,7 +160,7 @@ void TimeManager::update()
   double left = 20;
   double right = 36;
   double bottom = 1.0 / 3.0;
-  double top = byoyomi != 0 ? 1.5 : 1.0;
+  double top = byoyomi != 0 ? 1.75 : 1.0;
   double sig = sigmoidFunction(currentPly_, left, right, bottom, top);
   softTimeLimitMs = (int)(softTimeLimitMs * sig);
   hardTimeLimitMs = (int)(hardTimeLimitMs * sig);
