@@ -49,8 +49,9 @@ private:
   s16 evalScore_;
 };
 
-constexpr int ClusterSize = CacheLineSize / sizeof(TTEntry);
+constexpr int ClusterSize = CacheLineSize / sizeof(TTEntry) / 2;
 static_assert(0 < ClusterSize, "");
+static_assert(ClusterSize == 2, "");
 
 struct TTCluster {
   TTEntry data[ClusterSize];
