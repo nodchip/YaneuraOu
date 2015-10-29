@@ -1,12 +1,10 @@
 KPP_PADDING0 = 5
 KPP_PADDING1 = 4
-USI_HASH_FOR_BENCHMARK=\"4096\"
-# 2GB
+USI_HASH_FOR_BENCHMARK=\"8192\"
 EVALUATE_TABLE_SIZE = 0x10000000LL
 TARGET_PREFIX = tanuki-clang
 
-# TODO(nodchip): -flto ‚ðCLAGS‚ÆLDFLAGS‚Ì—¼•û‚É‚Â‚¯‚é
-COMPILER = clang++-3.7
+COMPILER = clang-3.7
 CFLAGS   = -flto -std=c++11 -fno-exceptions -fno-rtti -m64 -Wextra -Ofast -DKPP_PADDING0=$(KPP_PADDING0) -DKPP_PADDING1=$(KPP_PADDING1) -DUSI_HASH_FOR_BENCHMARK=$(USI_HASH_FOR_BENCHMARK) -DEVALUATE_TABLE_SIZE=$(EVALUATE_TABLE_SIZE) -DMY_NAME=\"$(TARGET_PREFIX)\" 
 #CFLAGS   = -std=c++11 -fno-exceptions -fno-rtti -m64 -Wextra -O0 -g -DKPP_PADDING0=$(KPP_PADDING0) -DKPP_PADDING1=$(KPP_PADDING1) -DUSI_HASH_FOR_BENCHMARK=$(USI_HASH_FOR_BENCHMARK) -DEVALUATE_TABLE_SIZE=$(EVALUATE_TABLE_SIZE) -DMY_NAME=\"$(TARGET_PREFIX)\" 
 LDFLAGS  = -flto -lpthread -lgcov
@@ -73,7 +71,7 @@ profuse:
 pgo:
 	$(MAKE) profgen
 	@./$(TARGET) bench | grep "info nodes"
-	llvm-profdata-3.7 merge -output=default.profdata *.profraw
+	# llvm-profdata-3.7 merge -output=default.profdata *.profraw
 	@touch *.[ch]pp
 	$(MAKE) profuse
 
