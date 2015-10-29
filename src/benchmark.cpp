@@ -7,7 +7,7 @@
 #include "usi.hpp"
 
 #ifndef USI_HASH_FOR_BENCHMARK
-#define USI_HASH_FOR_BENCHMARK "4096"
+#define USI_HASH_FOR_BENCHMARK "8192"
 #endif
 
 // ベンチマークを行う。出力値は1秒辺りに探索した盤面の数。
