@@ -21,7 +21,7 @@ void TranspositionTable::setSize(const size_t mbSize) { // Mega Byte 指定
     std::cerr << "Failed to allocate transposition table: " << mbSize << "MB";
     exit(EXIT_FAILURE);
   }
-  entries_ = (TTCluster*)(((u64)entriesRaw_ + CacheLineSize - 1) / CacheLineSize * CacheLineSize);
+  entries_ = (TTCluster*)(((u64)entriesRaw_ + sizeof(TTCluster) - 1) / sizeof(TTCluster) * sizeof(TTCluster));
   //printf("info string entriesRaw_=0x%p entries_=0x%p\n", entriesRaw_, entries_);
   clear();
 }
