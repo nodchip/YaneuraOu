@@ -159,7 +159,7 @@ void TimeManager::update()
   // 44手目: 本来の時間
   double left = 20;
   double right = 36;
-  double bottom = 1.0 / 3.0;
+  double bottom = 1.0 / 2.0;
   double top = byoyomi != 0 ? 1.75 : 1.0;
   double sig = sigmoidFunction(currentPly_, left, right, bottom, top);
   softTimeLimitMs = (int)(softTimeLimitMs * sig);
