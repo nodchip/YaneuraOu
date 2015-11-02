@@ -151,3 +151,21 @@ TEST_F(CsaTest, readCsas_filterReturnsFalse) {
 
   EXPECT_EQ(0, gameRecords.size());
 }
+
+TEST_F(CsaTest, readCsa1_convert) {
+  path inputFilePath = "../src/testdata/csa1line/utf82chkifu.csa";
+  std::vector<GameRecord> gameRecords;
+
+  EXPECT_TRUE(csa::readCsa1(inputFilePath, gameRecords));
+
+  EXPECT_EQ(1, gameRecords[0].gameRecordIndex);
+  EXPECT_EQ("2003/09/08", gameRecords[0].date);
+  EXPECT_EQ("âHê∂ëPé°", gameRecords[0].blackPlayerName);
+  EXPECT_EQ("íJêÏç_éi", gameRecords[0].whitePlayerName);
+  EXPECT_EQ(2, gameRecords[0].winner);
+  EXPECT_EQ(126, gameRecords[0].numberOfPlays);
+  EXPECT_EQ("â§à êÌ", gameRecords[0].leagueName);
+  EXPECT_EQ("ÇªÇÃëºÇÃêÌå^", gameRecords[0].strategy);
+  EXPECT_EQ(126, gameRecords[0].moves.size());
+  EXPECT_EQ(3, gameRecords.size());
+}

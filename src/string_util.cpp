@@ -5,7 +5,7 @@ using namespace std;
 std::vector<std::string> string_util::split(const std::string& in) {
   std::vector<std::string> out;
   string word;
-  for (auto ch : in) {
+  for (unsigned char ch : in) {
     if (isspace(ch)) {
       if (!word.empty()) {
         out.push_back(word);

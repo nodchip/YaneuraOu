@@ -361,10 +361,80 @@ bool csa::readCsas(
 
 bool csa::readCsa1(
   const std::tr2::sys::path& filepath,
-  std::vector<GameRecord>& gameRecord)
+  std::vector<GameRecord>& gameRecords)
 {
-  // TODO(nodchip): Implement.
-  return false;
+  std::ifstream ifs(filepath);
+  if (!ifs.is_open()) {
+    cout
+      << "!!! Failed to open the input file: filepath="
+      << filepath
+      << endl;
+    return false;
+  }
+
+  int gameRecordIndex = 0;
+  std::string line;
+  while (std::getline(ifs, line)) {
+    ++gameRecordIndex;
+    GameRecord gameRecord;
+    istringstream iss0(line);
+
+    if (!(iss0
+      >> gameRecord.gameRecordIndex
+      >> gameRecord.date
+      >> gameRecord.blackPlayerName
+      >> gameRecord.whitePlayerName
+      >> gameRecord.winner
+      >> gameRecord.numberOfPlays
+      >> gameRecord.leagueName
+      >> gameRecord.strategy)) {
+      cout
+        << "Failed to read the first line of a game: gameRecordIndex="
+        << gameRecordIndex
+        << endl;
+      return false;
+    }
+
+    if (!getline(ifs, line)) {
+      cout
+        << "Failed to read the second line of a game: gameRecordIndex="
+        << gameRecordIndex
+        << endl;
+      return false;
+    }
+
+    if (line.size() != 6 * gameRecord.numberOfPlays) {
+      cout
+        << "Number of moves is not expected: |line|="
+        << line.size()
+        << endl;
+      return false;
+    }
+
+    Position pos;
+    pos.set(DefaultStartPositionSFEN, Searcher::threads.mainThread());
+    StateStackPtr stateStack = make_unique<std::stack<StateInfo>>();
+    for (int play = 0; play < gameRecord.numberOfPlays; ++play) {
+      string moveStr = line.substr(play * 6, 6);
+      Move move = csaToMove(pos, moveStr);
+      if (move.isNone()) {
+        pos.print();
+        cout
+          << "Failed to parse a move: moveStr="
+          << moveStr
+          << endl;
+        return false;
+      }
+      gameRecord.moves.push_back(move);
+
+      stateStack->push(StateInfo());
+      pos.doMove(move, stateStack->top());
+    }
+
+    gameRecords.push_back(gameRecord);
+  }
+
+  return true;
 }
 
 bool csa::writeCsa1(
