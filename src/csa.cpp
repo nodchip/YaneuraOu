@@ -7,6 +7,21 @@
 using namespace std;
 using namespace std::tr2::sys;
 
+namespace
+{
+  int getNumberOfFiles(const std::tr2::sys::path& directory)
+  {
+    int numberOfFiles = 0;
+    for (std::tr2::sys::recursive_directory_iterator it(directory);
+    it != std::tr2::sys::recursive_directory_iterator();
+      ++it)
+    {
+      ++numberOfFiles;
+    }
+    return numberOfFiles;
+  }
+}
+
 const std::tr2::sys::path csa::DEFAULT_INPUT_CSA1_FILE_PATH = "../2chkifu_csa/2chkifu.csa1";
 const std::tr2::sys::path csa::DEFAULT_OUTPUT_SFEN_FILE_PATH = "../bin/kifu.sfen";
 
@@ -308,11 +323,40 @@ bool csa::readCsa(const std::tr2::sys::path& filepath, GameRecord& gameRecord)
 
 bool csa::readCsas(
   const std::tr2::sys::path& directory,
-  const std::function<bool(std::tr2::sys::path&)>& filter,
-  std::vector<GameRecord>& gameRecord)
+  const std::function<bool(const std::tr2::sys::path&)>& filter,
+  std::vector<GameRecord>& gameRecords)
 {
-  // TODO(nodchip): Implement.
-  return false;
+  cout << "Listing files ..." << endl;
+  int numberOfFiles = getNumberOfFiles(directory);
+
+  double startSec = clock() / double(CLOCKS_PER_SEC);
+  int fileIndex = 0;
+  for (std::tr2::sys::recursive_directory_iterator it(directory);
+  it != std::tr2::sys::recursive_directory_iterator();
+    ++it)
+  {
+    if (++fileIndex % 100 == 0) {
+      double currentSec = clock() / double(CLOCKS_PER_SEC);
+      double secPerFile = (currentSec - startSec) / fileIndex;
+      int remainedSec = (numberOfFiles - fileIndex) * secPerFile;
+      int second = remainedSec % 60;
+      int minute = remainedSec / 60 % 60;
+      int hour = remainedSec / 3600;
+      printf("%d/%d %d:%02d:%02d\n", fileIndex, numberOfFiles, hour, minute, second);
+    }
+
+    if (!filter(it->path())) {
+      continue;
+    }
+
+    GameRecord gameRecord;
+    if (!readCsa(it->path(), gameRecord)) {
+      return false;
+    }
+    gameRecords.push_back(gameRecord);
+  }
+
+  return true;
 }
 
 bool csa::readCsa1(

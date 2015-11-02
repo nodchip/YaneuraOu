@@ -127,3 +127,27 @@ TEST_F(CsaTest, readCsa_convert) {
   EXPECT_EQ("???", gameRecord.strategy);
   EXPECT_EQ(134, gameRecord.moves.size());
 }
+
+TEST_F(CsaTest, readCsas_filterReturnsTrue) {
+  // wdoor+floodgate-600-10+01WishBlue_07+Apery_i5-4670+20150415003002.csa
+  path inputDirectoryPath = "../src/testdata/csa";
+  std::vector<GameRecord> gameRecords;
+
+  EXPECT_TRUE(csa::readCsas(inputDirectoryPath, [](const path& p) {
+    return p.string().find("+Apery_i5-4670+") != std::string::npos;
+  }, gameRecords));
+
+  EXPECT_EQ(1, gameRecords.size());
+}
+
+TEST_F(CsaTest, readCsas_filterReturnsFalse) {
+  // wdoor+floodgate-600-10+01WishBlue_07+Apery_i5-4670+20150415003002.csa
+  path inputDirectoryPath = "../src/testdata/csa";
+  std::vector<GameRecord> gameRecords;
+
+  EXPECT_TRUE(csa::readCsas(inputDirectoryPath, [](const path& p) {
+    return false;
+  }, gameRecords));
+
+  EXPECT_EQ(0, gameRecords.size());
+}

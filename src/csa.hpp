@@ -42,8 +42,8 @@ namespace csa {
   // filterがtrueとなるファイルのみ処理する
   bool readCsas(
     const std::tr2::sys::path& directory,
-    const std::function<bool(std::tr2::sys::path&)>& filter,
-    std::vector<GameRecord>& gameRecord);
+    const std::function<bool(const std::tr2::sys::path&)>& filter,
+    std::vector<GameRecord>& gameRecords);
 
   // CSA1ファイルを読み込む
   bool readCsa1(
