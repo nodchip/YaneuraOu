@@ -110,3 +110,20 @@ TEST_F(CsaTest, convertCsa1LineToSfen_convert) {
   EXPECT_TRUE(getline(ifs, line));
   EXPECT_FALSE(getline(ifs, line));
 }
+
+TEST_F(CsaTest, readCsa_convert) {
+  path inputFilePath = "../src/testdata/csa/wdoor+floodgate-600-10+01WishBlue_07+Apery_i5-4670+20150415003002.csa";
+  GameRecord gameRecord;
+
+  EXPECT_TRUE(csa::readCsa(inputFilePath, gameRecord));
+
+  EXPECT_EQ(0, gameRecord.gameRecordIndex);
+  EXPECT_EQ("??/??/??", gameRecord.date);
+  EXPECT_EQ("01WishBlue_07", gameRecord.blackPlayerName);
+  EXPECT_EQ("Apery_i5-4670", gameRecord.whitePlayerName);
+  EXPECT_EQ(2, gameRecord.winner);
+  EXPECT_EQ(134, gameRecord.numberOfPlays);
+  EXPECT_EQ("???", gameRecord.leagueName);
+  EXPECT_EQ("???", gameRecord.strategy);
+  EXPECT_EQ(134, gameRecord.moves.size());
+}

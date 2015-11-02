@@ -241,3 +241,100 @@ bool csa::convertCsa1LineToSfen(
 
   return true;
 }
+
+bool csa::readCsa(const std::tr2::sys::path& filepath, GameRecord& gameRecord)
+{
+  gameRecord.gameRecordIndex = 0;
+  gameRecord.date = "??/??/??";
+  gameRecord.winner = 0;
+  gameRecord.leagueName = "???";
+  gameRecord.strategy = "???";
+
+  Position position;
+  setPosition(position, "startpos moves");
+
+  std::ifstream ifs(filepath);
+  if (!ifs.is_open()) {
+    return false;
+  }
+
+  // Position::doMove()は前回と違うアドレスに確保されたStateInfoを要求するため
+  // listを使って過去のStateInfoを保持する。
+  list<StateInfo> stateInfos;
+
+  string line;
+  Color lastColor = Black;
+  while (getline(ifs, line)) {
+    // 将棋所の出力するCSAの指し手の末尾に",T1"などとつくため
+    // ","以降を削除する
+    if (line.find(',') != string::npos) {
+      line = line.substr(0, line.find(','));
+    }
+
+    if (line.find("N+") == 0) {
+      gameRecord.blackPlayerName = line.substr(2);
+    }
+    else if (line.find("N-") == 0) {
+      gameRecord.whitePlayerName = line.substr(2);
+    }
+    else if (line.size() == 7 && (line[0] == '+' || line[0] == '-')) {
+      string csaMove = line.substr(1);
+      Move move = csaToMove(position, csaMove);
+
+#if !defined NDEBUG
+      if (!position.moveIsLegal(move)) {
+        cout << "!!! Found an illegal move." << endl;
+        break;
+      }
+#endif
+
+      stateInfos.push_back(StateInfo());
+      position.doMove(move, stateInfos.back());
+      //position.print();
+
+      gameRecord.moves.push_back(move);
+
+      if (line[0] == '+') {
+        lastColor = Black;
+      }
+    }
+    else if (line.find("%TORYO") == 0) {
+      gameRecord.winner = (lastColor == Black ? 2 : 1);
+    }
+  }
+
+  gameRecord.numberOfPlays = gameRecord.moves.size();
+}
+
+bool csa::readCsas(
+  const std::tr2::sys::path& directory,
+  const std::function<bool(std::tr2::sys::path&)>& filter,
+  std::vector<GameRecord>& gameRecord)
+{
+  // TODO(nodchip): Implement.
+  return false;
+}
+
+bool csa::readCsa1(
+  const std::tr2::sys::path& filepath,
+  std::vector<GameRecord>& gameRecord)
+{
+  // TODO(nodchip): Implement.
+  return false;
+}
+
+bool csa::writeCsa1(
+  const std::tr2::sys::path& filepath,
+  const std::vector<GameRecord>& gameRecord)
+{
+  // TODO(nodchip): Implement.
+  return false;
+}
+
+bool csa::mergeCsa1s(
+  const std::vector<std::tr2::sys::path>& inputFilepaths,
+  const std::tr2::sys::path& outputFilepath)
+{
+  // TODO(nodchip): Implement.
+  return false;
+}

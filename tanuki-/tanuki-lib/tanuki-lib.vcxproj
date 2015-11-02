@@ -41,7 +41,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
     <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>LLVM-vs2014</PlatformToolset>
+    <PlatformToolset>v140</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
@@ -146,6 +146,7 @@
     <ClInclude Include="..\..\src\csa.hpp" />
     <ClInclude Include="..\..\src\evalList.hpp" />
     <ClInclude Include="..\..\src\evaluate.hpp" />
+    <ClInclude Include="..\..\src\game_record.hpp" />
     <ClInclude Include="..\..\src\generateMoves.hpp" />
     <ClInclude Include="..\..\src\hand.hpp" />
     <ClInclude Include="..\..\src\hayabusa.hpp" />
