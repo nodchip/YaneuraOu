@@ -439,10 +439,34 @@ bool csa::readCsa1(
 
 bool csa::writeCsa1(
   const std::tr2::sys::path& filepath,
-  const std::vector<GameRecord>& gameRecord)
+  const std::vector<GameRecord>& gameRecords)
 {
-  // TODO(nodchip): Implement.
-  return false;
+  ofstream ofs(filepath);
+  if (!ofs.is_open()) {
+    cout << "!!! Failed to create an output file: filepath="
+      << filepath
+      << endl;
+    return false;
+  }
+
+  int gameRecordIndex = 0;
+  for (const auto& gameRecord : gameRecords) {
+    ofs
+      << ++gameRecordIndex << " "
+      << gameRecord.date << " "
+      << gameRecord.blackPlayerName << " "
+      << gameRecord.whitePlayerName << " "
+      << gameRecord.winner << " "
+      << gameRecord.numberOfPlays << " "
+      << gameRecord.leagueName << " "
+      << gameRecord.strategy << endl;
+    for (const auto& move : gameRecord.moves) {
+      ofs << move.toCSA();
+    }
+    ofs << endl;
+  }
+
+  return true;
 }
 
 bool csa::mergeCsa1s(

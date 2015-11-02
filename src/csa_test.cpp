@@ -169,3 +169,32 @@ TEST_F(CsaTest, readCsa1_convert) {
   EXPECT_EQ(126, gameRecords[0].moves.size());
   EXPECT_EQ(3, gameRecords.size());
 }
+
+TEST_F(CsaTest, writeCsa1_convert) {
+  path outputFilePath = TEMP_OUTPUT_DIRECTORY_PATH / "temp.csa1";
+  GameRecord gameRecord;
+  gameRecord.gameRecordIndex = 1;
+  gameRecord.date = "2015/11/02";
+  gameRecord.blackPlayerName = "hoge";
+  gameRecord.whitePlayerName = "fuga";
+  gameRecord.winner = 1;
+  gameRecord.numberOfPlays = 1;
+  gameRecord.leagueName = "foo";
+  gameRecord.strategy = "bar";
+  gameRecord.moves.push_back(Move(73275));
+  std::vector<GameRecord> gameRecords = { gameRecord };
+
+  EXPECT_TRUE(csa::writeCsa1(outputFilePath, gameRecords));
+
+  ifstream ifs(outputFilePath);
+  string line0, line1, line2;
+  EXPECT_TRUE(getline(ifs, line0));
+  EXPECT_TRUE(getline(ifs, line1));
+  EXPECT_FALSE(getline(ifs, line2));
+  EXPECT_NE(string::npos, line0.find("2015/11/02"));
+  EXPECT_NE(string::npos, line0.find("hoge"));
+  EXPECT_NE(string::npos, line0.find("fuga"));
+  EXPECT_NE(string::npos, line0.find("foo"));
+  EXPECT_NE(string::npos, line0.find("bar"));
+  EXPECT_EQ("7776FU", line1);
+}
