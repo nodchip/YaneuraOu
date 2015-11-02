@@ -11,6 +11,7 @@
 #include "usi.hpp"
 
 #ifdef _MSC_VER
+#include "csa.hpp"
 #include "hayabusa.hpp"
 #endif
 
@@ -533,6 +534,112 @@ void Searcher::doUSICommandLoop(int argc, char* argv[]) {
     else if (token == "adjust_weights") {
       hayabusa::adjustWeights();
       Evaluater::writeSynthesized(options[OptionNames::EVAL_DIR]);
+    }
+    else if (token == "concat_csa_files") {
+      std::vector<std::string> strongPlayers = {
+        "AIK",
+        "NineDayFever_XeonE5-2690_16c",
+        "fib",
+        "FGM",
+        "ponanza-990XEE",
+        "NXF",
+        "Mignon",
+        "VBV",
+        "ueueue",
+        "NOOOO",
+        "AWAKE_i7_5960X_8c",
+        "UUDNK",
+        "GSIOU",
+        "Raistlin",
+        "MFHK",
+        "Apery_i7-5820",
+        "HAK",
+        "RX-78_abnormal",
+        "sbkl",
+        "vibgyor",
+        "aPery",
+        "DXV",
+        "HGDKJ",
+        "XZV",
+        "VG",
+        "HJK",
+        "testnanopery",
+        "KSU",
+        "GIU",
+        "XGI",
+        "HettaG",
+        "TDA",
+        "vibes",
+        "DUH",
+        "Apery_i7-4790k_4c",
+        "hogehogufuga",
+        "isb",
+        "hydrangea",
+        "gpsfish_XeonX5680_12c",
+        "AUJK",
+        "FI",
+        "YNL",
+        "XDKH",
+        "AperyWCSC25_test1",
+        "Leicester",
+        "PXW",
+        "x_x",
+        "ycas",
+        "isjd",
+        "Titanda_L",
+        "gpsfish_mini",
+        "uiashd",
+        "zako",
+        "style-D",
+        "UHSIUHUHO",
+        "gpsfish_XeonX5680_12c_bid",
+        "HSU",
+        "Bonafish_0.39",
+        "T_T",
+        "Apery_sse4.1msvc_8c",
+        "-q-",
+        "hjd",
+        "Apery_t",
+        "Apery_i5-4670",
+        "HettaH",
+        "sandra",
+        "CrazyKing",
+        "hogepery",
+        "YssF_6t_x1",
+        "Apery_20150909_i7-2600K",
+        "sinbo",
+        "CheeCamembert",
+        "DELETE",
+        "7610_W",
+        "Bonafish_0.38",
+        "ana",
+        "nozomi_i7-4790",
+        "Apery_WCSC25_i73770r",
+        "Titanda_L",
+        "Apery_WCSC25_2c",
+        "TUKASA_AOI",
+        "stap5",
+        "April_Apple_test",
+      };
+      std::vector<GameRecord> gameRecords;
+      csa::readCsas(
+        "C:\\home\\develop\\shogi-kifu",
+        [strongPlayers](const std::tr2::sys::path& p) {
+        std::string str = p.string();
+        for (const auto& strongPlayer : strongPlayers) {
+          if (str.find("+" + strongPlayer + "+") != std::string::npos) {
+            return true;
+          }
+        }
+        return false;
+      }, gameRecords);
+      csa::writeCsa1("C:\\home\\develop\\shogi-kifu\\wdoor.csa1", gameRecords);
+    }
+    else if (token == "merge_csa_files") {
+      csa::mergeCsa1s({
+        "C:\\home\\develop\\shogi-kifu\\2chkifu_csa\\2chkifu.csa1",
+        "C:\\home\\develop\\shogi-kifu\\wdoor.csa1" },
+        "C:\\home\\develop\\shogi-kifu\\merged.csa1");
     }
 #endif
 #endif

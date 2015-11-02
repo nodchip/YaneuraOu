@@ -16,7 +16,9 @@ namespace
     it != std::tr2::sys::recursive_directory_iterator();
       ++it)
     {
-      ++numberOfFiles;
+      if (++numberOfFiles % 100000 == 0) {
+        cout << numberOfFiles << endl;
+      }
     }
     return numberOfFiles;
   }
@@ -335,7 +337,7 @@ bool csa::readCsas(
   it != std::tr2::sys::recursive_directory_iterator();
     ++it)
   {
-    if (++fileIndex % 100 == 0) {
+    if (++fileIndex % 10000 == 0) {
       double currentSec = clock() / double(CLOCKS_PER_SEC);
       double secPerFile = (currentSec - startSec) / fileIndex;
       int remainedSec = (numberOfFiles - fileIndex) * secPerFile;
@@ -379,7 +381,7 @@ bool csa::readCsa1(
     GameRecord gameRecord;
     istringstream iss0(line);
 
-    if (!(iss0
+    iss0
       >> gameRecord.gameRecordIndex
       >> gameRecord.date
       >> gameRecord.blackPlayerName
@@ -387,13 +389,7 @@ bool csa::readCsa1(
       >> gameRecord.winner
       >> gameRecord.numberOfPlays
       >> gameRecord.leagueName
-      >> gameRecord.strategy)) {
-      cout
-        << "Failed to read the first line of a game: gameRecordIndex="
-        << gameRecordIndex
-        << endl;
-      return false;
-    }
+      >> gameRecord.strategy;
 
     if (!getline(ifs, line)) {
       cout
@@ -418,12 +414,13 @@ bool csa::readCsa1(
       string moveStr = line.substr(play * 6, 6);
       Move move = csaToMove(pos, moveStr);
       if (move.isNone()) {
-        pos.print();
-        cout
-          << "Failed to parse a move: moveStr="
-          << moveStr
-          << endl;
-        return false;
+        //pos.print();
+        //cout
+        //  << "Failed to parse a move: moveStr="
+        //  << moveStr
+        //  << endl;
+        break;
+        //return false;
       }
       gameRecord.moves.push_back(move);
 
@@ -475,6 +472,7 @@ bool csa::mergeCsa1s(
 {
   std::vector<GameRecord> gameRecords;
   for (const auto& p : inputFilepaths) {
+    cout << p << endl;
     if (!readCsa1(p, gameRecords)) {
       return false;
     }
