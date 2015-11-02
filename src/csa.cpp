@@ -473,6 +473,16 @@ bool csa::mergeCsa1s(
   const std::vector<std::tr2::sys::path>& inputFilepaths,
   const std::tr2::sys::path& outputFilepath)
 {
-  // TODO(nodchip): Implement.
-  return false;
+  std::vector<GameRecord> gameRecords;
+  for (const auto& p : inputFilepaths) {
+    if (!readCsa1(p, gameRecords)) {
+      return false;
+    }
+  }
+
+  if (!writeCsa1(outputFilepath, gameRecords)) {
+    return false;
+  }
+
+  return true;
 }
