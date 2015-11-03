@@ -7,6 +7,8 @@
 using namespace std;
 using namespace std::tr2::sys;
 
+#define RETURN_IF_FALSE(x) if (!(x)) { return false; }
+
 namespace
 {
   int getNumberOfFiles(const std::tr2::sys::path& directory)
@@ -160,7 +162,7 @@ bool csa::convertCsaToSfen(
 
   ofstream ofs(outputFilePath, std::ios::out);
   if (!ofs.is_open()) {
-    cout << "!!! Failed to create an output file: outputTeacherFilePath="
+    cout << "!!! Failed to create the output file: outputTeacherFilePath="
       << outputFilePath
       << endl;
     return false;
@@ -205,7 +207,7 @@ bool csa::convertCsa1LineToSfen(
 
   ofstream ofs(outputFilePath, std::ios::out);
   if (!ofs.is_open()) {
-    cout << "!!! Failed to create an output file: outputTeacherFilePath="
+    cout << "!!! Failed to create the output file: outputTeacherFilePath="
       << outputFilePath
       << endl;
     return false;
@@ -272,6 +274,9 @@ bool csa::readCsa(const std::tr2::sys::path& filepath, GameRecord& gameRecord)
 
   std::ifstream ifs(filepath);
   if (!ifs.is_open()) {
+    cout << "!!! Failed to open the input file: filepath="
+      << filepath
+      << endl;
     return false;
   }
 
@@ -314,6 +319,9 @@ bool csa::readCsa(const std::tr2::sys::path& filepath, GameRecord& gameRecord)
       if (line[0] == '+') {
         lastColor = Black;
       }
+      else if (line[0] = '-') {
+        lastColor = White;
+      }
     }
     else if (line.find("%TORYO") == 0) {
       gameRecord.winner = (lastColor == Black ? 2 : 1);
@@ -321,6 +329,7 @@ bool csa::readCsa(const std::tr2::sys::path& filepath, GameRecord& gameRecord)
   }
 
   gameRecord.numberOfPlays = gameRecord.moves.size();
+  return true;
 }
 
 bool csa::readCsas(
@@ -352,9 +361,7 @@ bool csa::readCsas(
     }
 
     GameRecord gameRecord;
-    if (!readCsa(it->path(), gameRecord)) {
-      return false;
-    }
+    RETURN_IF_FALSE(readCsa(it->path(), gameRecord));
     gameRecords.push_back(gameRecord);
   }
 
@@ -440,7 +447,7 @@ bool csa::writeCsa1(
 {
   ofstream ofs(filepath);
   if (!ofs.is_open()) {
-    cout << "!!! Failed to create an output file: filepath="
+    cout << "!!! Failed to create the output file: filepath="
       << filepath
       << endl;
     return false;

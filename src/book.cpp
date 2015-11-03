@@ -165,7 +165,7 @@ inline bool countCompare(const BookEntry& b1, const BookEntry& b2) {
 // MAKE_SEARCHED_BOOK を on にしていると、定跡生成に非常に時間が掛かる。
 void makeBook(Position& pos, Scanner command) {
   std::string fileName = command.next();
-  std::ifstream ifs(fileName.c_str(), std::ios::binary);
+  std::ifstream ifs(fileName.c_str());
   if (!ifs) {
     std::cout << "I cannot open " << fileName << std::endl;
     return;
@@ -173,7 +173,11 @@ void makeBook(Position& pos, Scanner command) {
   std::string line;
   std::map<Key, std::vector<BookEntry> > bookMap;
 
+  int gameRecordIndex = 0;
   while (std::getline(ifs, line)) {
+    if (++gameRecordIndex % 10000 == 0) {
+      std::cout << gameRecordIndex << std::endl;
+    }
     Scanner scanner = line;
     scanner.next(); // 棋譜番号を飛ばす。
     scanner.next(); // 対局日を飛ばす。
@@ -195,7 +199,7 @@ void makeBook(Position& pos, Scanner command) {
       const std::string moveStrCSA = line.substr(0, 6);
       const Move move = csaToMove(pos, moveStrCSA);
       if (move.isNone()) {
-        pos.print();
+        //pos.print();
         std::cout << "!!! Illegal move = " << moveStrCSA << " !!!" << std::endl;
         break;
       }
@@ -272,7 +276,7 @@ void makeBook(Position& pos, Scanner command) {
   }
 #endif
 
-  std::ofstream ofs("book.bin", std::ios::binary);
+  std::ofstream ofs("book-2015-11-03.bin", std::ios::binary);
   for (auto& elem : bookMap) {
     for (auto& elel : elem.second) {
       ofs.write(reinterpret_cast<char*>(&(elel)), sizeof(BookEntry));
