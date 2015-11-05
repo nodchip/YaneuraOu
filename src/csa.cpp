@@ -136,7 +136,7 @@ Color csa::getWinner(const std::tr2::sys::path& filepath) {
     }
   }
 
-  throw exception("Failed to detect which player is win.");
+  return ColorNum;
 }
 
 // 文字列の配列をスペース区切りで結合する
@@ -285,7 +285,6 @@ bool csa::readCsa(const std::tr2::sys::path& filepath, GameRecord& gameRecord)
   list<StateInfo> stateInfos;
 
   string line;
-  Color lastColor = Black;
   bool toryo = false;
   while (getline(ifs, line)) {
     // 将棋所の出力するCSAの指し手の末尾に",T1"などとつくため
@@ -316,13 +315,6 @@ bool csa::readCsa(const std::tr2::sys::path& filepath, GameRecord& gameRecord)
       //position.print();
 
       gameRecord.moves.push_back(move);
-
-      if (line[0] == '+') {
-        lastColor = Black;
-      }
-      else if (line[0] = '-') {
-        lastColor = White;
-      }
     }
     else if (line.find(gameRecord.blackPlayerName + " win") != std::string::npos) {
       gameRecord.winner = 1;
