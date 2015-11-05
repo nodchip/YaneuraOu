@@ -164,6 +164,20 @@ inline bool countCompare(const BookEntry& b1, const BookEntry& b2) {
 // 基本的には棋譜を丁寧に選別した上で定跡を作る必要がある。
 // MAKE_SEARCHED_BOOK を on にしていると、定跡生成に非常に時間が掛かる。
 void makeBook(Position& pos, Scanner command) {
+  std::string options[] = {
+    "name Threads value 4",
+    "name MultiPV value 1",
+    "name OwnBook value false",
+    "name Max_Random_Score_Diff value 0",
+    "name USI_Hash value 8192",
+    "name Use_Sleeping_Threads value true",
+  };
+  for (auto& str : options) {
+    pos.searcher()->setOption(str);
+  }
+
+  Searcher::outputInfo = false;
+
   std::string fileName = command.next();
   std::ifstream ifs(fileName.c_str());
   if (!ifs) {
@@ -173,10 +187,19 @@ void makeBook(Position& pos, Scanner command) {
   std::string line;
   std::map<Key, std::vector<BookEntry> > bookMap;
 
+  double startSec = clock() / double(CLOCKS_PER_SEC);
+  int numberOfGameRecords = 132960;
+
   int gameRecordIndex = 0;
   while (std::getline(ifs, line)) {
-    if (++gameRecordIndex % 10000 == 0) {
-      std::cout << gameRecordIndex << std::endl;
+    if (++gameRecordIndex % 100 == 0) {
+      double currentSec = clock() / double(CLOCKS_PER_SEC);
+      double secPerFile = (currentSec - startSec) / gameRecordIndex;
+      int remainedSec = (numberOfGameRecords - gameRecordIndex) * secPerFile;
+      int second = remainedSec % 60;
+      int minute = remainedSec / 60 % 60;
+      int hour = remainedSec / 3600;
+      printf("%d/%d %d:%02d:%02d\n", gameRecordIndex, numberOfGameRecords, hour, minute, second);
     }
     Scanner scanner = line;
     scanner.next(); // 棋譜番号を飛ばす。
@@ -193,6 +216,13 @@ void makeBook(Position& pos, Scanner command) {
       std::cout << "!!! header only !!!" << std::endl;
       return;
     }
+
+    if (winner == ColorNum) {
+      continue;
+    }
+
+    //printf("winner=%s\n", winner == Black ? "Black" : "White");
+
     pos.set(DefaultStartPositionSFEN, pos.searcher()->threads.mainThread());
     StateStackPtr SetUpStates = StateStackPtr(new std::stack<StateInfo>());
     while (!line.empty()) {
@@ -225,17 +255,28 @@ void makeBook(Position& pos, Scanner command) {
         }
         if (isFind == false) {
 #if defined MAKE_SEARCHED_BOOK
+          //SetUpStates->push(StateInfo());
+          //pos.doMove(move, SetUpStates->top());
+          //SearchStack searchStack[MaxPlyPlus2];
+          //memset(searchStack, 0, sizeof(searchStack));
+          //searchStack[0].currentMove = Move::moveNull(); // skip update gains
+          //searchStack[0].staticEvalRaw = (Score)INT_MAX;
+          //searchStack[1].staticEvalRaw = (Score)INT_MAX;
+          //Score score = -evaluate(pos, &searchStack[1]);
+          //pos.undoMove(move);
+          //SetUpStates->pop();
+
           SetUpStates->push(StateInfo());
           pos.doMove(move, SetUpStates->top());
-
-          go(pos, "byoyomi 1000");
+          go(pos, "depth 3");
           pos.searcher()->threads.waitForThinkFinished();
-
           pos.undoMove(move);
           SetUpStates->pop();
-
           // doMove してから search してるので点数が反転しているので直す。
           const Score score = -pos.csearcher()->rootMoves[0].score_;
+
+          //pos.print();
+          printf("score=%d\n", score);
 #else
           const Score score = ScoreZero;
 #endif
