@@ -286,6 +286,7 @@ bool csa::readCsa(const std::tr2::sys::path& filepath, GameRecord& gameRecord)
 
   string line;
   Color lastColor = Black;
+  bool toryo = false;
   while (getline(ifs, line)) {
     // 将棋所の出力するCSAの指し手の末尾に",T1"などとつくため
     // ","以降を削除する
@@ -323,9 +324,20 @@ bool csa::readCsa(const std::tr2::sys::path& filepath, GameRecord& gameRecord)
         lastColor = White;
       }
     }
-    else if (line.find("%TORYO") == 0) {
-      gameRecord.winner = (lastColor == Black ? 2 : 1);
+    else if (line.find(gameRecord.blackPlayerName + " win") != std::string::npos) {
+      gameRecord.winner = 1;
     }
+    else if (line.find(gameRecord.whitePlayerName + " win") != std::string::npos) {
+      gameRecord.winner = 2;
+    }
+    else if (line.find("toryo") != std::string::npos) {
+      toryo = true;
+    }
+  }
+
+  // 投了以外の棋譜はスキップする
+  if (!toryo) {
+    gameRecord.numberOfPlays = -1;
   }
 
   gameRecord.numberOfPlays = gameRecord.moves.size();
@@ -362,6 +374,9 @@ bool csa::readCsas(
 
     GameRecord gameRecord;
     RETURN_IF_FALSE(readCsa(it->path(), gameRecord));
+    if (gameRecord.winner != 1 && gameRecord.winner != 2) {
+      continue;
+    }
     gameRecords.push_back(gameRecord);
   }
 
