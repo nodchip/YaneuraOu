@@ -75,7 +75,7 @@ namespace {
 void OptionsMap::init(Searcher* s) {
   (*this)[OptionNames::USI_HASH] = USIOption(32, 1, 65536, onHashSize, s);
   (*this)[OptionNames::CLEAR_HASH] = USIOption(onClearHash, s);
-  (*this)[OptionNames::BOOK_FILE] = USIOption("../bin/book.bin");
+  (*this)[OptionNames::BOOK_FILE] = USIOption("../bin/book-2015-11-03.bin");
   (*this)[OptionNames::BEST_BOOK_MOVE] = USIOption(false);
   (*this)[OptionNames::OWNBOOK] = USIOption(true);
   (*this)[OptionNames::MIN_BOOK_PLY] = USIOption(SHRT_MAX, 0, SHRT_MAX);
