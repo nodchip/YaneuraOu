@@ -260,17 +260,17 @@ void Position::doMove(const Move move, StateInfo& newSt, const CheckInfo& ci, co
     const int handnum = hand(us).numOf(hpTo);
     const int listIndex = evalList_.squareHandToList[HandPieceToSquareHand[us][hpTo] + handnum];
     const Piece pcTo = colorAndPieceTypeToPiece(us, ptTo);
-    st_->cl.listindex[0] = listIndex;
-    st_->cl.clistpair[0].oldlist[0] = evalList_.list0[listIndex];
-    st_->cl.clistpair[0].oldlist[1] = evalList_.list1[listIndex];
+    st_->cl.listindex0 = listIndex;
+    st_->cl.clistpair0.oldlist0 = evalList_.list0[listIndex];
+    st_->cl.clistpair0.oldlist1 = evalList_.list1[listIndex];
 
     evalList_.list0[listIndex] = kppArray[pcTo] + to;
     evalList_.list1[listIndex] = kppArray[inverse(pcTo)] + inverse(to);
     evalList_.listToSquareHand[listIndex] = to;
     evalList_.squareHandToList[to] = listIndex;
 
-    st_->cl.clistpair[0].newlist[0] = evalList_.list0[listIndex];
-    st_->cl.clistpair[0].newlist[1] = evalList_.list1[listIndex];
+    st_->cl.clistpair0.newlist0 = evalList_.list0[listIndex];
+    st_->cl.clistpair0.newlist1 = evalList_.list1[listIndex];
 
     hand_[us].minusOne(hpTo);
     xorBBs(ptTo, to, us);
@@ -312,9 +312,9 @@ void Position::doMove(const Move move, StateInfo& newSt, const CheckInfo& ci, co
 
       hand_[us].plusOne(hpCaptured);
       const int toListIndex = evalList_.squareHandToList[to];
-      st_->cl.listindex[1] = toListIndex;
-      st_->cl.clistpair[1].oldlist[0] = evalList_.list0[toListIndex];
-      st_->cl.clistpair[1].oldlist[1] = evalList_.list1[toListIndex];
+      st_->cl.listindex1 = toListIndex;
+      st_->cl.clistpair1.oldlist0 = evalList_.list0[toListIndex];
+      st_->cl.clistpair1.oldlist1 = evalList_.list1[toListIndex];
       st_->cl.size = 2;
 
       const int handnum = hand(us).numOf(hpCaptured);
@@ -324,8 +324,8 @@ void Position::doMove(const Move move, StateInfo& newSt, const CheckInfo& ci, co
       evalList_.listToSquareHand[toListIndex] = squarehand;
       evalList_.squareHandToList[squarehand] = toListIndex;
 
-      st_->cl.clistpair[1].newlist[0] = evalList_.list0[toListIndex];
-      st_->cl.clistpair[1].newlist[1] = evalList_.list1[toListIndex];
+      st_->cl.clistpair1.newlist0 = evalList_.list0[toListIndex];
+      st_->cl.clistpair1.newlist1 = evalList_.list1[toListIndex];
 
       st_->material += (us == Black ? capturePieceScore(ptCaptured) : -capturePieceScore(ptCaptured));
     }
@@ -341,17 +341,17 @@ void Position::doMove(const Move move, StateInfo& newSt, const CheckInfo& ci, co
       const Piece pcTo = colorAndPieceTypeToPiece(us, ptTo);
       const int fromListIndex = evalList_.squareHandToList[from];
 
-      st_->cl.listindex[0] = fromListIndex;
-      st_->cl.clistpair[0].oldlist[0] = evalList_.list0[fromListIndex];
-      st_->cl.clistpair[0].oldlist[1] = evalList_.list1[fromListIndex];
+      st_->cl.listindex0 = fromListIndex;
+      st_->cl.clistpair0.oldlist0 = evalList_.list0[fromListIndex];
+      st_->cl.clistpair0.oldlist1 = evalList_.list1[fromListIndex];
 
       evalList_.list0[fromListIndex] = kppArray[pcTo] + to;
       evalList_.list1[fromListIndex] = kppArray[inverse(pcTo)] + inverse(to);
       evalList_.listToSquareHand[fromListIndex] = to;
       evalList_.squareHandToList[to] = fromListIndex;
 
-      st_->cl.clistpair[0].newlist[0] = evalList_.list0[fromListIndex];
-      st_->cl.clistpair[0].newlist[1] = evalList_.list1[fromListIndex];
+      st_->cl.clistpair0.newlist0 = evalList_.list0[fromListIndex];
+      st_->cl.clistpair0.newlist1 = evalList_.list1[fromListIndex];
     }
 
     if (move.isPromotion()) {

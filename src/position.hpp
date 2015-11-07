@@ -25,13 +25,19 @@ struct CheckInfo {
 };
 
 struct ChangedListPair {
-  int newlist[2];
-  int oldlist[2];
+  int newlist0;
+  int newlist1;
+  int oldlist0;
+  int oldlist1;
 };
 
 struct ChangedLists {
-  ChangedListPair clistpair[2]; // 一手で動く駒は最大2つ。(動く駒、取られる駒)
-  int listindex[2]; // 一手で動く駒は最大2つ。(動く駒、取られる駒)
+  // 一手で動く駒は最大2つ。(動く駒、取られる駒)
+  ChangedListPair clistpair0;
+  ChangedListPair clistpair1;
+  // 一手で動く駒は最大2つ。(動く駒、取られる駒)
+  int listindex0;
+  int listindex1;
   size_t size;
 };
 

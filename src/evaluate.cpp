@@ -50,15 +50,15 @@ namespace {
   };
 #endif
 
-  s32 doapc(const Position& pos, const int index[2]) {
+  s32 doapc(const Position& pos, int index0, int index1) {
     const Square sq_bk = pos.kingSquare(Black);
     const Square sq_wk = pos.kingSquare(White);
     const int* list0 = pos.cplist0();
     const int* list1 = pos.cplist1();
 
-    s32 sum = Evaluater::KKP[sq_bk][sq_wk][index[0]];
-    const auto* pkppb = Evaluater::KPP[sq_bk][index[0]];
-    const auto* pkppw = Evaluater::KPP[inverse(sq_wk)][index[1]];
+    s32 sum = Evaluater::KKP[sq_bk][sq_wk][index0];
+    const auto* pkppb = Evaluater::KPP[sq_bk][index0];
+    const auto* pkppw = Evaluater::KPP[inverse(sq_wk)][index1];
 
     for (int i = 0; i < pos.nlist(); ++i) {
       sum += pkppb[list0[i]];
@@ -121,34 +121,34 @@ namespace {
 
     assert(lastMove != Move::moveNull());
 
-    const int listIndex = pos.cl().listindex[0];
-    auto diff = doapc(pos, pos.cl().clistpair[0].newlist);
+    const int listIndex = pos.cl().listindex0;
+    auto diff = doapc(pos, pos.cl().clistpair0.newlist0, pos.cl().clistpair0.newlist1);
     if (pos.cl().size == 1) {
-      pos.plist0()[listIndex] = pos.cl().clistpair[0].oldlist[0];
-      pos.plist1()[listIndex] = pos.cl().clistpair[0].oldlist[1];
-      diff -= doapc(pos, pos.cl().clistpair[0].oldlist);
+      pos.plist0()[listIndex] = pos.cl().clistpair0.oldlist0;
+      pos.plist1()[listIndex] = pos.cl().clistpair0.oldlist1;
+      diff -= doapc(pos, pos.cl().clistpair0.oldlist0, pos.cl().clistpair0.oldlist1);
     }
     else {
       assert(pos.cl().size == 2);
-      diff += doapc(pos, pos.cl().clistpair[1].newlist);
-      diff -= Evaluater::KPP[pos.kingSquare(Black)][pos.cl().clistpair[0].newlist[0]][pos.cl().clistpair[1].newlist[0]];
-      diff += Evaluater::KPP[inverse(pos.kingSquare(White))][pos.cl().clistpair[0].newlist[1]][pos.cl().clistpair[1].newlist[1]];
-      const int listIndex_cap = pos.cl().listindex[1];
-      pos.plist0()[listIndex_cap] = pos.cl().clistpair[1].oldlist[0];
-      pos.plist1()[listIndex_cap] = pos.cl().clistpair[1].oldlist[1];
+      diff += doapc(pos, pos.cl().clistpair1.newlist0, pos.cl().clistpair1.newlist1);
+      diff -= Evaluater::KPP[pos.kingSquare(Black)][pos.cl().clistpair0.newlist0][pos.cl().clistpair1.newlist0];
+      diff += Evaluater::KPP[inverse(pos.kingSquare(White))][pos.cl().clistpair0.newlist1][pos.cl().clistpair1.newlist1];
+      const int listIndex_cap = pos.cl().listindex1;
+      pos.plist0()[listIndex_cap] = pos.cl().clistpair1.oldlist0;
+      pos.plist1()[listIndex_cap] = pos.cl().clistpair1.oldlist1;
 
-      pos.plist0()[listIndex] = pos.cl().clistpair[0].oldlist[0];
-      pos.plist1()[listIndex] = pos.cl().clistpair[0].oldlist[1];
-      diff -= doapc(pos, pos.cl().clistpair[0].oldlist);
+      pos.plist0()[listIndex] = pos.cl().clistpair0.oldlist0;
+      pos.plist1()[listIndex] = pos.cl().clistpair0.oldlist1;
+      diff -= doapc(pos, pos.cl().clistpair0.oldlist0, pos.cl().clistpair0.oldlist1);
 
-      diff -= doapc(pos, pos.cl().clistpair[1].oldlist);
-      diff += Evaluater::KPP[pos.kingSquare(Black)][pos.cl().clistpair[0].oldlist[0]][pos.cl().clistpair[1].oldlist[0]];
-      diff -= Evaluater::KPP[inverse(pos.kingSquare(White))][pos.cl().clistpair[0].oldlist[1]][pos.cl().clistpair[1].oldlist[1]];
-      pos.plist0()[listIndex_cap] = pos.cl().clistpair[1].newlist[0];
-      pos.plist1()[listIndex_cap] = pos.cl().clistpair[1].newlist[1];
+      diff -= doapc(pos, pos.cl().clistpair1.oldlist0, pos.cl().clistpair1.oldlist1);
+      diff += Evaluater::KPP[pos.kingSquare(Black)][pos.cl().clistpair0.oldlist0][pos.cl().clistpair1.oldlist0];
+      diff -= Evaluater::KPP[inverse(pos.kingSquare(White))][pos.cl().clistpair0.oldlist1][pos.cl().clistpair1.oldlist1];
+      pos.plist0()[listIndex_cap] = pos.cl().clistpair1.newlist0;
+      pos.plist1()[listIndex_cap] = pos.cl().clistpair1.newlist1;
     }
-    pos.plist0()[listIndex] = pos.cl().clistpair[0].newlist[0];
-    pos.plist1()[listIndex] = pos.cl().clistpair[0].newlist[1];
+    pos.plist0()[listIndex] = pos.cl().clistpair0.newlist0;
+    pos.plist1()[listIndex] = pos.cl().clistpair0.newlist1;
 
     diff += pos.materialDiff() * FVScale;
 
