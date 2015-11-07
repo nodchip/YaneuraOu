@@ -97,7 +97,7 @@ TTEntry* TranspositionTable::probe(const Key posKey) {
   return nullptr;
 }
 
-#ifdef OUTPUT_TRANSPOSITION_TABLE_UTILIZATION
+#if defined(OUTPUT_TRANSPOSITION_TABLE_UTILIZATION)
 int TranspositionTable::getUtilizationPerMill() const
 {
   long long numberOfUsed = 0;
@@ -111,9 +111,7 @@ int TranspositionTable::getUtilizationPerMill() const
 
   return numberOfUsed * 1000 / (size_ * ClusterSize);
 }
-#endif
-
-#ifdef OUTPUT_TRANSPOSITION_HIT_RATE
+#elif defined(OUTPUT_TRANSPOSITION_HIT_RATE)
 int TranspositionTable::getHitRatePerMill() const
 {
   if (numberOfHits == 0) {
@@ -121,9 +119,7 @@ int TranspositionTable::getHitRatePerMill() const
   }
   return numberOfHits * 1000 / (numberOfHits + numberOfMissHits);
 }
-#endif
-
-#ifdef OUTPUT_TRANSPOSITION_EXPIRATION_RATE
+#elif defined(OUTPUT_TRANSPOSITION_EXPIRATION_RATE)
 int TranspositionTable::getCacheExpirationRatePerMill() const
 {
   if (numberOfCacheExpirations == 0) {

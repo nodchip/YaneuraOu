@@ -890,21 +890,20 @@ struct Evaluater : public EvaluaterBase<s16, s32, s32> {
 #endif
   }
 
-#ifdef OUTPUT_EVALUATE_HASH_HIT_RATE
+#if defined(OUTPUT_EVALUATE_HASH_HIT_RATE)
   static std::atomic<u64> numberOfHits;
   static std::atomic<u64> numberOfMissHits;
-  static int getHitRatePerMills()
+  static int getHitRatePerMill()
   {
     if (numberOfHits == 0) {
       return 0;
     }
     return numberOfHits * 1000 / (numberOfHits + numberOfMissHits);
   }
-#endif
-#ifdef OUTPUT_EVALUATE_HASH_EXPIRATION_RATE
+#elif defined(OUTPUT_EVALUATE_HASH_EXPIRATION_RATE)
   static std::atomic<u64> numberOfEvaluations;
   static std::atomic<u64> numberOfExpirations;
-  static int getExpirationRatePerMills()
+  static int getExpirationRatePerMill()
   {
     if (numberOfExpirations == 0) {
       return 0;
@@ -973,8 +972,10 @@ struct EvaluateHashEntry {
 
 struct EvaluateHashTable : HashTable<EvaluateHashEntry, EvaluateTableSize>
 {
+#ifdef OUTPUT_EVALUATE_HASH_TABLE_UTILIZATION
   // ハッシュの使用率をパーミル(1/1000)単位で返す
   int getUtilizationPerMill() const;
+#endif
 };
 
 Score evaluateUnUseDiff(const Position& pos);

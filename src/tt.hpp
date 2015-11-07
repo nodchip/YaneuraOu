@@ -71,15 +71,13 @@ public:
   size_t size() const { return size_; }
   TTCluster* entries() const { return entries_; }
   u8 generation() const { return generation_; }
-#ifdef OUTPUT_TRANSPOSITION_TABLE_UTILIZATION
+#if defined(OUTPUT_TRANSPOSITION_TABLE_UTILIZATION)
   // ハッシュの使用率をパーミル(1/1000)単位で返す
   int getUtilizationPerMill() const;
-#endif
-#ifdef OUTPUT_TRANSPOSITION_HIT_RATE
-  // ヒット率を返す
+#elif defined(OUTPUT_TRANSPOSITION_HIT_RATE)
+  // ヒット率をパーミル(1/1000)単位で返す
   int getHitRatePerMill() const;
-#endif
-#ifdef OUTPUT_TRANSPOSITION_EXPIRATION_RATE
+#elif defined(OUTPUT_TRANSPOSITION_EXPIRATION_RATE)
   int getCacheExpirationRatePerMill() const;
   u64 getNumberOfSaves() const;
   u64 getNumberOfCacheExpirations() const;
@@ -98,11 +96,10 @@ private:
   TTCluster* entries_;
   // iterative deepening していくとき、過去の探索で調べたものかを判定する。
   u8 generation_;
-#ifdef OUTPUT_TRANSPOSITION_HIT_RATE
+#if defined(OUTPUT_TRANSPOSITION_HIT_RATE)
   std::atomic<u64> numberOfHits;
   std::atomic<u64> numberOfMissHits;
-#endif
-#ifdef OUTPUT_TRANSPOSITION_EXPIRATION_RATE
+#elif defined(OUTPUT_TRANSPOSITION_EXPIRATION_RATE)
   std::atomic<u64> numberOfSaves;
   std::atomic<u64> numberOfCacheExpirations;
 #endif
@@ -110,10 +107,9 @@ private:
 
 inline TranspositionTable::TranspositionTable()
   : size_(0), entries_(nullptr), entriesRaw_(nullptr), generation_(0)
-#ifdef OUTPUT_TRANSPOSITION_HIT_RATE
+#if defined(OUTPUT_TRANSPOSITION_HIT_RATE)
   , numberOfHits(0), numberOfMissHits(0)
-#endif
-#ifdef OUTPUT_TRANSPOSITION_EXPIRATION_RATE
+#elif defined(OUTPUT_TRANSPOSITION_EXPIRATION_RATE)
   , numberOfCacheExpirations(0), numberOfSaves(0)
 #endif
 {

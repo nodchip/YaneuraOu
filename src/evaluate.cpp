@@ -9,11 +9,10 @@ s16 Evaluater::KPP[SquareNum][fe_end + KPP_PADDING1][fe_end + KPP_PADDING0];
 s32 Evaluater::KKP[SquareNum][SquareNum][fe_end];
 s32 Evaluater::KK[SquareNum][SquareNum];
 
-#ifdef OUTPUT_EVALUATE_HASH_HIT_RATE
+#if defined(OUTPUT_EVALUATE_HASH_HIT_RATE)
 std::atomic<u64> Evaluater::numberOfHits;
 std::atomic<u64> Evaluater::numberOfMissHits;
-#endif
-#ifdef OUTPUT_EVALUATE_HASH_EXPIRATION_RATE
+#elif defined(OUTPUT_EVALUATE_HASH_EXPIRATION_RATE)
 std::atomic<u64> Evaluater::numberOfEvaluations;
 std::atomic<u64> Evaluater::numberOfExpirations;
 #endif
@@ -373,10 +372,9 @@ Score evaluate(Position& pos, SearchStack* ss) {
     return (pos.turn() == Black ? entry.score() : -entry.score()) / FVScale;
   }
 
-#ifdef OUTPUT_EVALUATE_HASH_HIT_RATE
+#if defined(OUTPUT_EVALUATE_HASH_HIT_RATE)
   ++Evaluater::numberOfMissHits;
-#endif
-#ifdef OUTPUT_EVALUATE_HASH_EXPIRATION_RATE
+#elif defined(OUTPUT_EVALUATE_HASH_EXPIRATION_RATE)
   if (entry.key() != 0) {
     ++Evaluater::numberOfExpirations;
   }
@@ -465,6 +463,7 @@ bool Evaluater::writeSynthesized(const std::string& dirName) {
   return true;
 }
 
+#ifdef OUTPUT_EVALUATE_HASH_TABLE_UTILIZATION
 // ハッシュの使用率をパーミル(1/1000)単位で返す
 int EvaluateHashTable::getUtilizationPerMill() const
 {
@@ -476,3 +475,4 @@ int EvaluateHashTable::getUtilizationPerMill() const
   }
   return numberOfUsed * 1000 / EvaluateTableSize;
 }
+#endif

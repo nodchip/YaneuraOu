@@ -77,38 +77,28 @@
 #endif
 
 #if 1
+// Aspiration Windows Search で次のイテレーションの値を予測する
 #define USE_ASPIRATION_WINDOW_PREDICTION
 #endif
 
 #if 0
+// 置換表がどれくらい埋まっているか出力する
 #define OUTPUT_TRANSPOSITION_TABLE_UTILIZATION
-#endif
-
-#if 0
+#elif 0
+// 評価値キャッシュがどれくらい埋まっているか出力する
 #define OUTPUT_EVALUATE_HASH_TABLE_UTILIZATION
-#endif
-
-#if 0
+#elif 0
+// 置換表のヒット率を出力する
 #define OUTPUT_TRANSPOSITION_HIT_RATE
-#endif
-
-#if 0
+#elif 0
+// 評価値キャッシュのヒット率を出力する
 #define OUTPUT_EVALUATE_HASH_HIT_RATE
-#endif
-
-#if 0
+#elif 0
+// 置換表の破棄率を出力する
 #define OUTPUT_TRANSPOSITION_EXPIRATION_RATE
-#endif
-
-#if 0
+#elif 0
+// 評価値キャッシュの破棄率を出力する
 #define OUTPUT_EVALUATE_HASH_EXPIRATION_RATE
 #endif
-
-#ifdef OUTPUT_TRANSPOSITION_HIT_RATE
-#ifdef OUTPUT_EVALUATE_HASH_HIT_RATE
-#error Do not define OUTPUT_TRANSPOSITION_HIT_RATE and OUTPUT_EVALUATE_HASH_HIT_RATE at the same time.
-#endif
-#endif
-
 
 #endif // #ifndef APERY_IFDEF_HPP

@@ -322,20 +322,18 @@ std::string Searcher::pvInfoToUSI(Position& pos, const Ply depth, const Score al
       << " nps " << (0 < t ? pos.nodesSearched() * 1000 / t : 0)
       << " time " << t
       << " multipv " << i + 1
-#ifdef OUTPUT_TRANSPOSITION_TABLE_UTILIZATION
+#if defined(OUTPUT_TRANSPOSITION_TABLE_UTILIZATION)
       << " hashfull " << tt.getUtilizationPerMill()
-#endif
-#ifdef OUTPUT_EVALUATE_HASH_TABLE_UTILIZATION
+#elif defined(OUTPUT_EVALUATE_HASH_TABLE_UTILIZATION)
       << " hashfull " << g_evalTable.getUtilizationPerMill()
-#endif
-#ifdef OUTPUT_TRANSPOSITION_EXPIRATION_RATE
+#elif defined(OUTPUT_TRANSPOSITION_HIT_RATE)
+      << " hashfull " << tt.getHitRatePerMill()
+#elif defined(OUTPUT_EVALUATE_HASH_HIT_RATE)
+      << " hashfull " << Evaluater::getHitRatePerMill()
+#elif defined(OUTPUT_TRANSPOSITION_EXPIRATION_RATE)
       << " hashfull " << tt.getCacheExpirationRatePerMill()
-#endif
-#ifdef OUTPUT_EVALUATE_HASH_HIT_RATE
-      << " hashfull " << Evaluater::getHitRatePerMills()
-#endif
-#ifdef OUTPUT_EVALUATE_HASH_EXPIRATION_RATE
-      << " hashfull " << Evaluater::getExpirationRatePerMills()
+#elif defined(OUTPUT_EVALUATE_HASH_EXPIRATION_RATE)
+      << " hashfull " << Evaluater::getExpirationRatePerMill()
 #endif
       << " pv ";
 
@@ -560,6 +558,7 @@ void Searcher::idLoop(Position& pos) {
   // 最後にinfoを出力した時間
   // 将棋所のコンソールが詰まる問題への対処用
   int lastTimeToOutputInfoMs = -1;
+  int mateCount = 0;
 
   memset(ss, 0, 4 * sizeof(SearchStack));
   bestMoveChanges = 0;
@@ -660,6 +659,11 @@ void Searcher::idLoop(Position& pos) {
       // aspiration search の window 幅を、初めは小さい値にして探索し、
       // fail high/low になったなら、今度は window 幅を広げて、再探索を行う。
       while (true) {
+        // 何らかの形で詰んでいる場合は反復深化を打ち切る
+        if (bestScore >= ScoreMateInMaxPly && ++mateCount <= 1) {
+          break;
+        }
+
         // 探索を行う。
         ss->staticEvalRaw = (ss + 1)->staticEvalRaw = ScoreNotEvaluated;
         bestScore = search<Root>(pos, ss + 1, alpha, beta, static_cast<Depth>(depth * OnePly), false);
@@ -795,14 +799,6 @@ void Searcher::idLoop(Position& pos) {
       ofs << " " << scores[i];
     }
     ofs << std::endl;
-  }
-#endif
-
-#ifdef OUTPUT_TRANSPOSITION_HIT_RATE
-  {
-    char buffer[1024];
-    sprintf(buffer, "info string transposition_hit_rate=%f", tt.getHitRate());
-    SYNCCOUT << buffer << SYNCENDL;
   }
 #endif
 }
