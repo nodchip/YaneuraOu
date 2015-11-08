@@ -614,11 +614,14 @@ void Searcher::idLoop(Position& pos) {
   {
     if (rootMoves.size() != 1)
       pvSize = std::max<size_t>(pvSize, 2);
-}
+  }
 #endif
 
   // 反復深化で探索を行う。
-  while (++depth <= MaxPly && !signals.stop && (!limits.depth || depth <= limits.depth)) {
+  while (++depth <= MaxPly &&
+    !signals.stop &&
+    (!limits.depth || depth <= limits.depth) &&
+    bestScore < ScoreMateInMaxPly) {
     // 前回の iteration の結果を全てコピー
     for (size_t i = 0; i < rootMoves.size(); ++i) {
       rootMoves[i].prevScore_ = rootMoves[i].score_;
@@ -628,7 +631,7 @@ void Searcher::idLoop(Position& pos) {
     bestMoveChanges = 0;
 
     // Multi PV loop
-    for (pvIdx = 0; pvIdx < pvSize && !signals.stop; ++pvIdx) {
+    for (pvIdx = 0; pvIdx < pvSize && !signals.stop && bestScore < ScoreMateInMaxPly; ++pvIdx) {
       // aspiration search
       // alpha, beta をある程度絞ることで、探索効率を上げる。
       if (5 <= depth && abs(rootMoves[pvIdx].prevScore_) < ScoreKnownWin) {
@@ -650,7 +653,7 @@ void Searcher::idLoop(Position& pos) {
 
         alpha = estimatedScore - delta;
         beta = estimatedScore + delta;
-        }
+      }
       else {
         alpha = -ScoreInfinite;
         beta = ScoreInfinite;
@@ -658,12 +661,7 @@ void Searcher::idLoop(Position& pos) {
 
       // aspiration search の window 幅を、初めは小さい値にして探索し、
       // fail high/low になったなら、今度は window 幅を広げて、再探索を行う。
-      while (true) {
-        // 何らかの形で詰んでいる場合は反復深化を打ち切る
-        if (bestScore >= ScoreMateInMaxPly && ++mateCount <= 1) {
-          break;
-        }
-
+      while (bestScore < ScoreMateInMaxPly) {
         // 探索を行う。
         ss->staticEvalRaw = (ss + 1)->staticEvalRaw = ScoreNotEvaluated;
         bestScore = search<Root>(pos, ss + 1, alpha, beta, static_cast<Depth>(depth * OnePly), false);
@@ -680,7 +678,7 @@ void Searcher::idLoop(Position& pos) {
         if (ScoreMateInMaxPly <= abs(bestScore) && abs(bestScore) < ScoreInfinite) {
           SYNCCOUT << pvInfoToUSI(pos, ply, alpha, beta) << SYNCENDL;
           signals.stop = true;
-      }
+        }
 #endif
 
         if (lastTimeToOutputInfoMs + THROTTLE_TO_OUTPUT_INFO_MS < searchTimer.elapsed()) {
@@ -1233,9 +1231,9 @@ split_point_start:
         SYNCCOUT << "info depth " << depth / OnePly
           << " currmove " << move.toUSI()
           << " currmovenumber " << moveCount + pvIdx << SYNCENDL;
-    }
+      }
 #endif
-  }
+    }
 
     extension = Depth0;
     captureOrPawnPromotion = move.isCaptureOrPawnPromotion();
@@ -1412,18 +1410,18 @@ split_point_start:
           || (bishopInDangerFlag == WhiteBishopInDangerIn78 && move.toCSA() == "0078KA"))
         {
           rm.score_ -= options[OptionNames::DANGER_DEMERIT_SCORE];
-      }
+        }
 #endif
         rm.extractPvFromTT(pos);
 
         if (!isPVMove) {
           ++bestMoveChanges;
         }
-    }
+      }
       else {
         rm.score_ = -ScoreInfinite;
       }
-}
+    }
 
     if (bestScore < score) {
       bestScore = (SPNode ? splitPoint->bestScore = score : score);
@@ -1457,7 +1455,7 @@ split_point_start:
         break;
       }
     }
-      }
+  }
 
   if (SPNode) {
     return bestScore;
@@ -1505,7 +1503,7 @@ split_point_start:
   assert(-ScoreInfinite < bestScore && bestScore < ScoreInfinite);
 
   return bestScore;
-    }
+}
 
 void RootMove::extractPvFromTT(Position& pos) {
   StateInfo state[MaxPlyPlus2];
