@@ -72,11 +72,11 @@
 #define USE_MASK_GATHER
 #endif
 
-#if 1
+#if 0
 #define RECORD_ITERATIVE_DEEPNING_SCORES
 #endif
 
-#if 1
+#if 0
 // Aspiration Windows Search で次のイテレーションの値を予測する
 #define USE_ASPIRATION_WINDOW_PREDICTION
 #endif
