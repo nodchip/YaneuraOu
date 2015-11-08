@@ -11,9 +11,9 @@ do
     echo ${kpp_padding0} ${kpp_padding1}
     OUTPUT_FILE=${OUTPUT_DIRECTORY}/${kpp_padding0}-${kpp_padding1}.txt
     g++ --version > ${OUTPUT_FILE}
-    make KPP_PADDING0=${kpp_padding0} KPP_PADDING1=${kpp_padding1} -j4 clean pgo
-    ./tanuki-clang benchmark_elapsed_for_depth_n >> ${OUTPUT_FILE}
-    echo ${kpp_padding0},${kpp_padding1},`tail -n 1 ${OUTPUT_FILE} | cut -f5 -d" "` >> ${RESULT_FILE}
+    make TARGET_PREFIX=tanuki-clang KPP_PADDING0=${kpp_padding0} KPP_PADDING1=${kpp_padding1} -j4 clean pgo
+    ./tanuki-clang bench >> ${OUTPUT_FILE}
+    echo ${kpp_padding0},${kpp_padding1},`tail -n 1 ${OUTPUT_FILE} | cut -f3 -d" "` >> ${RESULT_FILE}
   done
 done
 
