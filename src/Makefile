@@ -1,11 +1,11 @@
-KPP_PADDING0 = 5
-KPP_PADDING1 = 4
+KPP_PADDING0 = 6
+KPP_PADDING1 = 7
 USI_HASH_FOR_BENCHMARK=\"8192\"
 EVALUATE_TABLE_SIZE = 0x10000000LL
-TARGET_PREFIX = tanuki-clang
+TARGET_PREFIX = tanuki-gcc
 
-COMPILER = clang++-3.7
-CFLAGS   = -flto -std=c++11 -fno-exceptions -fno-rtti -m64 -Wextra -Ofast -DKPP_PADDING0=$(KPP_PADDING0) -DKPP_PADDING1=$(KPP_PADDING1) -DUSI_HASH_FOR_BENCHMARK=$(USI_HASH_FOR_BENCHMARK) -DEVALUATE_TABLE_SIZE=$(EVALUATE_TABLE_SIZE) -DMY_NAME=\"$(TARGET_PREFIX)\" 
+COMPILER = g++
+CFLAGS   = -std=c++11 -fno-exceptions -fno-rtti -m64 -Wextra -Ofast -DKPP_PADDING0=$(KPP_PADDING0) -DKPP_PADDING1=$(KPP_PADDING1) -DUSI_HASH_FOR_BENCHMARK=$(USI_HASH_FOR_BENCHMARK) -DEVALUATE_TABLE_SIZE=$(EVALUATE_TABLE_SIZE) -DMY_NAME=\"$(TARGET_PREFIX)\" 
 #CFLAGS   = -std=c++11 -fno-exceptions -fno-rtti -m64 -Wextra -O0 -g -DKPP_PADDING0=$(KPP_PADDING0) -DKPP_PADDING1=$(KPP_PADDING1) -DUSI_HASH_FOR_BENCHMARK=$(USI_HASH_FOR_BENCHMARK) -DEVALUATE_TABLE_SIZE=$(EVALUATE_TABLE_SIZE) -DMY_NAME=\"$(TARGET_PREFIX)\" 
 LDFLAGS  = -flto -lpthread -lgcov
 LIBS     =
@@ -67,12 +67,12 @@ profgen:
 	$(MAKE) CFLAGS='$(CFLAGS) -fprofile-generate' LDFLAGS='$(LDFLAGS) -fprofile-generate' $(PGO_TARGET)
 
 profuse:
-	$(MAKE) CFLAGS='$(CFLAGS) -fprofile-use' LDFLAGS='$(LDFLAGS) -fprofile-use' $(PGO_TARGET)
+	$(MAKE) CFLAGS='$(CFLAGS) -fprofile-use -fprofile-correction' LDFLAGS='$(LDFLAGS) -fprofile-use -fprofile-correction' $(PGO_TARGET)
 
 pgo:
 	$(MAKE) profgen
 	@./$(TARGET) bench | grep "info nodes"
-	@llvm-profdata-3.7 merge -output=default.profdata *.profraw
+	# @llvm-profdata-3.7 merge -output=default.profdata *.profraw
 	@touch *.[ch]pp
 	$(MAKE) profuse
 

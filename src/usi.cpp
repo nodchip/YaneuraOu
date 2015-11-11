@@ -478,7 +478,7 @@ void Searcher::doUSICommandLoop(int argc, char* argv[]) {
   if (world.rank() != 0) {
     learn(pos, env, world);
     return;
-}
+  }
 #endif
 
   for (int i = 1; i < argc; ++i)
@@ -534,13 +534,13 @@ void Searcher::doUSICommandLoop(int argc, char* argv[]) {
     else if (token == "setoption") { setOption(ssCmd); }
 #if defined LEARN
     else if (token == "l") {
-      auto learner = std::unique_ptr<Learner>(new Learner);
+      auto learner = std::make_unique<Learner>();
 #if defined MPI_LEARN
       learner->learn(pos, env, world);
 #else
       learner->learn(pos, ssCmd);
 #endif
-  }
+    }
 #endif
 #if !defined MINIMUL
     // 以下、デバッグ用
@@ -655,7 +655,11 @@ void Searcher::doUSICommandLoop(int argc, char* argv[]) {
           }
         }
         return false;
-      }, gameRecords);
+      },
+        [](const GameRecord& gameRecord) {
+        return gameRecord.winner == 1 || gameRecord.winner == 2;
+      },
+        gameRecords);
       csa::writeCsa1("C:\\home\\develop\\shogi-kifu\\wdoor.csa1", gameRecords);
     }
     else if (token == "merge_csa_files") {
@@ -663,6 +667,21 @@ void Searcher::doUSICommandLoop(int argc, char* argv[]) {
         "C:\\home\\develop\\shogi-kifu\\2chkifu_csa\\2chkifu.csa1",
         "C:\\home\\develop\\shogi-kifu\\wdoor.csa1" },
         "C:\\home\\develop\\shogi-kifu\\merged.csa1");
+    }
+    else if (token == "extract_tanuki_lose") {
+      std::vector<GameRecord> gameRecords;
+      csa::readCsas(
+        "C:\\home\\develop\\shogi-kifu",
+        [](const std::tr2::sys::path& p) {
+        std::string str = p.string();
+        return str.find("tanuki-") != std::string::npos;
+      },
+        [](const GameRecord& gameRecord) {
+        return (gameRecord.blackPlayerName.find("tanuki-") != std::string::npos && gameRecord.winner == 2) ||
+          (gameRecord.whitePlayerName.find("tanuki-") != std::string::npos && gameRecord.winner == 1);
+      },
+        gameRecords);
+      csa::writeCsa1("C:\\home\\develop\\shogi-kifu\\tanuki-lose.csa1", gameRecords);
     }
 #endif
 #endif

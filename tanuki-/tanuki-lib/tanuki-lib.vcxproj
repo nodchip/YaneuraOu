@@ -90,7 +90,7 @@
       <PrecompiledHeader>Use</PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
-      <PreprocessorDefinitions>_DEBUG;_CRT_SECURE_NO_WARNINGS;HAVE_AVX2;HAVE_BMI2;HAVE_SSE42;HAVE_SSE4;HAVE_SSE2;_CRT_SECURE_NO_WARNINGS;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_DEBUG;_CRT_SECURE_NO_WARNINGS;HAVE_BMI2;HAVE_SSE42;HAVE_SSE4;HAVE_SSE2;_CRT_SECURE_NO_WARNINGS;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <SDLCheck>true</SDLCheck>
       <ForcedIncludeFiles>stdafx.h</ForcedIncludeFiles>
       <EnableEnhancedInstructionSet>AdvancedVectorExtensions2</EnableEnhancedInstructionSet>
@@ -123,7 +123,7 @@
       <WarningLevel>Level3</WarningLevel>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <FunctionLevelLinking>true</FunctionLevelLinking>
-      <PreprocessorDefinitions>NDEBUG;_CRT_SECURE_NO_WARNINGS;HAVE_AVX2;HAVE_BMI2;HAVE_SSE42;HAVE_SSE4;HAVE_SSE2;_CRT_SECURE_NO_WARNINGS;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>NDEBUG;_CRT_SECURE_NO_WARNINGS;HAVE_BMI2;HAVE_SSE42;HAVE_SSE4;HAVE_SSE2;_CRT_SECURE_NO_WARNINGS;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ForcedIncludeFiles>stdafx.h</ForcedIncludeFiles>
       <EnableEnhancedInstructionSet>AdvancedVectorExtensions2</EnableEnhancedInstructionSet>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
@@ -181,6 +181,7 @@
     <ClCompile Include="..\..\src\hand.cpp" />
     <ClCompile Include="..\..\src\hayabusa.cpp" />
     <ClCompile Include="..\..\src\init.cpp" />
+    <ClCompile Include="..\..\src\learner.cpp" />
     <ClCompile Include="..\..\src\limits_type.cpp" />
     <ClCompile Include="..\..\src\move.cpp" />
     <ClCompile Include="..\..\src\movePicker.cpp" />

@@ -394,7 +394,7 @@ bool Evaluater::readSynthesized(const std::string& dirName) {
       return false;
     }
     // デバッグ実行時は速度アップのためパディングを無効にして直接読み込む
-#ifdef _DEBUG
+#if defined(LEARN) || defined(_DEBUG)
     ifs.read(reinterpret_cast<char*>(KPP), sizeof(KPP));
 #else
     std::vector<s16> temp(SquareNum * fe_end * fe_end);

@@ -706,7 +706,7 @@ template <typename KPPType, typename KKPType, typename KKType> struct EvaluaterB
 };
 
 
-#ifdef _DEBUG
+#if defined(LEARN) || defined(_DEBUG)
 
 #ifdef KPP_PADDING0
 #undef KPP_PADDING0
@@ -937,7 +937,9 @@ struct SearchStack;
 
 #ifndef EVALUATE_TABLE_SIZE
 // 2GB
-#define EVALUATE_TABLE_SIZE (2LL * 1024LL * 1024LL * 1024LL) >> 3
+//#define EVALUATE_TABLE_SIZE (2LL * 1024LL * 1024LL * 1024LL) >> 3
+// 32MB
+#define EVALUATE_TABLE_SIZE (32L * 1024LL * 1024LL) >> 3
 #endif
 
 constexpr size_t EvaluateTableSize = EVALUATE_TABLE_SIZE;

@@ -341,7 +341,8 @@ bool csa::readCsa(const std::tr2::sys::path& filepath, GameRecord& gameRecord)
 
 bool csa::readCsas(
   const std::tr2::sys::path& directory,
-  const std::function<bool(const std::tr2::sys::path&)>& filter,
+  const std::function<bool(const std::tr2::sys::path&)>& pathFilter,
+  const std::function<bool(const GameRecord&)>& gameRecordFilter,
   std::vector<GameRecord>& gameRecords)
 {
   cout << "Listing files ..." << endl;
@@ -363,15 +364,16 @@ bool csa::readCsas(
       printf("%d/%d %d:%02d:%02d\n", fileIndex, numberOfFiles, hour, minute, second);
     }
 
-    if (!filter(it->path())) {
+    if (!pathFilter(it->path())) {
       continue;
     }
 
     GameRecord gameRecord;
     RETURN_IF_FALSE(readCsa(it->path(), gameRecord));
-    if (gameRecord.winner != 1 && gameRecord.winner != 2) {
+    if (!gameRecordFilter(gameRecord)) {
       continue;
     }
+
     gameRecords.push_back(gameRecord);
   }
 

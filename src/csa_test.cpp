@@ -135,7 +135,7 @@ TEST_F(CsaTest, readCsas_filterReturnsTrue) {
 
   EXPECT_TRUE(csa::readCsas(inputDirectoryPath, [](const path& p) {
     return p.string().find("+Apery_i5-4670+") != std::string::npos;
-  }, gameRecords));
+  }, [](const GameRecord& gameRecord) {return true; }, gameRecords));
 
   EXPECT_EQ(1, gameRecords.size());
 }
@@ -147,7 +147,7 @@ TEST_F(CsaTest, readCsas_filterReturnsFalse) {
 
   EXPECT_TRUE(csa::readCsas(inputDirectoryPath, [](const path& p) {
     return false;
-  }, gameRecords));
+  }, [](const GameRecord& gameRecord) {return true; }, gameRecords));
 
   EXPECT_EQ(0, gameRecords.size());
 }
