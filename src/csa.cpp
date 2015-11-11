@@ -240,7 +240,7 @@ bool csa::convertCsa1LineToSfen(
     ofs << "startpos moves";
 
     Position pos;
-    pos.set(DefaultStartPositionSFEN, Searcher::threads.mainThread());
+    pos.set(DefaultStartPositionSFEN, pos.searcher()->threads.mainThread());
     StateStackPtr SetUpStates = StateStackPtr(new std::stack<StateInfo>());
     while (!line.empty()) {
       const std::string moveStrCSA = line.substr(0, 6);
@@ -425,7 +425,7 @@ bool csa::readCsa1(
     }
 
     Position pos;
-    pos.set(DefaultStartPositionSFEN, Searcher::threads.mainThread());
+    pos.set(DefaultStartPositionSFEN, pos.searcher()->threads.mainThread());
     StateStackPtr stateStack = make_unique<std::stack<StateInfo>>();
     for (int play = 0; play < gameRecord.numberOfPlays; ++play) {
       string moveStr = line.substr(play * 6, 6);

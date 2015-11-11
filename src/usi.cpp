@@ -72,6 +72,8 @@ namespace {
   const StringToPieceTypeCSA g_stringToPieceTypeCSA;
 }
 
+const USIOption OptionsMap::INVALID_OPTION;
+
 void OptionsMap::init(Searcher* s) {
   (*this)[OptionNames::USI_HASH] = USIOption(32, 1, 65536, onHashSize, s);
   (*this)[OptionNames::CLEAR_HASH] = USIOption(onClearHash, s);

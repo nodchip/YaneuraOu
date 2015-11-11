@@ -57,7 +57,7 @@ static bool converSfenToTeacherData(
 
     go(pos, std::istringstream("depth 1"));
     pos.searcher()->threads.waitForThinkFinished();
-    Score score = Searcher::rootMoves[0].score_;
+    Score score = pos.searcher()->rootMoves[0].score_;
 
     if (pos.turn() == White) {
       score = -score;

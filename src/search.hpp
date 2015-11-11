@@ -140,7 +140,7 @@ struct Searcher {
   STATIC Position rootPosition;
   STATIC ThreadPool threads;
   STATIC OptionsMap options;
-  STATIC bool outputInfo;
+  static bool outputInfo;
 
   STATIC void init();
   STATIC void idLoop(Position& pos);

@@ -75,10 +75,22 @@ struct CaseInsensitiveLess {
 };
 
 struct OptionsMap : public std::map<std::string, USIOption, CaseInsensitiveLess> {
+private:
+  static const USIOption INVALID_OPTION;
 public:
   void init(Searcher* s);
   bool isLegalOption(const std::string name) {
     return this->find(name) != std::end(*this);
+  }
+  const USIOption& operator[] (const std::string& name) const {
+    const auto it = this->find(name);
+    if (it != this->end()) {
+      return it->second;
+    }
+    return INVALID_OPTION;
+  }
+  USIOption& operator[] (const std::string& name) {
+    return std::map<std::string, USIOption, CaseInsensitiveLess>::operator[](name);
   }
 };
 

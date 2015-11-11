@@ -24,7 +24,7 @@ void benchmark(Position& pos) {
     pos.searcher()->setOption(option);
   }
 
-  Searcher::recordIterativeDeepningScores = false;
+  pos.searcher()->recordIterativeDeepningScores = false;
   std::ifstream ifs("benchmark.sfen");
   std::string sfen;
   u64 sumOfSearchedNodes = 0;
@@ -34,8 +34,8 @@ void benchmark(Position& pos) {
     go(pos, "byoyomi 10000");
     pos.searcher()->threads.waitForThinkFinished();
 
-    sumOfSearchedNodes += Searcher::lastSearchedNodes;
-    sumOfSeaerchTimeMs += Searcher::searchTimer.elapsed();
+    sumOfSearchedNodes += pos.searcher()->lastSearchedNodes;
+    sumOfSeaerchTimeMs += pos.searcher()->searchTimer.elapsed();
   }
 
   SYNCCOUT << "info nodes " << sumOfSearchedNodes * 1000 / sumOfSeaerchTimeMs
@@ -67,7 +67,7 @@ void benchmarkElapsedForDepthN(Position& pos) {
     "depth 15",
   };
 
-  Searcher::recordIterativeDeepningScores = false;
+  pos.searcher()->recordIterativeDeepningScores = false;
   std::ifstream ifs("benchmark.sfen");
   std::string sfen;
   u64 sumOfSearchedNodes = 0;
@@ -79,8 +79,8 @@ void benchmarkElapsedForDepthN(Position& pos) {
     go(pos, depths[depthIndex++]);
     pos.searcher()->threads.waitForThinkFinished();
 
-    sumOfSearchedNodes += Searcher::lastSearchedNodes;
-    sumOfSeaerchTimeMs += Searcher::searchTimer.elapsed();
+    sumOfSearchedNodes += pos.searcher()->lastSearchedNodes;
+    sumOfSeaerchTimeMs += pos.searcher()->searchTimer.elapsed();
   }
 
   SYNCCOUT << "info nodes " << sumOfSearchedNodes

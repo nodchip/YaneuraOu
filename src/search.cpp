@@ -75,9 +75,9 @@ Position Searcher::rootPosition(nullptr);
 ThreadPool Searcher::threads;
 OptionsMap Searcher::options;
 Searcher* Searcher::thisptr;
-bool Searcher::outputInfo = true;
 bool Searcher::recordIterativeDeepningScores = true;
 #endif
+bool Searcher::outputInfo = true;
 
 void Searcher::init() {
 #if defined USE_GLOBAL
@@ -1521,7 +1521,7 @@ void RootMove::extractPvFromTT(Position& pos) {
 
     assert(pos.moveIsLegal(pv_[ply]));
     pos.doMove(pv_[ply++], *st++);
-    tte = pos.csearcher()->tt.probe(pos.getKey());
+    tte = pos.searcher()->tt.probe(pos.getKey());
   } while (tte != nullptr
     // このチェックは少し無駄。駒打ちのときはmove16toMove() 呼ばなくて良い。
     && pos.moveIsPseudoLegal(m = move16toMove(tte->move(), pos))
@@ -1542,7 +1542,7 @@ void RootMove::insertPvInTT(Position& pos) {
   Ply ply = 0;
 
   do {
-    tte = pos.csearcher()->tt.probe(pos.getKey());
+    tte = pos.searcher()->tt.probe(pos.getKey());
 
     if (tte == nullptr
       || move16toMove(tte->move(), pos) != pv_[ply])

@@ -1,9 +1,10 @@
 ﻿#ifndef APERY_LEARNER_HPP
 #define APERY_LEARNER_HPP
 
-#include "position.hpp"
-#include "thread.hpp"
 #include "evaluate.hpp"
+#include "position.hpp"
+#include "search.hpp"
+#include "thread.hpp"
 
 #if defined LEARN
 
@@ -128,7 +129,7 @@ struct BookMoveData {
 class Learner {
 public:
   void learn(Position& pos, std::istringstream& ssCmd) {
-    eval_.init(pos.searcher()->options[OptionNames::EVAL_DIR], false);
+    eval_.init(pos.searcher()->options["Eval_Dir"], false);
     readBook(pos, ssCmd);
     size_t threadNum;
     ssCmd >> threadNum;
@@ -450,10 +451,9 @@ private:
     }
   }
   void learnParse2(Position& pos) {
-    Time t;
     const int MaxStep = 32;
     for (int step = 1; step <= MaxStep; ++step) {
-      t.restart();
+      double startTime = clock() / double(CLOCKS_PER_SEC);
       std::cout << "step " << step << "/" << MaxStep << " " << std::flush;
       index_ = 0;
       std::vector<std::thread> threads(positions_.size());
@@ -468,9 +468,10 @@ private:
       }
       parse2Data_.params.lowerDimension();
       std::cout << "update eval ... " << std::flush;
-      updateEval(pos.searcher()->options[OptionNames::EVAL_DIR]);
+      updateEval(pos.searcher()->options["Eval_Dir"]);
       std::cout << "done" << std::endl;
-      std::cout << "parse2 1 step elapsed: " << t.elapsed() / 1000 << "[sec]" << std::endl;
+      double endTime = clock() / double(CLOCKS_PER_SEC);
+      std::cout << "parse2 1 step elapsed: " << (endTime - startTime) << "[sec]" << std::endl;
       print();
     }
   }
