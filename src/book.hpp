@@ -2,7 +2,6 @@
 #define APERY_BOOK_HPP
 
 #include "position.hpp"
-#include "scanner.hpp"
 
 struct BookEntry {
   Key key;
@@ -32,6 +31,6 @@ private:
   static Key ZobTurn;
 };
 
-void makeBook(Position& pos, Scanner command);
+void makeBook(Position& pos, std::istringstream& ssCmd);
 
 #endif // #ifndef APERY_BOOK_HPP

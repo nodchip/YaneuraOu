@@ -131,7 +131,7 @@ std::tuple<Move, Score> Book::probe(const Position& pos, const std::string& fNam
       else {
         const Square from = tmp.from();
         const PieceType ptFrom = pieceToPieceType(pos.piece(from));
-        const bool promo = tmp.isPromotion() != 0;
+        const bool promo = tmp.isPromotion();
         if (promo) {
           move = makeCapturePromoteMove(ptFrom, from, to, pos);
         }
@@ -163,7 +163,7 @@ inline bool countCompare(const BookEntry& b1, const BookEntry& b2) {
 // 出現回数がそのまま定跡として使う確率となる。
 // 基本的には棋譜を丁寧に選別した上で定跡を作る必要がある。
 // MAKE_SEARCHED_BOOK を on にしていると、定跡生成に非常に時間が掛かる。
-void makeBook(Position& pos, Scanner command) {
+void makeBook(Position& pos, std::istringstream& ssCmd) {
   std::string options[] = {
     "name Threads value 4",
     "name MultiPV value 1",
@@ -172,13 +172,14 @@ void makeBook(Position& pos, Scanner command) {
     "name USI_Hash value 8192",
     "name Use_Sleeping_Threads value true",
   };
-  for (auto& str : options) {
-    pos.searcher()->setOption(str);
+  for (auto& option : options) {
+    pos.searcher()->setOption(option);
   }
 
   Searcher::outputInfo = false;
 
-  std::string fileName = command.next();
+  std::string fileName;
+  ssCmd >> fileName;
   std::ifstream ifs(fileName.c_str());
   if (!ifs) {
     std::cout << "I cannot open " << fileName << std::endl;
@@ -201,12 +202,15 @@ void makeBook(Position& pos, Scanner command) {
       int hour = remainedSec / 3600;
       printf("%d/%d %d:%02d:%02d\n", gameRecordIndex, numberOfGameRecords, hour, minute, second);
     }
-    Scanner scanner = line;
-    scanner.next(); // 棋譜番号を飛ばす。
-    scanner.next(); // 対局日を飛ばす。
-    const std::string sente = scanner.next(); // 先手
-    const std::string gote = scanner.next(); // 後手
-    std::string elem = scanner.next(); // (0:引き分け,1:先手の勝ち,2:後手の勝ち)
+    std::string elem;
+    std::stringstream ss(line);
+    ss >> elem; // 棋譜番号を飛ばす。
+    ss >> elem; // 対局日を飛ばす。
+    ss >> elem; // 先手
+    const std::string sente = elem;
+    ss >> elem; // 後手
+    const std::string gote = elem;
+    ss >> elem; // (0:引き分け,1:先手の勝ち,2:後手の勝ち)
     const Color winner = (elem == "1" ? Black : elem == "2" ? White : ColorNum);
     // 勝った方の指し手を記録していく。
     // 又は稲庭戦法側を記録していく。
@@ -268,8 +272,14 @@ void makeBook(Position& pos, Scanner command) {
 
           SetUpStates->push(StateInfo());
           pos.doMove(move, SetUpStates->top());
-          go(pos, "depth 3");
-          pos.searcher()->threads.waitForThinkFinished();
+          << << << < HEAD
+            go(pos, "depth 3");
+          == == == =
+
+            std::istringstream ssCmd("byoyomi 1000");
+          go(pos, ssCmd);
+          >> >> >> > parent of 135c4ee... Scannerクラスを追加した
+            pos.searcher()->threads.waitForThinkFinished();
           pos.undoMove(move);
           SetUpStates->pop();
           // doMove してから search してるので点数が反転しているので直す。
@@ -314,7 +324,7 @@ void makeBook(Position& pos, Scanner command) {
     auto& second = elem.second;
     auto erase_it = std::find_if(second.begin(), second.end(), [&](decltype(*second.begin())& second_elem) { return second_elem.count < second[0].count / 2; });
     second.erase(erase_it, second.end());
-  }
+}
 #endif
 
   std::ofstream ofs("book-2015-11-03.bin", std::ios::binary);

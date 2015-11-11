@@ -1,10 +1,7 @@
 ﻿#include "benchmark.hpp"
 #include "common.hpp"
-#include "limits_type.hpp"
 #include "position.hpp"
-#include "scanner.hpp"
 #include "search.hpp"
-#include "usi.hpp"
 
 #ifndef USI_HASH_FOR_BENCHMARK
 #define USI_HASH_FOR_BENCHMARK "8192"
@@ -23,8 +20,8 @@ void benchmark(Position& pos) {
     "name USI_Hash value " USI_HASH_FOR_BENCHMARK,
     "name Use_Sleeping_Threads value true",
   };
-  for (auto& str : options) {
-    pos.searcher()->setOption(str);
+  for (const auto& option : options) {
+    pos.searcher()->setOption(option);
   }
 
   Searcher::recordIterativeDeepningScores = false;
@@ -33,7 +30,6 @@ void benchmark(Position& pos) {
   u64 sumOfSearchedNodes = 0;
   int sumOfSeaerchTimeMs = 0;
   while (std::getline(ifs, sfen)) {
-    std::cout << sfen << std::endl;
     setPosition(pos, sfen);
     go(pos, "byoyomi 10000");
     pos.searcher()->threads.waitForThinkFinished();
@@ -59,8 +55,8 @@ void benchmarkElapsedForDepthN(Position& pos) {
     "name USI_Hash value " USI_HASH_FOR_BENCHMARK,
     "name Use_Sleeping_Threads value true",
   };
-  for (auto& str : options) {
-    pos.searcher()->setOption(str);
+  for (const auto& option : options) {
+    pos.searcher()->setOption(option);
   }
 
   const char* depths[] = {

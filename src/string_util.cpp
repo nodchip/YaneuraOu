@@ -1,26 +1,16 @@
+#include <sstream>
+
 #include "string_util.hpp"
 
 using namespace std;
 
 std::vector<std::string> string_util::split(const std::string& in) {
   std::vector<std::string> out;
+  istringstream iss(in);
   string word;
-  for (unsigned char ch : in) {
-    if (isspace(ch)) {
-      if (!word.empty()) {
-        out.push_back(word);
-        word.clear();
-      }
-    }
-    else {
-      word.push_back(ch);
-    }
-  }
-
-  if (!word.empty()) {
+  while (iss >> word) {
     out.push_back(word);
   }
-
   return out;
 }
 

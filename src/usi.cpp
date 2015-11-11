@@ -162,37 +162,50 @@ std::ostream& operator << (std::ostream& os, const OptionsMap& om) {
   return os;
 }
 
-void go(const Position& pos, Scanner command) {
+void go(const Position& pos, const std::string& cmd) {
+  std::istringstream iss(cmd);
+  go(pos, iss);
+}
+
+void go(const Position& pos, std::istringstream& ssCmd) {
   std::chrono::time_point<std::chrono::system_clock> goReceivedTime =
     std::chrono::system_clock::now();
   LimitsType limits;
   std::vector<Move> moves;
+  std::string token;
 
-  while (command.hasNext()) {
-    std::string token = command.next();
+  while (ssCmd >> token) {
     if (token == "ponder") { limits.ponder = true; }
     else if (token == "btime") {
-      limits.time[Black] = command.nextInt();
+      int btime;
+      ssCmd >> btime;
+      limits.time[Black] = btime;
     }
     else if (token == "wtime") {
-      limits.time[White] = command.nextInt();
+      int wtime;
+      ssCmd >> wtime;
+      limits.time[White] = wtime;
     }
     else if (token == "infinite") { limits.infinite = true; }
     else if (token == "byoyomi" || token == "movetime") {
       // btime wtime の後に byoyomi が来る前提になっているので良くない。
-      limits.byoyomi = command.nextInt();
+      int byoyomi;
+      ssCmd >> byoyomi;
+      limits.byoyomi = byoyomi;
     }
     else if (token == "depth") {
-      limits.depth = command.nextInt();
+      int depth;
+      ssCmd >> depth;
+      limits.depth = depth;
     }
     else if (token == "nodes") {
-      limits.nodes = command.nextInt();
+      int nodes;
+      ssCmd >> nodes;
+      limits.nodes = nodes;
     }
     else if (token == "searchmoves") {
-      while (command.hasNext()) {
-        token = command.next();
+      while (ssCmd >> token)
         moves.push_back(usiToMove(pos, token));
-      }
     }
   }
   pos.searcher()->searchMoves = moves;
@@ -328,24 +341,25 @@ Move csaToMove(const Position& pos, const std::string& moveStr) {
   return move;
 }
 
-void setPosition(Position& pos, Scanner command) {
-  std::string token = command.next();
+void setPosition(Position& pos, const std::string& cmd)
+{
+  std::istringstream iss(cmd);
+  setPosition(pos, iss);
+}
+
+void setPosition(Position& pos, std::istringstream& ssCmd) {
+  std::string token;
   std::string sfen;
+
+  ssCmd >> token;
 
   if (token == "startpos") {
     sfen = DefaultStartPositionSFEN;
-    // 将棋所は startpos のみ送ってくる。
-    // SFEN は startpos の直後は moves。
-    if (command.hasNext()) {
-      token = command.next();
-      assert(token == "moves");
-    }
+    ssCmd >> token; // "moves" が入力されるはず。
   }
   else if (token == "sfen") {
-    while (command.hasNext()) {
-      token = command.next();
-      sfen += token;
-      sfen += " ";
+    while (ssCmd >> token && token != "moves") {
+      sfen += token + " ";
     }
   }
   else {
@@ -356,8 +370,7 @@ void setPosition(Position& pos, Scanner command) {
   pos.searcher()->setUpStates = StateStackPtr(new std::stack<StateInfo>());
 
   Ply currentPly = pos.gamePly();
-  while (command.hasNext()) {
-    token = command.next();
+  while (ssCmd >> token) {
     const Move move = usiToMove(pos, token);
     if (move.isNone()) break;
     pos.searcher()->setUpStates->push(StateInfo());
@@ -367,22 +380,29 @@ void setPosition(Position& pos, Scanner command) {
   pos.setStartPosPly(currentPly);
 }
 
-void Searcher::setOption(Scanner commands) {
-  std::string token = commands.next();
-  assert(token == "name");
+void Searcher::setOption(const std::string& cmd)
+{
+  std::istringstream iss(cmd);
+  setOption(iss);
+}
 
-  std::string name = commands.next();
+void Searcher::setOption(std::istringstream& ssCmd) {
+  std::string token;
+  std::string name;
+  std::string value;
+
+  ssCmd >> token; // "name" が入力されるはず。
+
+  ssCmd >> name;
   // " " が含まれた名前も扱う。
-  while (commands.hasNext() && (token = commands.next()) != "value") {
-    name += " ";
-    name += token;
+  while (ssCmd >> token && token != "value") {
+    name += " " + token;
   }
 
-  std::string value = commands.next();
+  ssCmd >> value;
   // " " が含まれた値も扱う。
-  while (commands.hasNext()) {
-    value += " ";
-    value += commands.next();
+  while (ssCmd >> token) {
+    value += " " + token;
   }
 
   if (!options.isLegalOption(name)) {
@@ -456,7 +476,7 @@ void Searcher::doUSICommandLoop(int argc, char* argv[]) {
   if (world.rank() != 0) {
     learn(pos, env, world);
     return;
-  }
+}
 #endif
 
   for (int i = 1; i < argc; ++i)
@@ -466,8 +486,9 @@ void Searcher::doUSICommandLoop(int argc, char* argv[]) {
     if (argc == 1)
       std::getline(std::cin, cmd);
 
-    Scanner command = cmd;
-    token = command.next();
+    std::istringstream ssCmd(cmd);
+
+    ssCmd >> std::skipws >> token;
 
     if (token == "quit" || token == "stop" || token == "ponderhit" || token == "gameover") {
       if (token != "ponderhit" || signals.stopOnPonderHit) {
@@ -505,10 +526,10 @@ void Searcher::doUSICommandLoop(int argc, char* argv[]) {
         << "\n" << options
         << "\nusiok" << SYNCENDL;
     }
-    else if (token == "go") { go(pos, command); }
+    else if (token == "go") { go(pos, ssCmd); }
     else if (token == "isready") { SYNCCOUT << "readyok" << SYNCENDL; }
-    else if (token == "position") { setPosition(pos, command); }
-    else if (token == "setoption") { setOption(command); }
+    else if (token == "position") { setPosition(pos, ssCmd); }
+    else if (token == "setoption") { setOption(ssCmd); }
 #if defined LEARN
     else if (token == "l") {
       auto learner = std::unique_ptr<Learner>(new Learner);
@@ -517,7 +538,7 @@ void Searcher::doUSICommandLoop(int argc, char* argv[]) {
 #else
       learner->learn(pos, ssCmd);
 #endif
-    }
+  }
 #endif
 #if !defined MINIMUL
     // 以下、デバッグ用
@@ -526,7 +547,7 @@ void Searcher::doUSICommandLoop(int argc, char* argv[]) {
     else if (token == "d") { pos.print(); }
     else if (token == "s") { measureGenerateMoves(pos); }
     else if (token == "t") { std::cout << pos.mateMoveIn1Ply().toCSA() << std::endl; }
-    else if (token == "b") { makeBook(pos, command); }
+    else if (token == "b") { makeBook(pos, ssCmd); }
 #ifdef _MSC_VER
     else if (token == "convert_sfen_to_teacher_data") {
       hayabusa::convertSfenToTeacherData();

@@ -4,13 +4,12 @@
 #include "csa.hpp"
 #include "generateMoves.hpp"
 #include "hayabusa.hpp"
-#include "scanner.hpp"
-#include "search.hpp"
-#include "square.hpp"
-#include "string_util.hpp"
-#include "thread.hpp"
 #include "thread.hpp"
 #include "usi.hpp"
+#include "search.hpp"
+#include "square.hpp"
+#include "thread.hpp"
+#include "string_util.hpp"
 
 using namespace std;
 using namespace std::tr2::sys;
@@ -24,6 +23,10 @@ const std::tr2::sys::path hayabusa::DEFAULT_INPUT_SFEN_FILE_PATH("../bin/kifu.sf
 static const double ALPHA = pow(2.0, -14.0);
 
 static const Score LOSE_PENARTY = PawnScore * 1000;
+
+void setPosition(Position& pos, std::istringstream& ssCmd);
+void go(const Position& pos, std::istringstream& ssCmd);
+
 
 // SFENを教師データに変換する
 // sfen SFEN形式の文字列
@@ -39,8 +42,11 @@ static bool converSfenToTeacherData(
 
   int numberOfPlays = sfen.size() - 2;
   for (int play = 1; play <= numberOfPlays; ++play) {
+    string subSfen = string_util::concat(vector<string>(sfen.begin(), sfen.begin() + play + 2));
+
+    std::istringstream ss_sfen(subSfen);
     Position pos;
-    setPosition(pos, vector<string>(sfen.begin(), sfen.begin() + play + 2));
+    setPosition(pos, ss_sfen);
 
     //SearchStack searchStack[MaxPlyPlus2];
     //memset(searchStack, 0, sizeof(searchStack));
@@ -49,7 +55,7 @@ static bool converSfenToTeacherData(
     //searchStack[1].staticEvalRaw = (Score)INT_MAX;
     //Score score = evaluate(pos, &searchStack[1]);
 
-    go(pos, "depth 1");
+    go(pos, std::istringstream("depth 1"));
     pos.searcher()->threads.waitForThinkFinished();
     Score score = Searcher::rootMoves[0].score_;
 

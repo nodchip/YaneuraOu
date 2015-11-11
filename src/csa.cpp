@@ -35,7 +35,7 @@ bool csa::toSfen(const std::tr2::sys::path& filepath, std::vector<std::string>& 
   sfen.push_back("moves");
 
   Position position;
-  setPosition(position, sfen);
+  setPosition(position, string_util::concat(sfen));
 
   ifstream ifs(filepath);
   if (!ifs.is_open()) {
@@ -215,8 +215,9 @@ bool csa::convertCsa1LineToSfen(
 
   std::string line;
   while (std::getline(ifs, line)) {
-    Scanner scanner = line;
-    int kifuIndex = scanner.nextInt();
+    int kifuIndex;
+    std::stringstream ss(line);
+    ss >> kifuIndex;
 
     // 進捗状況表示
     if (kifuIndex % 1000 == 0) {
@@ -224,10 +225,12 @@ bool csa::convertCsa1LineToSfen(
     }
 
     std::string elem;
-    scanner.next(); // 対局日を飛ばす。
-    const std::string sente = scanner.next(); // 先手
-    const std::string gote = scanner.next(); // 後手
-    scanner.next(); // (0:引き分け,1:先手の勝ち,2:後手の勝ち)
+    ss >> elem; // 対局日を飛ばす。
+    ss >> elem; // 先手
+    const std::string sente = elem;
+    ss >> elem; // 後手
+    const std::string gote = elem;
+    ss >> elem; // (0:引き分け,1:先手の勝ち,2:後手の勝ち)
 
     if (!std::getline(ifs, line)) {
       std::cout << "!!! header only !!!" << std::endl;
