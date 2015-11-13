@@ -1,4 +1,5 @@
-﻿#include "benchmark.hpp"
+﻿#include <memory>
+#include "benchmark.hpp"
 #include "book.hpp"
 #include "generateMoves.hpp"
 #include "learner.hpp"
@@ -83,7 +84,7 @@ void OptionsMap::init(Searcher* s) {
   (*this)[OptionNames::MIN_BOOK_PLY] = USIOption(SHRT_MAX, 0, SHRT_MAX);
   (*this)[OptionNames::MAX_BOOK_PLY] = USIOption(SHRT_MAX, 0, SHRT_MAX);
   (*this)[OptionNames::MIN_BOOK_SCORE] = USIOption(-180, -ScoreInfinite, ScoreInfinite);
-  (*this)[OptionNames::EVAL_DIR] = USIOption("../bin/20150501", onEvalDir);
+  (*this)[OptionNames::EVAL_DIR] = USIOption("../bin/20151112", onEvalDir);
   (*this)[OptionNames::WRITE_SYNTHESIZED_EVAL] = USIOption(false);
   (*this)[OptionNames::USI_PONDER] = USIOption(true);
   (*this)[OptionNames::BYOYOMI_MARGIN] = USIOption(500, 0, INT_MAX);
@@ -534,7 +535,7 @@ void Searcher::doUSICommandLoop(int argc, char* argv[]) {
     else if (token == "setoption") { setOption(ssCmd); }
 #if defined LEARN
     else if (token == "l") {
-      auto learner = std::make_unique<Learner>();
+      auto learner = std::unique_ptr<Learner>(new Learner());
 #if defined MPI_LEARN
       learner->learn(pos, env, world);
 #else
