@@ -5,7 +5,8 @@
 
 KPPBoardIndexStartToPiece g_kppBoardIndexStartToPiece;
 
-s16 Evaluater::KPP[SquareNum][fe_end + KPP_PADDING1][fe_end + KPP_PADDING0];
+//s16 Evaluater::KPP[SquareNum][fe_end + KPP_PADDING1][fe_end + KPP_PADDING0];
+s16 Evaluater::KPP[SquareNum][fe_end][fe_end];
 s32 Evaluater::KKP[SquareNum][SquareNum][fe_end];
 s32 Evaluater::KK[SquareNum][SquareNum];
 

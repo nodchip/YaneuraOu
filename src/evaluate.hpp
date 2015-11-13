@@ -705,33 +705,33 @@ template <typename KPPType, typename KKPType, typename KKType> struct EvaluaterB
   }
 };
 
-
-#if defined(LEARN) || defined(_DEBUG)
-
-#ifdef KPP_PADDING0
-#undef KPP_PADDING0
-#endif
-#define KPP_PADDING0 0
-
-#ifdef KPP_PADDING1
-#undef KPP_PADDING0
-#endif
-#define KPP_PADDING1 0
-
-#else
-
-#ifndef KPP_PADDING0
-#define KPP_PADDING0 5
-#endif
-#ifndef KPP_PADDING1
-#define KPP_PADDING1 4
-#endif
-
-#endif
+//#if defined(LEARN) || defined(_DEBUG)
+//
+//#ifdef KPP_PADDING0
+//#undef KPP_PADDING0
+//#endif
+//#define KPP_PADDING0 0
+//
+//#ifdef KPP_PADDING1
+//#undef KPP_PADDING0
+//#endif
+//#define KPP_PADDING1 0
+//
+//#else
+//
+//#ifndef KPP_PADDING0
+//#define KPP_PADDING0 5
+//#endif
+//#ifndef KPP_PADDING1
+//#define KPP_PADDING1 4
+//#endif
+//
+//#endif
 
 struct Evaluater : public EvaluaterBase<s16, s32, s32> {
   // 探索時に参照する評価関数テーブル
-  static s16 KPP[SquareNum][fe_end + KPP_PADDING1][fe_end + KPP_PADDING0];
+  //static s16 KPP[SquareNum][fe_end + KPP_PADDING1][fe_end + KPP_PADDING0];
+  static s16 KPP[SquareNum][fe_end][fe_end];
   static s32 KKP[SquareNum][SquareNum][fe_end];
   static s32 KK[SquareNum][SquareNum];
 #if defined USE_K_FIX_OFFSET
@@ -937,9 +937,9 @@ struct SearchStack;
 
 #ifndef EVALUATE_TABLE_SIZE
 // 2GB
-//#define EVALUATE_TABLE_SIZE (2LL * 1024LL * 1024LL * 1024LL) >> 3
+#define EVALUATE_TABLE_SIZE (2LL * 1024LL * 1024LL * 1024LL) >> 3
 // 32MB
-#define EVALUATE_TABLE_SIZE (32L * 1024LL * 1024LL) >> 3
+//#define EVALUATE_TABLE_SIZE (32L * 1024LL * 1024LL) >> 3
 #endif
 
 constexpr size_t EvaluateTableSize = EVALUATE_TABLE_SIZE;

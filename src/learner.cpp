@@ -105,6 +105,7 @@ void Parse2Data::clear() {
 ///////////////////////////////////////////////////////////////////////////////
 void Learner::learn(Position& pos, std::istringstream& ssCmd) {
   eval_.init(pos.searcher()->options["Eval_Dir"], true);
+  copyFromKppkkpkkToOneArray();
   readBook(pos, ssCmd);
   size_t threadNum;
   ssCmd >> threadNum;
@@ -132,6 +133,7 @@ void Learner::learn(Position& pos, std::istringstream& ssCmd) {
     learnParse1(pos);
     std::cout << "parse2 start" << std::endl;
     learnParse2(pos);
+    break;
   }
 }
 
@@ -161,7 +163,7 @@ void Learner::setLearnMoves(Position& pos, std::set<std::pair<Key, Move> >& dict
       break;
     BookMoveData bmd = bmdBase[pos.turn()];
     bmd.move = move;
-    if (dict.find(std::make_pair(pos.getKey(), move)) == std::end(dict)) {
+    if (dict.find(std::make_pair(pos.getKey(), move)) == std::end(dict) && bmd.winner) {
       // この局面かつこの指し手は初めて見るので、学習に使う。
       bmd.useLearning = true;
       dict.insert(std::make_pair(pos.getKey(), move));
@@ -328,6 +330,34 @@ void Learner::updateFV(T& v, float dv) {
   else if (dv <= 0.0 && std::numeric_limits<T>::min() + step <= v) v -= step;
 }
 
+void Learner::copyFromKppkkpkkToOneArray()
+{
+  int to = eval_.kpps_begin_index();
+  for (int i = 0; i < SquareNum; ++i) {
+    for (int j = 0; j < fe_end; ++j) {
+      for (int k = 0; k < fe_end; ++k) {
+        eval_.oneArrayKPP[to++] = Evaluater::KPP[i][j][k];
+      }
+    }
+  }
+
+  to = eval_.kkps_begin_index();
+  for (int i = 0; i < SquareNum; ++i) {
+    for (int j = 0; j < SquareNum; ++j) {
+      for (int k = 0; k < fe_end; ++k) {
+        eval_.oneArrayKKP[to++] = Evaluater::KKP[i][j][k];
+      }
+    }
+  }
+
+  to = eval_.kks_begin_index();
+  for (int i = 0; i < SquareNum; ++i) {
+    for (int j = 0; j < SquareNum; ++j) {
+      eval_.oneArrayKK[to++] = Evaluater::KK[i][j];
+    }
+  }
+}
+
 void Learner::updateEval(const std::string& dirName) {
   for (size_t i = eval_.kpps_begin_index(), j = parse2Data_.params.kpps_begin_index(); i < eval_.kpps_end_index(); ++i, ++j)
     updateFV(eval_.oneArrayKPP[i], parse2Data_.params.oneArrayKPP[j]);
@@ -338,6 +368,7 @@ void Learner::updateEval(const std::string& dirName) {
 
   eval_.setEvaluate();
   eval_.write(dirName);
+  eval_.writeSynthesized(dirName);
   g_evalTable.clear();
 }
 

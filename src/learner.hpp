@@ -77,6 +77,7 @@ private:
   static constexpr double FVPenalty();
   template <typename T>
   void updateFV(T& v, float dv);
+  void copyFromKppkkpkkToOneArray();
   void updateEval(const std::string& dirName);
   double sigmoid(const double x) const;
   double dsigmoid(const double x) const;
