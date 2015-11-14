@@ -1660,22 +1660,25 @@ void Searcher::think() {
   //  SYNCCOUT << "info string book_ply " << book_ply << SYNCENDL;
   //}
   if (options[OptionNames::OWNBOOK] && pos.gamePly() <= book_ply) {
-    const std::tuple<Move, Score> bookMoveScore = book.probe(pos, options[OptionNames::BOOK_FILE], options[OptionNames::BEST_BOOK_MOVE]);
-    if (!std::get<0>(bookMoveScore).isNone() && std::find(rootMoves.begin(),
-      rootMoves.end(),
-      std::get<0>(bookMoveScore)) != rootMoves.end())
-    {
-      std::swap(rootMoves[0], *std::find(rootMoves.begin(),
-        rootMoves.end(),
-        std::get<0>(bookMoveScore)));
-      if (outputInfo) {
-        SYNCCOUT << "info"
-          << " score " << scoreToUSI(std::get<1>(bookMoveScore))
-          << " pv " << std::get<0>(bookMoveScore).toUSI()
-          << SYNCENDL;
+    std::vector<Move> movesInBook =
+      book.enumerateMoves(pos, options[OptionNames::BOOK_FILE]);
+    std::vector<RootMove> rootMovesInBook;
+    for (const auto& move : movesInBook) {
+      if (move.isNone()) {
+        continue;
       }
+      if (std::find(rootMoves.begin(), rootMoves.end(), move) == rootMoves.end()) {
+        continue;
+      }
+      rootMovesInBook.push_back(RootMove(move));
+    }
 
-      goto finalize;
+    if (!rootMovesInBook.empty()) {
+      rootMoves = rootMovesInBook;
+
+      limits.time[Black] = 0;
+      limits.time[White] = 0;
+      limits.byoyomi = 1;
     }
   }
 

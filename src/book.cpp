@@ -146,6 +146,43 @@ std::tuple<Move, Score> Book::probe(const Position& pos, const std::string& fNam
   return std::make_tuple(move, score);
 }
 
+std::vector<Move> Book::enumerateMoves(const Position& pos, const std::string& fName)
+{
+  if (fileName_ != fName && !open(fName.c_str())) {
+    return{};
+  }
+
+  const Key key = bookKey(pos);
+  binary_search(key);
+
+  // 現在の局面における定跡手の数だけループする。
+  std::vector<Move> moves;
+  BookEntry entry;
+  while (read(reinterpret_cast<char*>(&entry), sizeof(entry)), entry.key == key && good()) {
+    const Move tmp = Move(entry.fromToPro);
+    const Square to = tmp.to();
+    Move move;
+    if (tmp.isDrop()) {
+      const PieceType ptDropped = tmp.pieceTypeDropped();
+      move = makeDropMove(ptDropped, to);
+    }
+    else {
+      const Square from = tmp.from();
+      const PieceType ptFrom = pieceToPieceType(pos.piece(from));
+      const bool promo = tmp.isPromotion();
+      if (promo) {
+        move = makeCapturePromoteMove(ptFrom, from, to, pos);
+      }
+      else {
+        move = makeCaptureMove(ptFrom, from, to, pos);
+      }
+    }
+    moves.push_back(move);
+  }
+
+  return moves;
+}
+
 inline bool countCompare(const BookEntry& b1, const BookEntry& b2) {
   return b1.count < b2.count;
 }
@@ -297,12 +334,12 @@ void makeBook(Position& pos, std::istringstream& ssCmd) {
           be.fromToPro = static_cast<u16>(move.proFromAndTo());
           be.count = 1;
           bookMap[key].push_back(be);
-        }
       }
+    }
       SetUpStates->push(StateInfo());
       pos.doMove(move, SetUpStates->top());
-    }
   }
+}
 
   // BookEntry::count の値で降順にソート
   for (auto& elem : bookMap) {
@@ -324,10 +361,10 @@ void makeBook(Position& pos, std::istringstream& ssCmd) {
     auto& second = elem.second;
     auto erase_it = std::find_if(second.begin(), second.end(), [&](decltype(*second.begin())& second_elem) { return second_elem.count < second[0].count / 2; });
     second.erase(erase_it, second.end());
-}
+  }
 #endif
 
-  std::ofstream ofs("book-2015-11-03.bin", std::ios::binary);
+  std::ofstream ofs("book-2015-11-14.bin", std::ios::binary);
   for (auto& elem : bookMap) {
     for (auto& elel : elem.second) {
       ofs.write(reinterpret_cast<char*>(&(elel)), sizeof(BookEntry));

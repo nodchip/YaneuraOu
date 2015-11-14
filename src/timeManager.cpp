@@ -181,13 +181,13 @@ void TimeManager::update()
   // soft > hard にならないようにする
   softTimeLimitMs = std::min(softTimeLimitMs, hardTimeLimitMs);
 
-  // こちらも minThinkingTime 以上にする。
-  softTimeLimitMs = std::max(softTimeLimitMs, minThinkingTime);
-  hardTimeLimitMs = std::max(hardTimeLimitMs, minThinkingTime);
-
   // 時間切れにならないよう思考時間を制限する
   softTimeLimitMs = std::min(softTimeLimitMs, myTime + byoyomiWithMargin + ponderTimeWithMargin);
   hardTimeLimitMs = std::min(hardTimeLimitMs, myTime + byoyomiWithMargin + ponderTimeWithMargin);
+
+  // こちらも minThinkingTime 以上にする。
+  softTimeLimitMs = std::max(softTimeLimitMs, minThinkingTime);
+  hardTimeLimitMs = std::max(hardTimeLimitMs, minThinkingTime);
 
   // 切れ負けで残り時間が足りない場合は最低思考時間とする
   if (byoyomi == 0 && (256 - currentPly_) / 2 * 1000 + 10 * 1000 > myTime) {
