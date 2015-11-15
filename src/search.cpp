@@ -703,14 +703,14 @@ void Searcher::idLoop(Position& pos) {
           beta = ScoreInfinite;
         }
         else if (beta <= bestScore) {
-          beta = std::min(bestScore + delta, ScoreInfinite);
+          beta += delta;
           delta += delta / 2;
         }
         else {
           signals.failedLowAtRoot = true;
           signals.stopOnPonderHit = false;
 
-          alpha = std::max(bestScore - delta, -ScoreInfinite);
+          alpha -= delta;
           delta += delta / 2;
         }
 
