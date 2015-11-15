@@ -666,12 +666,14 @@ void Searcher::doUSICommandLoop(int argc, char* argv[]) {
       },
         gameRecords);
       csa::writeCsa1("C:\\home\\develop\\shogi-kifu\\wdoor.csa1", gameRecords);
+      std::cout << "Finished..." << std::endl;
     }
     else if (token == "merge_csa_files") {
       csa::mergeCsa1s({
         "C:\\home\\develop\\shogi-kifu\\2chkifu_csa\\2chkifu.csa1",
         "C:\\home\\develop\\shogi-kifu\\wdoor.csa1" },
         "C:\\home\\develop\\shogi-kifu\\merged.csa1");
+      std::cout << "Finished..." << std::endl;
     }
     else if (token == "extract_tanuki_lose") {
       std::vector<GameRecord> gameRecords;
@@ -687,6 +689,7 @@ void Searcher::doUSICommandLoop(int argc, char* argv[]) {
       },
         gameRecords);
       csa::writeCsa1("C:\\home\\develop\\shogi-kifu\\tanuki-lose.csa1", gameRecords);
+      std::cout << "Finished..." << std::endl;
     }
 #endif
 #endif

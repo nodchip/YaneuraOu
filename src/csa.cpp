@@ -420,10 +420,11 @@ bool csa::readCsa1(
 
     if (line.size() != 6 * gameRecord.numberOfPlays) {
       cout
-        << "Number of moves is not expected: |line|="
-        << line.size()
+        << "Number of moves is not expected: gameRecordIndex=" << gameRecordIndex
+        << " expected=" << 6 * gameRecord.numberOfPlays
+        << " actual=" << line.size()
         << endl;
-      return false;
+      continue;
     }
 
     Position pos;
