@@ -1659,9 +1659,12 @@ void Searcher::think() {
   //if (outputInfo) {
   //  SYNCCOUT << "info string book_ply " << book_ply << SYNCENDL;
   //}
+  // 定跡データベース
   if (options[OptionNames::OWNBOOK] && pos.gamePly() <= book_ply) {
     std::vector<Move> movesInBook =
       book.enumerateMoves(pos, options[OptionNames::BOOK_FILE]);
+
+    // 合法手以外を取り除く
     std::vector<RootMove> rootMovesInBook;
     for (const auto& move : movesInBook) {
       if (move.isNone()) {
@@ -1673,12 +1676,18 @@ void Searcher::think() {
       rootMovesInBook.push_back(RootMove(move));
     }
 
+    // 定跡データベースにヒットした場合は、
+    // それらの手の中かから次の一手を探索する
     if (!rootMovesInBook.empty()) {
       rootMoves = rootMovesInBook;
 
-      limits.time[Black] = 0;
-      limits.time[White] = 0;
-      limits.byoyomi = 1;
+      // 持ち時間節約のため、持ち時間が残っている場合は思考時間を短くする
+      if (limits.time[pos.turn()] != 0) {
+        limits.time[Black] = 0;
+        limits.time[White] = 0;
+        limits.byoyomi = 1;
+        timeManager->update();
+      }
     }
   }
 
