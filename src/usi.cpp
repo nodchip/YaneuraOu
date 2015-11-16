@@ -78,7 +78,7 @@ const USIOption OptionsMap::INVALID_OPTION;
 void OptionsMap::init(Searcher* s) {
   (*this)[OptionNames::USI_HASH] = USIOption(32, 1, 65536, onHashSize, s);
   (*this)[OptionNames::CLEAR_HASH] = USIOption(onClearHash, s);
-  (*this)[OptionNames::BOOK_FILE] = USIOption("../bin/book-2015-11-03.bin");
+  (*this)[OptionNames::BOOK_FILE] = USIOption("../bin/book-2015-11-04.bin");
   (*this)[OptionNames::BEST_BOOK_MOVE] = USIOption(false);
   (*this)[OptionNames::OWNBOOK] = USIOption(true);
   (*this)[OptionNames::MIN_BOOK_PLY] = USIOption(SHRT_MAX, 0, SHRT_MAX);
@@ -100,7 +100,7 @@ void OptionsMap::init(Searcher* s) {
   (*this)[OptionNames::MINIMUM_THINKING_TIME] = USIOption(1500, 0, INT_MAX);
   (*this)[OptionNames::MAX_THREADS_PER_SPLIT_POINT] = USIOption(5, 4, 8, onThreads, s);
   (*this)[OptionNames::THREADS] = USIOption(cpuCoreCount(), 1, MaxThreads, onThreads, s);
-  (*this)[OptionNames::USE_SLEEPING_THREADS] = USIOption(false);
+  (*this)[OptionNames::USE_SLEEPING_THREADS] = USIOption(true);
 #if defined BISHOP_IN_DANGER
   (*this)[OptionNames::DANGER_DEMERIT_SCORE] = USIOption(700, SHRT_MIN, SHRT_MAX);
 #endif
