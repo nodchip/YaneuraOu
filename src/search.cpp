@@ -1659,23 +1659,35 @@ void Searcher::think() {
   //if (outputInfo) {
   //  SYNCCOUT << "info string book_ply " << book_ply << SYNCENDL;
   //}
+  // 定跡データベース
   if (options[OptionNames::OWNBOOK] && pos.gamePly() <= book_ply) {
-    const std::tuple<Move, Score> bookMoveScore = book.probe(pos, options[OptionNames::BOOK_FILE], options[OptionNames::BEST_BOOK_MOVE]);
-    if (!std::get<0>(bookMoveScore).isNone() && std::find(rootMoves.begin(),
-      rootMoves.end(),
-      std::get<0>(bookMoveScore)) != rootMoves.end())
-    {
-      std::swap(rootMoves[0], *std::find(rootMoves.begin(),
-        rootMoves.end(),
-        std::get<0>(bookMoveScore)));
-      if (outputInfo) {
-        SYNCCOUT << "info"
-          << " score " << scoreToUSI(std::get<1>(bookMoveScore))
-          << " pv " << std::get<0>(bookMoveScore).toUSI()
-          << SYNCENDL;
-      }
+    std::vector<Move> movesInBook =
+      book.enumerateMoves(pos, options[OptionNames::BOOK_FILE]);
 
-      goto finalize;
+    // 合法手以外を取り除く
+    std::vector<RootMove> rootMovesInBook;
+    for (const auto& move : movesInBook) {
+      if (move.isNone()) {
+        continue;
+      }
+      if (std::find(rootMoves.begin(), rootMoves.end(), move) == rootMoves.end()) {
+        continue;
+      }
+      rootMovesInBook.push_back(RootMove(move));
+    }
+
+    // 定跡データベースにヒットした場合は、
+    // それらの手の中かから次の一手を探索する
+    if (!rootMovesInBook.empty()) {
+      rootMoves = rootMovesInBook;
+
+      // 持ち時間節約のため、持ち時間が残っている場合は思考時間を短くする
+      if (limits.time[pos.turn()] != 0) {
+        limits.time[Black] = 0;
+        limits.time[White] = 0;
+        limits.byoyomi = 1;
+        timeManager->update();
+      }
     }
   }
 
