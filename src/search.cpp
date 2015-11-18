@@ -1661,6 +1661,7 @@ void Searcher::think() {
   //}
   // 定跡データベース
   if (options[OptionNames::OWNBOOK] && pos.gamePly() <= book_ply) {
+    int numberOfRootMoves = rootMoves.size();
     std::vector<Move> movesInBook =
       book.enumerateMoves(pos, options[OptionNames::BOOK_FILE]);
 
@@ -1688,6 +1689,8 @@ void Searcher::think() {
         limits.byoyomi = 1;
         timeManager->update();
       }
+
+      SYNCCOUT << "info string Reduced root moves " << numberOfRootMoves << " -> " << rootMovesInBook.size() << SYNCENDL;
     }
   }
 
