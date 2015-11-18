@@ -10,7 +10,8 @@ struct BookEntry {
   Score score;
 };
 
-class Book : private std::ifstream {
+class Book
+{
 public:
   Book() : random_(std::random_device()()) {}
   std::tuple<Move, Score> probe(const Position& pos, const std::string& fName, const bool pickBest);
@@ -20,12 +21,11 @@ public:
 
 private:
   bool open(const char* fName);
-  void binary_search(const Key key);
 
   static std::mt19937_64 mt64bit_; // 定跡のhash生成用なので、seedは固定でデフォルト値を使う。
   std::mt19937_64 random_; // ハードウェア乱数をseedにして色々指すようにする。
   std::string fileName_;
-  size_t size_;
+  std::unordered_multimap<Key, BookEntry> entries_;
 
   static Key ZobPiece[PieceNone][SquareNum];
   static Key ZobHand[HandPieceNum][19];

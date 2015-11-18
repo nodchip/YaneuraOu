@@ -25,57 +25,24 @@ void Book::init() {
 }
 
 bool Book::open(const char* fName) {
-  fileName_ = "";
-
-  if (is_open()) {
-    close();
+  if (fileName_ == fName) {
+    return true;
   }
 
-  std::ifstream::open(fName, std::ifstream::in | std::ifstream::binary | std::ios::ate);
-
-  if (!is_open()) {
+  std::ifstream ifs(fName, std::ifstream::in | std::ifstream::binary);
+  if (!ifs.is_open()) {
     SYNCCOUT << "info string Failed to open book file (0): " << fName << SYNCENDL;
     return false;
   }
 
-  size_ = tellg() / sizeof(BookEntry);
-
-  if (!good()) {
-    SYNCCOUT << "info string Failed to open book file (1): " << fName << SYNCENDL;
-    exit(EXIT_FAILURE);
+  entries_.clear();
+  BookEntry entry = { 0 };
+  while (ifs.read((char*)&entry, sizeof(BookEntry))) {
+    entries_.insert(std::make_pair(entry.key, entry));
   }
 
   fileName_ = fName;
   return true;
-}
-
-void Book::binary_search(const Key key) {
-  size_t low = 0;
-  size_t high = size_ - 1;
-  size_t mid;
-  BookEntry entry;
-
-  while (low < high && good()) {
-    mid = (low + high) / 2;
-
-    assert(mid >= low && mid < high);
-
-    // std::ios_base::beg はストリームの開始位置を指す。
-    // よって、ファイルの開始位置から mid * sizeof(BookEntry) バイト進んだ位置を指す。
-    seekg(mid * sizeof(BookEntry), std::ios_base::beg);
-    read(reinterpret_cast<char*>(&entry), sizeof(entry));
-
-    if (key <= entry.key) {
-      high = mid;
-    }
-    else {
-      low = mid + 1;
-    }
-  }
-
-  assert(low == high);
-
-  seekg(low * sizeof(BookEntry), std::ios_base::beg);
 }
 
 Key Book::bookKey(const Position& pos) {
@@ -97,7 +64,6 @@ Key Book::bookKey(const Position& pos) {
 }
 
 std::tuple<Move, Score> Book::probe(const Position& pos, const std::string& fName, const bool pickBest) {
-  BookEntry entry;
   u16 best = 0;
   u32 sum = 0;
   Move move = Move::moveNone();
@@ -105,14 +71,14 @@ std::tuple<Move, Score> Book::probe(const Position& pos, const std::string& fNam
   const Score min_book_score = static_cast<Score>(static_cast<int>(pos.searcher()->options[OptionNames::MIN_BOOK_SCORE]));
   Score score = ScoreZero;
 
-  if (fileName_ != fName && !open(fName.c_str())) {
+  if (!open(fName.c_str())) {
     return std::make_tuple(Move::moveNone(), ScoreNone);
   }
 
-  binary_search(key);
-
   // 現在の局面における定跡手の数だけループする。
-  while (read(reinterpret_cast<char*>(&entry), sizeof(entry)), entry.key == key && good()) {
+  auto range = entries_.equal_range(key);
+  for (auto it = range.first; it != range.second; ++it) {
+    const BookEntry& entry = it->second;
     best = std::max(best, entry.count);
     sum += entry.count;
 
@@ -131,7 +97,7 @@ std::tuple<Move, Score> Book::probe(const Position& pos, const std::string& fNam
       else {
         const Square from = tmp.from();
         const PieceType ptFrom = pieceToPieceType(pos.piece(from));
-        const bool promo = tmp.isPromotion();
+        const bool promo = tmp.isPromotion() != 0;
         if (promo) {
           move = makeCapturePromoteMove(ptFrom, from, to, pos);
         }
@@ -148,17 +114,17 @@ std::tuple<Move, Score> Book::probe(const Position& pos, const std::string& fNam
 
 std::vector<Move> Book::enumerateMoves(const Position& pos, const std::string& fName)
 {
-  if (fileName_ != fName && !open(fName.c_str())) {
+  if (!open(fName.c_str())) {
     return{};
   }
 
   const Key key = bookKey(pos);
-  binary_search(key);
 
   // 現在の局面における定跡手の数だけループする。
   std::vector<Move> moves;
-  BookEntry entry;
-  while (read(reinterpret_cast<char*>(&entry), sizeof(entry)), entry.key == key && good()) {
+  auto range = entries_.equal_range(key);
+  for (auto it = range.first; it != range.second; ++it) {
+    const BookEntry& entry = it->second;
     const Move tmp = Move(entry.fromToPro);
     const Square to = tmp.to();
     Move move;
@@ -169,7 +135,7 @@ std::vector<Move> Book::enumerateMoves(const Position& pos, const std::string& f
     else {
       const Square from = tmp.from();
       const PieceType ptFrom = pieceToPieceType(pos.piece(from));
-      const bool promo = tmp.isPromotion();
+      const bool promo = tmp.isPromotion() != 0;
       if (promo) {
         move = makeCapturePromoteMove(ptFrom, from, to, pos);
       }
