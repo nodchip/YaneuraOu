@@ -6,7 +6,7 @@ TARGET_PREFIX = tanuki-clang
 
 COMPILER = clang++-3.7
 CFLAGS   = -flto -std=c++11 -fno-exceptions -fno-rtti -m64 -Wextra -Ofast -DKPP_PADDING0=$(KPP_PADDING0) -DKPP_PADDING1=$(KPP_PADDING1) -DUSI_HASH_FOR_BENCHMARK=$(USI_HASH_FOR_BENCHMARK) -DEVALUATE_TABLE_SIZE=$(EVALUATE_TABLE_SIZE) -DMY_NAME=\"$(TARGET_PREFIX)\" 
-LDFLAGS  = -flto -lpthread -lgcov
+LDFLAGS  = -flto -lpthread -lgcov -fuse-ld=gold
 LIBS     =
 INCLUDE  = #-I../include
 ifeq ($(OS),Windows_NT)
