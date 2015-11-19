@@ -29,15 +29,25 @@ bool Book::open(const char* fName) {
     return true;
   }
 
-  std::ifstream ifs(fName, std::ifstream::in | std::ifstream::binary);
+  std::ifstream ifs(fName, std::ifstream::in | std::ifstream::binary | std::ifstream::ate);
   if (!ifs.is_open()) {
     SYNCCOUT << "info string Failed to open book file (0): " << fName << SYNCENDL;
     return false;
   }
 
+  int numberOfEntries = ifs.tellg() / sizeof(BookEntry);
+  if (!ifs.seekg(0)) {
+    SYNCCOUT << "info string Failed to seek in the book file: " << fName << SYNCENDL;
+    return false;
+  }
+  std::vector<BookEntry> entries(numberOfEntries);
+  if (!ifs.read((char*)&entries[0], sizeof(BookEntry) * numberOfEntries)) {
+    SYNCCOUT << "info string Failed to read the book file: " << fName << SYNCENDL;
+    return false;
+  }
+
   entries_.clear();
-  BookEntry entry = { 0 };
-  while (ifs.read((char*)&entry, sizeof(BookEntry))) {
+  for (const auto& entry : entries) {
     entries_.insert(std::make_pair(entry.key, entry));
   }
 

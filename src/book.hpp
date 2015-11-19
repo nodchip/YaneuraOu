@@ -18,9 +18,9 @@ public:
   std::vector<Move> enumerateMoves(const Position& pos, const std::string& fName);
   static void init();
   static Key bookKey(const Position& pos);
+  bool open(const char* fName);
 
 private:
-  bool open(const char* fName);
 
   static std::mt19937_64 mt64bit_; // 定跡のhash生成用なので、seedは固定でデフォルト値を使う。
   std::mt19937_64 random_; // ハードウェア乱数をseedにして色々指すようにする。

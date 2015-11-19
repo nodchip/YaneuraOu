@@ -2,11 +2,12 @@
 #define APERY_SEARCH_HPP
 
 #include <atomic>
+#include "book.hpp"
 #include "move.hpp"
 #include "pieceScore.hpp"
+#include "thread.hpp"
 #include "timeManager.hpp"
 #include "tt.hpp"
-#include "thread.hpp"
 
 class Position;
 struct SplitPoint;
@@ -141,6 +142,7 @@ struct Searcher {
   STATIC ThreadPool threads;
   STATIC OptionsMap options;
   static bool outputInfo;
+  STATIC Book book;
 
   STATIC void init();
   STATIC void idLoop(Position& pos);

@@ -76,6 +76,7 @@ ThreadPool Searcher::threads;
 OptionsMap Searcher::options;
 Searcher* Searcher::thisptr;
 bool Searcher::recordIterativeDeepningScores = true;
+Book Searcher::book;
 #endif
 bool Searcher::outputInfo = true;
 
@@ -1641,7 +1642,6 @@ bool nyugyoku(const Position& pos) {
 }
 
 void Searcher::think() {
-  static Book book;
   Position& pos = rootPosition;
   timeManager.reset(new TimeManager(limits, pos.gamePly(), pos.turn(), thisptr));
   std::uniform_int_distribution<int> dist(options[OptionNames::MIN_BOOK_PLY], options[OptionNames::MAX_BOOK_PLY]);

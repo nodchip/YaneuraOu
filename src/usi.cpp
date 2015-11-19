@@ -515,6 +515,7 @@ void Searcher::doUSICommandLoop(int argc, char* argv[]) {
     }
     else if (token == "usinewgame") {
       tt.clear();
+      Searcher::book.open(((std::string)options[OptionNames::BOOK_FILE]).c_str());
 #if defined INANIWA_SHIFT
       inaniwaFlag = NotInaniwa;
 #endif
