@@ -122,7 +122,7 @@ std::tuple<Move, Score> Book::probe(const Position& pos, const std::string& fNam
   return std::make_tuple(move, score);
 }
 
-std::vector<Move> Book::enumerateMoves(const Position& pos, const std::string& fName)
+std::vector<std::pair<Move, int> > Book::enumerateMoves(const Position& pos, const std::string& fName)
 {
   if (!open(fName.c_str())) {
     return{};
@@ -131,7 +131,7 @@ std::vector<Move> Book::enumerateMoves(const Position& pos, const std::string& f
   const Key key = bookKey(pos);
 
   // 現在の局面における定跡手の数だけループする。
-  std::vector<Move> moves;
+  std::vector<std::pair<Move, int> > moves;
   auto range = entries_.equal_range(key);
   for (auto it = range.first; it != range.second; ++it) {
     const BookEntry& entry = it->second;
@@ -153,7 +153,7 @@ std::vector<Move> Book::enumerateMoves(const Position& pos, const std::string& f
         move = makeCaptureMove(ptFrom, from, to, pos);
       }
     }
-    moves.push_back(move);
+    moves.push_back(std::make_pair(move, it->second.count));
   }
 
   return moves;

@@ -15,7 +15,7 @@ class Book
 public:
   Book() : random_(std::random_device()()) {}
   std::tuple<Move, Score> probe(const Position& pos, const std::string& fName, const bool pickBest);
-  std::vector<Move> enumerateMoves(const Position& pos, const std::string& fName);
+  std::vector<std::pair<Move, int> > enumerateMoves(const Position& pos, const std::string& fName);
   static void init();
   static Key bookKey(const Position& pos);
   bool open(const char* fName);

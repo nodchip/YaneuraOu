@@ -1662,19 +1662,19 @@ void Searcher::think() {
   // 定跡データベース
   if (options[OptionNames::OWNBOOK] && pos.gamePly() <= book_ply) {
     int numberOfRootMoves = rootMoves.size();
-    std::vector<Move> movesInBook =
+    std::vector<std::pair<Move, int> > movesInBook =
       book.enumerateMoves(pos, options[OptionNames::BOOK_FILE]);
 
     // 合法手以外を取り除く
     std::vector<RootMove> rootMovesInBook;
     for (const auto& move : movesInBook) {
-      if (move.isNone()) {
+      if (move.first.isNone()) {
         continue;
       }
-      if (std::find(rootMoves.begin(), rootMoves.end(), move) == rootMoves.end()) {
+      if (std::find(rootMoves.begin(), rootMoves.end(), move.first) == rootMoves.end()) {
         continue;
       }
-      rootMovesInBook.push_back(RootMove(move));
+      rootMovesInBook.push_back(RootMove(move.first));
     }
 
     // 定跡データベースにヒットした場合は、

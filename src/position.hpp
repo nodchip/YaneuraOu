@@ -7,8 +7,9 @@
 #include "bitboard.hpp"
 #include "pieceScore.hpp"
 #include "evalList.hpp"
-#include <stack>
+#include <limits>
 #include <memory>
+#include <stack>
 
 class Position;
 

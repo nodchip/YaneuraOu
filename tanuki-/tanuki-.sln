@@ -14,6 +14,11 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "tanuki-test", "tanuki-test\
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "gtest", "..\..\googletest\googletest\gtest.vcxproj", "{6FAE6A7F-D5D4-4F0E-9995-30A4CDE3475B}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "tanuki-book-viewer", "tanuki-book-viewer\tanuki-book-viewer.vcxproj", "{E4A82C69-B4FB-41A8-AE55-2F9B7EE722FF}"
+	ProjectSection(ProjectDependencies) = postProject
+		{ECAB6310-9796-46DE-ACBA-361DA4928A70} = {ECAB6310-9796-46DE-ACBA-361DA4928A70}
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -52,6 +57,14 @@ Global
 		{6FAE6A7F-D5D4-4F0E-9995-30A4CDE3475B}.Release|x64.ActiveCfg = Release|x64
 		{6FAE6A7F-D5D4-4F0E-9995-30A4CDE3475B}.Release|x64.Build.0 = Release|x64
 		{6FAE6A7F-D5D4-4F0E-9995-30A4CDE3475B}.Release|x86.ActiveCfg = Release|x64
+		{E4A82C69-B4FB-41A8-AE55-2F9B7EE722FF}.Debug|x64.ActiveCfg = Debug|x64
+		{E4A82C69-B4FB-41A8-AE55-2F9B7EE722FF}.Debug|x64.Build.0 = Debug|x64
+		{E4A82C69-B4FB-41A8-AE55-2F9B7EE722FF}.Debug|x86.ActiveCfg = Debug|Win32
+		{E4A82C69-B4FB-41A8-AE55-2F9B7EE722FF}.Debug|x86.Build.0 = Debug|Win32
+		{E4A82C69-B4FB-41A8-AE55-2F9B7EE722FF}.Release|x64.ActiveCfg = Release|x64
+		{E4A82C69-B4FB-41A8-AE55-2F9B7EE722FF}.Release|x64.Build.0 = Release|x64
+		{E4A82C69-B4FB-41A8-AE55-2F9B7EE722FF}.Release|x86.ActiveCfg = Release|Win32
+		{E4A82C69-B4FB-41A8-AE55-2F9B7EE722FF}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
