@@ -340,7 +340,7 @@ void makeBook(Position& pos, std::istringstream& ssCmd) {
   }
 #endif
 
-  std::ofstream ofs("book-2015-11-16.bin", std::ios::binary);
+  std::ofstream ofs("book-2015-11-22.bin", std::ios::binary);
   for (auto& elem : bookMap) {
     for (auto& elel : elem.second) {
       ofs.write(reinterpret_cast<char*>(&(elel)), sizeof(BookEntry));
