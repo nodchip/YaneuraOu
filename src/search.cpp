@@ -1687,7 +1687,7 @@ void Searcher::think() {
       if (limits.time[pos.turn()] != 0) {
         limits.time[Black] = 0;
         limits.time[White] = 0;
-        limits.byoyomi = 1;
+        limits.byoyomi = options[OptionNames::BOOK_THINKING_TIME];
         timeManager->update();
       }
 

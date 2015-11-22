@@ -101,6 +101,7 @@ void OptionsMap::init(Searcher* s) {
   (*this)[OptionNames::MAX_THREADS_PER_SPLIT_POINT] = USIOption(5, 4, 8, onThreads, s);
   (*this)[OptionNames::THREADS] = USIOption(cpuCoreCount(), 1, MaxThreads, onThreads, s);
   (*this)[OptionNames::USE_SLEEPING_THREADS] = USIOption(true);
+  (*this)[OptionNames::BOOK_THINKING_TIME] = USIOption(10000, 0, INT_MAX);
 #if defined BISHOP_IN_DANGER
   (*this)[OptionNames::DANGER_DEMERIT_SCORE] = USIOption(700, SHRT_MIN, SHRT_MAX);
 #endif

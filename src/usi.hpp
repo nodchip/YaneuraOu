@@ -36,6 +36,7 @@ namespace OptionNames
   constexpr const char* THREADS = "Threads";
   constexpr const char* USE_SLEEPING_THREADS = "Use_Sleeping_Threads";
   constexpr const char* DANGER_DEMERIT_SCORE = "Danger_Demerit_Score";
+  constexpr const char* BOOK_THINKING_TIME = "Book_Thinking_Time";
 }
 
 class USIOption {
