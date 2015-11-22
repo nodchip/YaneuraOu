@@ -637,7 +637,7 @@ void Searcher::idLoop(Position& pos) {
       // aspiration search
       // alpha, beta をある程度絞ることで、探索効率を上げる。
       if (5 <= depth && abs(rootMoves[pvIdx].prevScore_) < ScoreKnownWin) {
-        delta = static_cast<Score>(16);
+        delta = static_cast<Score>(64);
         Score estimatedScore;
 #ifdef USE_ASPIRATION_WINDOW_PREDICTION
         if (depth > NUMBER_OF_VARIABLES) {
