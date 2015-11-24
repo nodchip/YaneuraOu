@@ -285,7 +285,6 @@ namespace {
     }
 
     ss << (score >= beta ? "^" : score <= alpha ? "v" : "");
-    //ss << (beta <= score ? " lowerbound" : score <= alpha ? " upperbound" : "");
 
     return ss.str();
   }
