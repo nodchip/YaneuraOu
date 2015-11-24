@@ -78,7 +78,7 @@ const USIOption OptionsMap::INVALID_OPTION;
 void OptionsMap::init(Searcher* s) {
   (*this)[OptionNames::USI_HASH] = USIOption(32, 1, 65536, onHashSize, s);
   (*this)[OptionNames::CLEAR_HASH] = USIOption(onClearHash, s);
-  (*this)[OptionNames::BOOK_FILE] = USIOption("../bin/book-2015-11-16.bin");
+  (*this)[OptionNames::BOOK_FILE] = USIOption("../bin/book-2015-11-23.bin");
   (*this)[OptionNames::BEST_BOOK_MOVE] = USIOption(false);
   (*this)[OptionNames::OWNBOOK] = USIOption(true);
   (*this)[OptionNames::MIN_BOOK_PLY] = USIOption(SHRT_MAX, 0, SHRT_MAX);
@@ -91,7 +91,7 @@ void OptionsMap::init(Searcher* s) {
   (*this)[OptionNames::PONDER_TIME_MARGIN] = USIOption(500, 0, INT_MAX);
   (*this)[OptionNames::MULTIPV] = USIOption(1, 1, MaxLegalMoves);
   (*this)[OptionNames::SKILL_LEVEL] = USIOption(20, 0, 20);
-  (*this)[OptionNames::MAX_RANDOM_SCORE_DIFF] = USIOption(10, 0, ScoreMate0Ply);
+  (*this)[OptionNames::MAX_RANDOM_SCORE_DIFF] = USIOption(30, 0, ScoreMate0Ply);
   (*this)[OptionNames::MAX_RANDOM_SCORE_DIFF_PLY] = USIOption(20, 0, SHRT_MAX);
   (*this)[OptionNames::EMERGENCY_MOVE_HORIZON] = USIOption(40, 0, 50);
   (*this)[OptionNames::EMERGENCY_BASE_TIME] = USIOption(200, 0, 30000);
@@ -101,7 +101,7 @@ void OptionsMap::init(Searcher* s) {
   (*this)[OptionNames::MAX_THREADS_PER_SPLIT_POINT] = USIOption(5, 4, 8, onThreads, s);
   (*this)[OptionNames::THREADS] = USIOption(cpuCoreCount(), 1, MaxThreads, onThreads, s);
   (*this)[OptionNames::USE_SLEEPING_THREADS] = USIOption(true);
-  (*this)[OptionNames::BOOK_THINKING_TIME] = USIOption(10000, 0, INT_MAX);
+  (*this)[OptionNames::BOOK_THINKING_TIME] = USIOption(1500, 0, INT_MAX);
 #if defined BISHOP_IN_DANGER
   (*this)[OptionNames::DANGER_DEMERIT_SCORE] = USIOption(700, SHRT_MIN, SHRT_MAX);
 #endif
