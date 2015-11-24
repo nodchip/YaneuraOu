@@ -322,7 +322,7 @@ void makeBook(Position& pos, std::istringstream& ssCmd) {
     std::sort(elem.second.rbegin(), elem.second.rend(), countCompare);
   }
 
-#if 0
+#if 1
   // 2 回以上棋譜に出現していない手は削除する。
   for (auto& elem : bookMap) {
     auto& second = elem.second;
@@ -340,7 +340,7 @@ void makeBook(Position& pos, std::istringstream& ssCmd) {
   }
 #endif
 
-  std::ofstream ofs("book-2015-11-22.bin", std::ios::binary);
+  std::ofstream ofs("book-2015-11-23.bin", std::ios::binary);
   for (auto& elem : bookMap) {
     for (auto& elel : elem.second) {
       ofs.write(reinterpret_cast<char*>(&(elel)), sizeof(BookEntry));
