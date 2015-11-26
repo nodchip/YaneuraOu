@@ -64,6 +64,8 @@ namespace {
   // info を標準出力へ出力するスロットル
   // 前回出力してから以下の時間を経過していない場合は出力しない
   static constexpr int THROTTLE_TO_OUTPUT_INFO_MS = 200;
+  static constexpr Score INITIAL_ASPIRATION_WINDOW_WIDTH = (Score)16;
+  static constexpr Score SECOND_ASPIRATION_WINDOW_WIDTH = (Score)64;
   // true にすると、シングルスレッドで動作する。デバッグ用。
   constexpr bool FakeSplit = false;
 
@@ -611,7 +613,7 @@ void Searcher::idLoop(Position& pos) {
       // aspiration search
       // alpha, beta をある程度絞ることで、探索効率を上げる。
       if (5 <= depth && abs(rootMoves[pvIdx].prevScore_) < ScoreKnownWin) {
-        delta = static_cast<Score>(16);
+        delta = INITIAL_ASPIRATION_WINDOW_WIDTH;
         alpha = rootMoves[pvIdx].prevScore_ - delta;
         beta = rootMoves[pvIdx].prevScore_ + delta;
       }
@@ -660,6 +662,10 @@ void Searcher::idLoop(Position& pos) {
 
         if (alpha < bestScore && bestScore < beta) {
           break;
+        }
+
+        if (delta == INITIAL_ASPIRATION_WINDOW_WIDTH) {
+          delta = SECOND_ASPIRATION_WINDOW_WIDTH;
         }
 
         // fail high/low のとき、aspiration window を広げる。
