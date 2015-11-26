@@ -245,16 +245,20 @@ namespace {
   std::string scoreToUSI(const Score score, const Score alpha, const Score beta) {
     std::stringstream ss;
 
+    int normalizedScore = score * 100 / PawnScore;
+    int normalizedAlpha = alpha * 100 / PawnScore;
+    int normalizedBeta = beta * 100 / PawnScore;
+
     if (abs(score) < ScoreMateInMaxPly) {
       // cp は centi pawn の略
-      ss << "cp " << score * 100 / PawnScore;
+      ss << "cp " << normalizedScore;
     }
     else {
       // mate の後には、何手で詰むかを表示する。
       ss << "mate " << (0 < score ? ScoreMate0Ply - score : -ScoreMate0Ply - score);
     }
 
-    ss << (score >= beta ? "^" : score <= alpha ? "v" : "");
+    ss << (score >= beta ? "<" : score <= alpha ? ">" : "") << "(" << normalizedAlpha << "," << normalizedBeta << ")";
 
     return ss.str();
   }
