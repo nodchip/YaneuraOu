@@ -148,7 +148,6 @@
     <ClInclude Include="..\..\src\game_record.hpp" />
     <ClInclude Include="..\..\src\generateMoves.hpp" />
     <ClInclude Include="..\..\src\hand.hpp" />
-    <ClInclude Include="..\..\src\hayabusa.hpp" />
     <ClInclude Include="..\..\src\ifdef.hpp" />
     <ClInclude Include="..\..\src\init.hpp" />
     <ClInclude Include="..\..\src\learner.hpp" />
@@ -179,9 +178,7 @@
     <ClCompile Include="..\..\src\evaluate.cpp" />
     <ClCompile Include="..\..\src\generateMoves.cpp" />
     <ClCompile Include="..\..\src\hand.cpp" />
-    <ClCompile Include="..\..\src\hayabusa.cpp" />
     <ClCompile Include="..\..\src\init.cpp" />
-    <ClCompile Include="..\..\src\learner.cpp" />
     <ClCompile Include="..\..\src\limits_type.cpp" />
     <ClCompile Include="..\..\src\move.cpp" />
     <ClCompile Include="..\..\src\movePicker.cpp" />

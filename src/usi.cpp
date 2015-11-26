@@ -13,7 +13,6 @@
 
 #ifdef _MSC_VER
 #include "csa.hpp"
-#include "hayabusa.hpp"
 #endif
 
 namespace {
@@ -76,7 +75,7 @@ namespace {
 const USIOption OptionsMap::INVALID_OPTION;
 
 void OptionsMap::init(Searcher* s) {
-  (*this)[OptionNames::USI_HASH] = USIOption(32, 1, 65536, onHashSize, s);
+  (*this)[OptionNames::USI_HASH] = USIOption(256, 1, 65536, onHashSize, s);
   (*this)[OptionNames::CLEAR_HASH] = USIOption(onClearHash, s);
   (*this)[OptionNames::BOOK_FILE] = USIOption("../bin/book-2015-11-23.bin");
   (*this)[OptionNames::BEST_BOOK_MOVE] = USIOption(false);
@@ -84,7 +83,7 @@ void OptionsMap::init(Searcher* s) {
   (*this)[OptionNames::MIN_BOOK_PLY] = USIOption(SHRT_MAX, 0, SHRT_MAX);
   (*this)[OptionNames::MAX_BOOK_PLY] = USIOption(SHRT_MAX, 0, SHRT_MAX);
   (*this)[OptionNames::MIN_BOOK_SCORE] = USIOption(-180, -ScoreInfinite, ScoreInfinite);
-  (*this)[OptionNames::EVAL_DIR] = USIOption("../bin/20150501", onEvalDir);
+  (*this)[OptionNames::EVAL_DIR] = USIOption("../bin/20151105", onEvalDir);
   (*this)[OptionNames::WRITE_SYNTHESIZED_EVAL] = USIOption(false);
   (*this)[OptionNames::USI_PONDER] = USIOption(true);
   (*this)[OptionNames::BYOYOMI_MARGIN] = USIOption(500, 0, INT_MAX);
@@ -215,6 +214,17 @@ void go(const Position& pos, std::istringstream& ssCmd) {
   pos.searcher()->searchMoves = moves;
   pos.searcher()->threads.startThinking(pos, limits, moves, goReceivedTime);
 }
+
+#if defined LEARN
+// 学習用。通常の go 呼び出しは文字列を扱って高コストなので、大量に探索の開始、終了を行う学習では別の呼び出し方にする。
+void go(const Position& pos, const Ply depth, const Move move) {
+  LimitsType limits;
+  std::vector<Move> moves;
+  limits.depth = depth;
+  moves.push_back(move);
+  pos.searcher()->threads.startThinking(pos, limits, moves, std::chrono::system_clock::now());
+}
+#endif
 
 Move usiToMoveBody(const Position& pos, const std::string& moveStr) {
   Move move;
@@ -554,13 +564,6 @@ void Searcher::doUSICommandLoop(int argc, char* argv[]) {
     else if (token == "t") { std::cout << pos.mateMoveIn1Ply().toCSA() << std::endl; }
     else if (token == "b") { makeBook(pos, ssCmd); }
 #ifdef _MSC_VER
-    else if (token == "convert_sfen_to_teacher_data") {
-      hayabusa::convertSfenToTeacherData();
-    }
-    else if (token == "adjust_weights") {
-      hayabusa::adjustWeights();
-      Evaluater::writeSynthesized(options[OptionNames::EVAL_DIR]);
-    }
     else if (token == "concat_csa_files") {
       std::vector<std::string> strongPlayers = {
         "Gikou_20151118",

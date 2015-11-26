@@ -32,10 +32,10 @@ TEST_F(EvaluateTest, evaluate_withoutDiff) {
     SearchStack searchStack[MaxPlyPlus2];
     memset(searchStack, 0, sizeof(searchStack));
     searchStack[0].currentMove = Move::moveNull(); // skip update gains
-    searchStack[0].staticEvalRaw = (Score)INT_MAX;
+    searchStack[0].staticEvalRaw.p[0][0] = ScoreNotEvaluated;
     searchStack[1].currentMove = Move::moveNull(); // skip update gains
-    searchStack[1].staticEvalRaw = (Score)INT_MAX;
-    searchStack[2].staticEvalRaw = (Score)INT_MAX;
+    searchStack[1].staticEvalRaw.p[0][0] = ScoreNotEvaluated;
+    searchStack[2].staticEvalRaw.p[0][0] = ScoreNotEvaluated;
 
     Score actual = evaluate(pos, &searchStack[2]);
 
@@ -55,7 +55,7 @@ TEST_F(EvaluateTest, evaluate_diff) {
   memset(searchStack, 0, sizeof(searchStack));
   for (auto& s : searchStack) {
     s.currentMove = Move::moveNull();
-    s.staticEvalRaw = ScoreNotEvaluated;
+    s.staticEvalRaw.p[0][0] = ScoreNotEvaluated;
   }
 
   for (int i = 2; i < sfen.size(); ++i) {

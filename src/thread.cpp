@@ -32,7 +32,7 @@ Thread::Thread(Searcher* s) /*: splitPoints()*/ {
 }
 
 void Thread::notifyOne() {
-  std::unique_lock<std::mutex> lock(sleepLock);
+  std::unique_lock<Mutex> lock(sleepLock);
   sleepCond.notify_one();
 }
 
@@ -57,20 +57,26 @@ bool Thread::isAvailableTo(Thread* master) const {
 }
 
 void Thread::waitFor(const std::atomic<bool>& b) {
-  std::unique_lock<std::mutex> lock(sleepLock);
-  sleepCond.wait(lock, [&] () -> bool { return b; });
+  std::unique_lock<Mutex> lock(sleepLock);
+  sleepCond.wait(lock, [&]() -> bool { return b; });
 }
 
 void ThreadPool::init(Searcher* s) {
   sleepWhileIdle_ = true;
+#if defined LEARN
+#else
   timer_ = newThread<TimerThread>(s);
+#endif
   push_back(newThread<MainThread>(s));
   readUSIOptions(s);
 }
 
 void ThreadPool::exit() {
+#if defined LEARN
+#else
   // checkTime() がデータにアクセスしないよう、先に timer_ を delete
   deleteThread(timer_);
+#endif
 
   for (auto elem : *this)
     deleteThread(elem);
@@ -109,7 +115,7 @@ void ThreadPool::setTimer(const int msec) {
 
 void ThreadPool::waitForThinkFinished() {
   MainThread* t = mainThread();
-  std::unique_lock<std::mutex> lock(t->sleepLock);
+  std::unique_lock<Mutex> lock(t->sleepLock);
   sleepCond_.wait(lock, [&] { return !(t->thinking); });
 }
 
@@ -119,9 +125,11 @@ void ThreadPool::startThinking(
   const std::vector<Move>& searchMoves,
   const std::chrono::time_point<std::chrono::system_clock>& goReceivedTime)
 {
+#if defined LEARN
+#else
   waitForThinkFinished();
+#endif
   pos.searcher()->searchTimer.set(goReceivedTime);
-
   pos.searcher()->signals.stopOnPonderHit = pos.searcher()->signals.firstRootMove = false;
   pos.searcher()->signals.stop = pos.searcher()->signals.failedLowAtRoot = false;
 
@@ -130,11 +138,10 @@ void ThreadPool::startThinking(
   pos.searcher()->rootMoves.clear();
 
 #if defined LEARN
-  const MoveType MT = LegalAll;
+  // searchMoves を直接使う。
+  pos.searcher()->rootMoves.push_back(RootMove(searchMoves[0]));
 #else
   const MoveType MT = Legal;
-#endif
-
   for (MoveList<MT> ml(pos); !ml.end(); ++ml) {
     if (searchMoves.empty()
       || std::find(searchMoves.begin(), searchMoves.end(), ml.move()) != searchMoves.end())
@@ -142,9 +149,15 @@ void ThreadPool::startThinking(
       pos.searcher()->rootMoves.push_back(RootMove(ml.move()));
     }
   }
+#endif
 
+#if defined LEARN
+  // 浅い探索なので、thread 生成、破棄のコストが高い。余分な thread を生成せずに直接探索を呼び出す。
+  pos.searcher()->think();
+#else
   mainThread()->thinking = true;
   mainThread()->notifyOne();
+#endif
 }
 
 template <bool Fake>
@@ -245,7 +258,7 @@ void TimerThread::idleLoop() {
     int timerPeriodMs = first ? timerPeriodFirstMs : timerPeriodAfterMs;
     first = false;
     {
-      std::unique_lock<std::mutex> lock(sleepLock);
+      std::unique_lock<Mutex> lock(sleepLock);
       if (!exit) {
         sleepCond.wait_for(lock, std::chrono::milliseconds(timerPeriodMs));
       }
@@ -271,7 +284,7 @@ void TimerThread::restartTimer(int firstMs, int afterMs)
 void MainThread::idleLoop() {
   while (true) {
     {
-      std::unique_lock<std::mutex> lock(sleepLock);
+      std::unique_lock<Mutex> lock(sleepLock);
       thinking = false;
       while (!thinking && !exit) {
         // UI 関連だから要らないのかも。

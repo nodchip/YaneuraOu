@@ -2,6 +2,7 @@
 #include "common.hpp"
 #include "position.hpp"
 #include "search.hpp"
+#include "usi.hpp"
 
 #ifndef USI_HASH_FOR_BENCHMARK
 #define USI_HASH_FOR_BENCHMARK "8192"
@@ -24,7 +25,6 @@ void benchmark(Position& pos) {
     pos.searcher()->setOption(option);
   }
 
-  pos.searcher()->recordIterativeDeepningScores = false;
   std::ifstream ifs("benchmark.sfen");
   std::string sfen;
   u64 sumOfSearchedNodes = 0;
@@ -67,7 +67,6 @@ void benchmarkElapsedForDepthN(Position& pos) {
     "depth 15",
   };
 
-  pos.searcher()->recordIterativeDeepningScores = false;
   std::ifstream ifs("benchmark.sfen");
   std::string sfen;
   u64 sumOfSearchedNodes = 0;

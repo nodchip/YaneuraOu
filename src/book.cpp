@@ -310,12 +310,12 @@ void makeBook(Position& pos, std::istringstream& ssCmd) {
           be.fromToPro = static_cast<u16>(move.proFromAndTo());
           be.count = 1;
           bookMap[key].push_back(be);
+        }
       }
-    }
       SetUpStates->push(StateInfo());
       pos.doMove(move, SetUpStates->top());
+    }
   }
-}
 
   // BookEntry::count の値で降順にソート
   for (auto& elem : bookMap) {

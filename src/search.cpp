@@ -9,35 +9,6 @@
 #include "timeManager.hpp"
 #include "book.hpp"
 
-namespace
-{
-  static constexpr int NUMBER_OF_VARIABLES = 12;
-  static constexpr double COEFFICIENTS[] = {
-    -0.02581155858933925600,
-    0.00616716733202338220,
-    -0.02327142469584941900,
-    -0.00578600028529763220,
-    -0.00548148062080144880,
-    -0.00135272589977830650,
-    0.01317663118243217500,
-    -0.04907137900590896600,
-    0.00746853882446885110,
-    0.03219838067889213600,
-    0.15451282262802124000,
-    0.89867216348648071000,
-  };
-
-  Score predictNextIterationScore(const int* scores, int depth)
-  {
-    double predictScore = 0.0;
-    int coefficientIndex = 0;
-    for (int i = 0; i < NUMBER_OF_VARIABLES; ++i) {
-      predictScore += COEFFICIENTS[coefficientIndex++] * scores[depth - NUMBER_OF_VARIABLES + i];
-    }
-    return (Score)(int)predictScore;
-  }
-}
-
 // 一箇所でしか呼ばないので、FORCE_INLINE
 FORCE_INLINE void ThreadPool::wakeUp(Searcher* s) {
   for (size_t i = 0; i < size(); ++i) {
@@ -75,7 +46,6 @@ Position Searcher::rootPosition(nullptr);
 ThreadPool Searcher::threads;
 OptionsMap Searcher::options;
 Searcher* Searcher::thisptr;
-bool Searcher::recordIterativeDeepningScores = true;
 Book Searcher::book;
 #endif
 bool Searcher::outputInfo = true;
@@ -93,7 +63,7 @@ void Searcher::init() {
 namespace {
   // info を標準出力へ出力するスロットル
   // 前回出力してから以下の時間を経過していない場合は出力しない
-  static constexpr int THROTTLE_TO_OUTPUT_INFO_MS = 1000;
+  static constexpr int THROTTLE_TO_OUTPUT_INFO_MS = 200;
   // true にすると、シングルスレッドで動作する。デバッグ用。
   constexpr bool FakeSplit = false;
 
@@ -504,7 +474,7 @@ Score Searcher::qsearch(Position& pos, SearchStack* ss, Score alpha, Score beta,
     ss->currentMove = move;
 
     pos.doMove(move, st, ci, givesCheck);
-    (ss + 1)->staticEvalRaw = ScoreNotEvaluated;
+    (ss + 1)->staticEvalRaw.p[0][0] = ScoreNotEvaluated;
     score = (givesCheck ? -qsearch<NT, true>(pos, ss + 1, -beta, -alpha, depth - OnePly)
       : -qsearch<NT, false>(pos, ss + 1, -beta, -alpha, depth - OnePly));
     pos.undoMove(move);
@@ -564,7 +534,7 @@ void Searcher::idLoop(Position& pos) {
   memset(ss, 0, 4 * sizeof(SearchStack));
   bestMoveChanges = 0;
 #if defined LEARN
-  // 高速化の為に浅い探索は反復深化しないようにする。実戦時ではほぼ影響無い。学習時は浅い探索をひたすら繰り返す為。
+  // 高速化の為に浅い探索は反復深化しないようにする。学習時は浅い探索をひたすら繰り返す為。
   depth = std::max<Ply>(0, limits.depth - 1);
 #else
   depth = 0;
@@ -619,10 +589,7 @@ void Searcher::idLoop(Position& pos) {
 #endif
 
   // 反復深化で探索を行う。
-  while (++depth <= MaxPly &&
-    !signals.stop &&
-    (!limits.depth || depth <= limits.depth) &&
-    bestScore < ScoreMateInMaxPly) {
+  while (++depth <= MaxPly && !signals.stop && (!limits.depth || depth <= limits.depth)) {
     // 前回の iteration の結果を全てコピー
     for (size_t i = 0; i < rootMoves.size(); ++i) {
       rootMoves[i].prevScore_ = rootMoves[i].score_;
@@ -632,45 +599,35 @@ void Searcher::idLoop(Position& pos) {
     bestMoveChanges = 0;
 
     // Multi PV loop
-    for (pvIdx = 0; pvIdx < pvSize && !signals.stop && bestScore < ScoreMateInMaxPly; ++pvIdx) {
+    for (pvIdx = 0; pvIdx < pvSize && !signals.stop; ++pvIdx) {
+#if defined LEARN
+      alpha = this->alpha;
+      beta = this->beta;
+#else
       // aspiration search
       // alpha, beta をある程度絞ることで、探索効率を上げる。
       if (5 <= depth && abs(rootMoves[pvIdx].prevScore_) < ScoreKnownWin) {
-        delta = static_cast<Score>(64);
-        Score estimatedScore;
-#ifdef USE_ASPIRATION_WINDOW_PREDICTION
-        if (depth > NUMBER_OF_VARIABLES) {
-          estimatedScore = predictNextIterationScore(scores, depth);
-        }
-        else {
-          estimatedScore = rootMoves[pvIdx].prevScore_;
-        }
-#else
-        estimatedScore = rootMoves[pvIdx].prevScore_;
-#endif
-        //char buffer[1024];
-        //sprintf(buffer, "info string prevScore=%d estimatedScore=%d", rootMoves[pvIdx].prevScore_, estimatedScore);
-        //SYNCCOUT << buffer << SYNCENDL;
-
-        alpha = estimatedScore - delta;
-        beta = estimatedScore + delta;
+        delta = static_cast<Score>(16);
+        alpha = rootMoves[pvIdx].prevScore_ - delta;
+        beta = rootMoves[pvIdx].prevScore_ + delta;
       }
       else {
         alpha = -ScoreInfinite;
         beta = ScoreInfinite;
       }
+#endif
 
       // aspiration search の window 幅を、初めは小さい値にして探索し、
       // fail high/low になったなら、今度は window 幅を広げて、再探索を行う。
-      while (bestScore < ScoreMateInMaxPly) {
+      while (true) {
         // 探索を行う。
-        ss->staticEvalRaw = (ss + 1)->staticEvalRaw = ScoreNotEvaluated;
+        ss->staticEvalRaw.p[0][0] = (ss + 1)->staticEvalRaw.p[0][0] = ScoreNotEvaluated;
         bestScore = search<Root>(pos, ss + 1, alpha, beta, static_cast<Depth>(depth * OnePly), false);
         // 先頭が最善手になるようにソート
         insertionSort(rootMoves.begin() + pvIdx, rootMoves.end());
 
         for (size_t i = 0; i <= pvIdx; ++i) {
-          ss->staticEvalRaw = (ss + 1)->staticEvalRaw = ScoreNotEvaluated;
+          ss->staticEvalRaw.p[0][0] = (ss + 1)->staticEvalRaw.p[0][0] = ScoreNotEvaluated;
           rootMoves[i].insertPvInTT(pos);
         }
 
@@ -680,6 +637,10 @@ void Searcher::idLoop(Position& pos) {
           SYNCCOUT << pvInfoToUSI(pos, ply, alpha, beta) << SYNCENDL;
           signals.stop = true;
         }
+#endif
+
+#if defined LEARN
+        break;
 #endif
 
         if (lastTimeToOutputInfoMs + THROTTLE_TO_OUTPUT_INFO_MS < searchTimer.elapsed()) {
@@ -755,7 +716,7 @@ void Searcher::idLoop(Position& pos) {
           || timeManager->getSoftTimeLimitMs() * 40 / 100 < searchTimer.elapsed()))
       {
         const Score rBeta = bestScore - 2 * CapturePawnScore;
-        (ss + 1)->staticEvalRaw = ScoreNotEvaluated;
+        (ss + 1)->staticEvalRaw.p[0][0] = ScoreNotEvaluated;
         (ss + 1)->excludedMove = rootMoves[0].pv_[0];
         (ss + 1)->skipNullMove = true;
         const Score s = search<NonPV>(pos, ss + 1, rBeta - 1, rBeta, (depth - 3) * OnePly, true);
@@ -776,10 +737,6 @@ void Searcher::idLoop(Position& pos) {
         }
       }
     }
-
-#ifdef RECORD_ITERATIVE_DEEPNING_SCORES
-    scores[depth] = bestScore;
-#endif
   }
   skill.swapIfEnabled(thisptr);
 
@@ -787,19 +744,6 @@ void Searcher::idLoop(Position& pos) {
     SYNCCOUT << pvInfoToUSI(pos, depth, alpha, beta) << SYNCENDL;
   }
 
-#ifdef RECORD_ITERATIVE_DEEPNING_SCORES
-  if (recordIterativeDeepningScores) {
-    std::ofstream ofs("C:\\home\\develop\\tanuki-\\bin\\id_loop.txt", std::ios::app);
-    ofs << depth - 2 << " "
-      << limits.time[Black] << " "
-      << limits.time[White] << " "
-      << limits.byoyomi;
-    for (int i = 1; i < depth - 1; ++i) {
-      ofs << " " << scores[i];
-    }
-    ofs << std::endl;
-  }
-#endif
 }
 
 #if defined INANIWA_SHIFT
@@ -1155,7 +1099,7 @@ Score Searcher::search(Position& pos, SearchStack* ss, Score alpha, Score beta, 
       if (pos.pseudoLegalMoveIsLegal<false, false>(move, ci.pinned)) {
         ss->currentMove = move;
         pos.doMove(move, st, ci, pos.moveGivesCheck(move, ci));
-        (ss + 1)->staticEvalRaw = ScoreNotEvaluated;
+        (ss + 1)->staticEvalRaw.p[0][0] = ScoreNotEvaluated;
         score = -search<NonPV>(pos, ss + 1, -rbeta, -rbeta + 1, rdepth, !cutNode);
         pos.undoMove(move);
         if (rbeta <= score) {
@@ -1241,7 +1185,7 @@ split_point_start:
     givesCheck = pos.moveGivesCheck(move, ci);
     dangerous = givesCheck; // todo: not implement
 
-                            // step12
+    // step12
     if (givesCheck && ScoreZero <= pos.seeSign(move))
     {
       extension = OnePly;
@@ -1333,7 +1277,7 @@ split_point_start:
 
     // step14
     pos.doMove(move, st, ci, givesCheck);
-    (ss + 1)->staticEvalRaw = ScoreNotEvaluated;
+    (ss + 1)->staticEvalRaw.p[0][0] = ScoreNotEvaluated;
 
     // step15
     // LMR
@@ -1642,20 +1586,26 @@ bool nyugyoku(const Position& pos) {
 }
 
 void Searcher::think() {
+  static Book book;
   Position& pos = rootPosition;
   timeManager.reset(new TimeManager(limits, pos.gamePly(), pos.turn(), thisptr));
   std::uniform_int_distribution<int> dist(options[OptionNames::MIN_BOOK_PLY], options[OptionNames::MAX_BOOK_PLY]);
   const Ply book_ply = dist(g_randomTimeSeed);
 
   bool nyugyokuWin = false;
+#if defined LEARN
+#else
   if (nyugyoku(pos)) {
     nyugyokuWin = true;
     goto finalize;
   }
+#endif
   pos.setNodesSearched(0);
 
+#if defined LEARN
+  threads[0]->searching = true;
+#else
   tt.setSize(options[OptionNames::USI_HASH]); // operator int() 呼び出し。
-
   //if (outputInfo) {
   //  SYNCCOUT << "info string book_ply " << book_ply << SYNCENDL;
   //}
@@ -1723,8 +1673,11 @@ void Searcher::think() {
 #if defined BISHOP_IN_DANGER
   detectBishopInDanger(pos);
 #endif
+#endif
   idLoop(pos);
 
+#if defined LEARN
+#else
   // timer を止める。
   threads.timerThread()->restartTimer(TimerThread::FOREVER, TimerThread::FOREVER);
   threads.sleep();
@@ -1755,6 +1708,7 @@ finalize:
         << SYNCENDL;
     }
   }
+#endif
 }
 
 void Searcher::checkTime() {
@@ -1763,13 +1717,13 @@ void Searcher::checkTime() {
 
   s64 nodes = 0;
   if (limits.nodes) {
-    std::unique_lock<std::mutex> lock(threads.mutex_);
+    std::unique_lock<Mutex> lock(threads.mutex_);
 
     nodes = rootPosition.nodesSearched();
     for (size_t i = 0; i < threads.size(); ++i) {
       for (int j = 0; j < threads[i]->splitPointsSize; ++j) {
         SplitPoint& splitPoint = threads[i]->splitPoints[j];
-        std::unique_lock<std::mutex> spLock(splitPoint.mutex);
+        std::unique_lock<Mutex> spLock(splitPoint.mutex);
         nodes += splitPoint.nodes;
         u64 sm = splitPoint.slavesMask;
         while (sm) {
@@ -1812,7 +1766,7 @@ void Thread::idleLoop() {
         return;
       }
 
-      std::unique_lock<std::mutex> lock(sleepLock);
+      std::unique_lock<Mutex> lock(sleepLock);
       if (thisSp != nullptr && !thisSp->slavesMask) {
         break;
       }

@@ -99,6 +99,9 @@ void go(const Position& pos, const std::string& cmd);
 void go(const Position& pos, std::istringstream& ssCmd);
 void setPosition(Position& pos, const std::string& cmd);
 void setPosition(Position& pos, std::istringstream& ssCmd);
+#if defined LEARN
+void go(const Position& pos, const Ply depth, const Move move);
+#endif
 Move csaToMove(const Position& pos, const std::string& moveStr);
 Move usiToMove(const Position& pos, const std::string& moveStr);
 

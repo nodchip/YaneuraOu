@@ -33,7 +33,7 @@ struct SplitPoint {
   MovePicker* movePicker;
   SplitPoint* parentSplitPoint;
 
-  std::mutex mutex;
+  Mutex mutex;
   std::atomic<u64> slavesMask;
   std::atomic<s64> nodes;
   std::atomic<Score> alpha;
@@ -41,8 +41,6 @@ struct SplitPoint {
   std::atomic<Move> bestMove;
   std::atomic<int> moveCount;
   std::atomic<bool> cutoff;
-
-  //SplitPoint() : bestMove(Move::MoveNone) { }
 };
 
 struct Thread {
@@ -64,8 +62,8 @@ struct Thread {
   Position* activePosition;
   int idx;
   int maxPly;
-  std::mutex sleepLock;
-  std::condition_variable sleepCond;
+  Mutex sleepLock;
+  ConditionVariable sleepCond;
   std::thread handle;
   std::atomic<SplitPoint*> activeSplitPoint;
   std::atomic<int> splitPointsSize;
@@ -125,8 +123,8 @@ public:
 
   bool sleepWhileIdle_;
   size_t maxThreadsPerSplitPoint_;
-  std::mutex mutex_;
-  std::condition_variable sleepCond_;
+  Mutex mutex_;
+  ConditionVariable sleepCond_;
 
 private:
   TimerThread* timer_;
