@@ -260,7 +260,7 @@ namespace {
       ss << "mate " << (0 < score ? ScoreMate0Ply - score : -ScoreMate0Ply - score);
     }
 
-    ss << (score >= beta ? "<" : score <= alpha ? ">" : "") << "(" << normalizedAlpha << "," << normalizedBeta << ")";
+    ss << (score >= beta ? "^" : score <= alpha ? "v" : "");
 
     return ss.str();
   }
