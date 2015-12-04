@@ -6,5 +6,6 @@
 class Position;
 void benchmark(Position& pos);
 void benchmarkElapsedForDepthN(Position& pos);
+void benchmarkSearchWindow(Position& pos);
 
 #endif // #ifndef APERY_BENCHMARK_HPP
