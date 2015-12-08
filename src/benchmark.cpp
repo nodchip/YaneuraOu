@@ -147,3 +147,65 @@ void benchmarkSearchWindow(Position& pos) {
       (alpha < actual && actual < beta) ? "*" : "");
   }
 }
+
+// 指し手生成の速度を計測
+void benchmarkGenerateMoves(Position& pos) {
+  std::string token;
+  LimitsType limits;
+
+  std::string options[] = {
+    "name Threads value 4",
+    "name MultiPV value 1",
+    "name OwnBook value false",
+    "name Max_Random_Score_Diff value 0",
+    "name USI_Hash value " USI_HASH_FOR_BENCHMARK,
+    "name Use_Sleeping_Threads value true",
+  };
+  for (const auto& option : options) {
+    pos.searcher()->setOption(option);
+  }
+
+  std::ifstream ifs("benchmark.sfen");
+  std::string sfen;
+  u64 sumOfSearchedNodes = 0;
+  int sumOfSeaerchTimeMs = 0;
+  int depthIndex = 0;
+  while (std::getline(ifs, sfen)) {
+    //std::cout << sfen << std::endl;
+    setPosition(pos, sfen);
+    //pos.print();
+
+    MoveStack legalMoves[MaxLegalMoves];
+    for (int i = 0; i < MaxLegalMoves; ++i) legalMoves[i].move = moveNone();
+    MoveStack* pms = &legalMoves[0];
+    const u64 num = 10000000;
+    Time t = Time::currentTime();
+    if (pos.inCheck()) {
+      for (u64 i = 0; i < num; ++i) {
+        pms = &legalMoves[0];
+        pms = generateMoves<Evasion>(pms, pos);
+      }
+    }
+    else {
+      for (u64 i = 0; i < num; ++i) {
+        pms = &legalMoves[0];
+        pms = generateMoves<CapturePlusPro>(pms, pos);
+        pms = generateMoves<NonCaptureMinusPro>(pms, pos);
+        pms = generateMoves<Drop>(pms, pos);
+        //			pms = generateMoves<PseudoLegal>(pms, pos);
+        //			pms = generateMoves<Legal>(pms, pos);
+      }
+    }
+    const int elapsed = t.elapsed();
+    //std::cout << "elapsed = " << elapsed << " [msec]" << std::endl;
+    if (elapsed != 0) {
+      std::cout << "times/s = " << num * 1000 / elapsed << " [times/sec]" << std::endl;
+    }
+    //const ptrdiff_t count = pms - &legalMoves[0];
+    //std::cout << "num of moves = " << count << std::endl;
+    //for (int i = 0; i < count; ++i) {
+    //  std::cout << legalMoves[i].move.toCSA() << ", ";
+    //}
+    //std::cout << std::endl;
+  }
+}

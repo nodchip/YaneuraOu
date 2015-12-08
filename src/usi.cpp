@@ -427,47 +427,6 @@ void Searcher::setOption(std::istringstream& ssCmd) {
   }
 }
 
-#if !defined MINIMUL
-// for debug
-// 指し手生成の速度を計測
-void measureGenerateMoves(const Position& pos) {
-  pos.print();
-
-  MoveStack legalMoves[MaxLegalMoves];
-  for (int i = 0; i < MaxLegalMoves; ++i) legalMoves[i].move = moveNone();
-  MoveStack* pms = &legalMoves[0];
-  const u64 num = 5000000;
-  Time t = Time::currentTime();
-  if (pos.inCheck()) {
-    for (u64 i = 0; i < num; ++i) {
-      pms = &legalMoves[0];
-      pms = generateMoves<Evasion>(pms, pos);
-    }
-  }
-  else {
-    for (u64 i = 0; i < num; ++i) {
-      pms = &legalMoves[0];
-      pms = generateMoves<CapturePlusPro>(pms, pos);
-      pms = generateMoves<NonCaptureMinusPro>(pms, pos);
-      pms = generateMoves<Drop>(pms, pos);
-      //			pms = generateMoves<PseudoLegal>(pms, pos);
-      //			pms = generateMoves<Legal>(pms, pos);
-    }
-  }
-  const int elapsed = t.elapsed();
-  std::cout << "elapsed = " << elapsed << " [msec]" << std::endl;
-  if (elapsed != 0) {
-    std::cout << "times/s = " << num * 1000 / elapsed << " [times/sec]" << std::endl;
-  }
-  const ptrdiff_t count = pms - &legalMoves[0];
-  std::cout << "num of moves = " << count << std::endl;
-  for (int i = 0; i < count; ++i) {
-    std::cout << legalMoves[i].move.toCSA() << ", ";
-  }
-  std::cout << std::endl;
-}
-#endif
-
 #ifdef NDEBUG
 #ifdef MY_NAME
 const std::string MyName = MY_NAME;
@@ -560,8 +519,8 @@ void Searcher::doUSICommandLoop(int argc, char* argv[]) {
     else if (token == "bench") { benchmark(pos); }
     else if (token == "benchmark_elapsed_for_depth_n") { benchmarkElapsedForDepthN(pos); }
     else if (token == "benchmark_search_window") { benchmarkSearchWindow(pos); }
+    else if (token == "benchmark_generate_moves") { benchmarkGenerateMoves(pos); }
     else if (token == "d") { pos.print(); }
-    else if (token == "s") { measureGenerateMoves(pos); }
     else if (token == "t") { std::cout << pos.mateMoveIn1Ply().toCSA() << std::endl; }
     else if (token == "b") { makeBook(pos, ssCmd); }
 #ifdef _MSC_VER
