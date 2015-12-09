@@ -676,6 +676,7 @@ void Searcher::idLoop(Position& pos) {
           beta = ScoreInfinite;
         }
         else if (beta <= bestScore) {
+          alpha = (alpha + beta) / 2;
           beta = std::min(bestScore + delta, ScoreInfinite);
           delta += delta / 2;
         }
@@ -683,6 +684,7 @@ void Searcher::idLoop(Position& pos) {
           signals.failedLowAtRoot = true;
           signals.stopOnPonderHit = false;
 
+          beta = (alpha + beta) / 2;
           alpha = std::max(bestScore - delta, -ScoreInfinite);
           delta += delta / 2;
         }
