@@ -34,6 +34,9 @@ const s32 Evaluater::K_Fix_Offset[SquareNum] = {
 
 EvaluateHashTable g_evalTable;
 
+using xmm = __m128i;
+using ymm = __m256i;
+
 namespace {
 #ifdef HAVE_AVX2
   static const __m256i MASK[9] = {
@@ -60,7 +63,36 @@ namespace {
     sum.p[2][1] = Evaluater::KKP[sq_bk][sq_wk][index0][1];
     const auto* pkppb = Evaluater::KPP[sq_bk][index0];
     const auto* pkppw = Evaluater::KPP[inverse(sq_wk)][index1];
-#if defined USE_AVX2_EVAL || defined USE_SSE_EVAL
+#if defined USE_AVX2_EVAL
+    ymm zero = _mm256_setzero_si256();
+    xmm sum0 = _mm_setzero_si128();
+    xmm sum1 = _mm_setzero_si128();
+    for (int i = 0; i < pos.nlist(); i += 8) {
+      ymm index0 = _mm256_load_si256((const ymm*)&list0[i]);
+      ymm index1 = _mm256_load_si256((const ymm*)&list1[i]);
+      ymm mask = MASK[std::min(pos.nlist() - i, 8)];
+      ymm kpp0 = _mm256_mask_i32gather_epi32(zero, (const int*)pkppb, index0, mask, 4);
+      ymm kpp1 = _mm256_mask_i32gather_epi32(zero, (const int*)pkppw, index1, mask, 4);
+      // TODO(nodchip): _mm256_add_epi32()で上位128ビットがクリアされる原因を調べる
+      ymm y;
+      y = _mm256_cvtepi16_epi32(_mm256_extracti128_si256(kpp0, 0));
+      sum0 = _mm_add_epi32(sum0, _mm256_extracti128_si256(y, 0));
+      sum0 = _mm_add_epi32(sum0, _mm256_extracti128_si256(y, 1));
+      y = _mm256_cvtepi16_epi32(_mm256_extracti128_si256(kpp0, 1));
+      sum0 = _mm_add_epi32(sum0, _mm256_extracti128_si256(y, 0));
+      sum0 = _mm_add_epi32(sum0, _mm256_extracti128_si256(y, 1));
+      y = _mm256_cvtepi16_epi32(_mm256_extracti128_si256(kpp1, 0));
+      sum1 = _mm_add_epi32(sum1, _mm256_extracti128_si256(y, 0));
+      sum1 = _mm_add_epi32(sum1, _mm256_extracti128_si256(y, 1));
+      y = _mm256_cvtepi16_epi32(_mm256_extracti128_si256(kpp1, 1));
+      sum1 = _mm_add_epi32(sum1, _mm256_extracti128_si256(y, 0));
+      sum1 = _mm_add_epi32(sum1, _mm256_extracti128_si256(y, 1));
+    }
+    sum0 = _mm_add_epi32(sum0, _mm_srli_si128(sum0, 8));
+    sum1 = _mm_add_epi32(sum1, _mm_srli_si128(sum1, 8));
+    _mm_storel_epi64((xmm*)&sum.p[0], sum0);
+    _mm_storel_epi64((xmm*)&sum.p[1], sum1);
+#elif defined USE_SSE_EVAL
     sum.m[0] = _mm_set_epi32(0, 0, *reinterpret_cast<const s32*>(&pkppw[list1[0]][0]), *reinterpret_cast<const s32*>(&pkppb[list0[0]][0]));
     sum.m[0] = _mm_cvtepi16_epi32(sum.m[0]);
     for (int i = 1; i < pos.nlist(); ++i) {
