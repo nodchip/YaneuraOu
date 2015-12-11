@@ -17,17 +17,26 @@ void TranspositionTable::resize(size_t mbSize) {
 
   clusterCount = newClusterCount;
 
-  free(mem);
-  mem = calloc(clusterCount * sizeof(Cluster) + CacheLineSize - 1, 1);
+  if (table) {
+    ALIGNED_FREE(table);
+    table = nullptr;
+  }
+  table = (Cluster*)ALIGNED_ALLOC(
+    sizeof(Cluster), clusterCount * sizeof(Cluster));
 
-  if (!mem)
+  if (!table)
   {
-    std::cerr << "Failed to allocate " << mbSize
-      << "MB for transposition table." << std::endl;
+    SYNCCOUT << "info string Failed to allocate " << mbSize
+      << "MB for transposition table." << SYNCENDL;
     exit(EXIT_FAILURE);
   }
+}
 
-  table = (Cluster*)((uintptr_t(mem) + CacheLineSize - 1) & ~(CacheLineSize - 1));
+TranspositionTable::~TranspositionTable() {
+  if (table) {
+    ALIGNED_FREE(table);
+    table = nullptr;
+  }
 }
 
 

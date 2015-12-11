@@ -74,8 +74,8 @@ private:
 
 class TranspositionTable {
 
-  static const int CacheLineSize = 64;
-  static const int ClusterSize = 3;
+  static constexpr int CacheLineSize = 64;
+  static constexpr int ClusterSize = 3;
 
   struct Cluster {
     TTEntry entry[ClusterSize];
@@ -85,7 +85,7 @@ class TranspositionTable {
   static_assert(CacheLineSize % sizeof(Cluster) == 0, "Cluster size incorrect");
 
 public:
-  ~TranspositionTable() { free(mem); }
+  ~TranspositionTable();
   void new_search() { generation8 += 4; } // Lower 2 bits are used by Bound
   uint8_t generation() const { return generation8; }
   TTEntry* probe(const Key key, bool& found) const;
@@ -101,7 +101,6 @@ public:
 private:
   size_t clusterCount;
   Cluster* table;
-  void* mem;
   uint8_t generation8; // Size must be not bigger than TTEntry::genBound8
 };
 

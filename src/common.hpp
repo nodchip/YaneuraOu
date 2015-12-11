@@ -30,6 +30,7 @@
 #include <ctime>
 #include <cmath>
 #include <cstddef>
+#include <malloc.h>
 //#include <boost/align/aligned_alloc.hpp>
 
 #if defined HAVE_BMI2
@@ -245,21 +246,29 @@ template <typename T> inline void prefetch(T* addr) {
 #endif
 }
 
+#ifdef _MSC_VER
+#define ALIGNED_ALLOC(alignment, size) _aligned_malloc((size), (alignment))
+#define ALIGNED_FREE(memblock) _aligned_free(memblock)
+#else
+#define ALIGNED_ALLOC(alignment, size) _aligned_malloc((size), (alignment))
+#define ALIGNED_FREE(memblock) _aligned_free(memblock)
+//#define ALIGNED_ALLOC(alignment, size) memalign(alignment, size)
+//#define ALIGNED_FREE(memblock) free(memblock)
+#endif
+
 using Key = u64;
 
 // Size は 2のべき乗であること。
 template <typename T, size_t Size>
 struct HashTable {
   HashTable() {
-    entriesRaw_ = new T[Size + 1];
-    entries_ = (T*)(((u64)entriesRaw_ + sizeof(T) - 1) / sizeof(T) * sizeof(T));
+    entries_ = (T*)ALIGNED_ALLOC(32, Size * sizeof(T));
     clear();
   }
   virtual ~HashTable() {
-    if (entriesRaw_ && entries_) {
+    if (entries_) {
+      ALIGNED_FREE(entries_);
       entries_ = nullptr;
-      delete[] entriesRaw_;
-      entriesRaw_ = nullptr;
     }
   }
   T* operator [] (const Key k) { return entries_ + (static_cast<size_t>(k) & (Size - 1)); }
@@ -268,7 +277,6 @@ struct HashTable {
   static_assert((Size & (Size - 1)) == 0, "");
 
 private:
-  T* entriesRaw_;
   T* entries_;
 };
 
