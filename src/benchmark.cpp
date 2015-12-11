@@ -189,8 +189,8 @@ void benchmarkGenerateMoves(Position& pos) {
     else {
       for (u64 i = 0; i < num; ++i) {
         pms = &legalMoves[0];
-        pms = generateMoves<CapturePlusPro>(pms, pos);
-        pms = generateMoves<NonCaptureMinusPro>(pms, pos);
+        //pms = generateMoves<CapturePlusPro>(pms, pos);
+        //pms = generateMoves<NonCaptureMinusPro>(pms, pos);
         pms = generateMoves<Drop>(pms, pos);
         //			pms = generateMoves<PseudoLegal>(pms, pos);
         //			pms = generateMoves<Legal>(pms, pos);

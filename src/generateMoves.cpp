@@ -1,7 +1,8 @@
 ﻿#include "generateMoves.hpp"
 #include "usi.hpp"
 
-namespace {
+namespace generate_moves
+{
   // 角, 飛車の場合
   template <MoveType MT, PieceType PT, Color US, bool ALL>
   FORCE_INLINE MoveStack* generateBishopOrRookMoves(MoveStack* moveStackList, const Position& pos,
@@ -24,6 +25,114 @@ namespace {
           (*moveStackList++).move = makeNonPromoteMove<MT>(PT, from, to, pos);
       }
     }
+    return moveStackList;
+  }
+
+  // 駒打ちの場合
+  // 歩以外の持ち駒は、loop の前に持ち駒の種類の数によって switch で展開している。
+  // ループの展開はコードが膨れ上がる事によるキャッシュヒット率の低下と、演算回数のバランスを取って決める必要がある。
+  // NPSに影響が出ないならシンプルにした方が良さそう。
+  template <Color US>
+  MoveStack* generateDropMoves20151211(MoveStack* moveStackList, const Position& pos, const Bitboard& target) {
+    const Hand hand = pos.hand(US);
+    // まず、歩に対して指し手を生成
+    if (hand.exists<HPawn>()) {
+      Bitboard toBB = target;
+      // 一段目には打てない
+      const Rank TRank9 = (US == Black ? Rank9 : Rank1);
+      toBB.andEqualNot(rankMask<TRank9>());
+
+      // 二歩の回避
+      Bitboard pawnsBB = pos.bbOf(Pawn, US);
+      Square pawnsSquare;
+      foreachBB(pawnsBB, pawnsSquare, [&](const int part) {
+        toBB.set(part, toBB.p(part) & ~squareFileMask(pawnsSquare).p(part));
+      });
+
+      // 打ち歩詰めの回避
+      const Rank TRank1 = (US == Black ? Rank1 : Rank9);
+      const SquareDelta TDeltaS = (US == Black ? DeltaS : DeltaN);
+
+      const Square ksq = pos.kingSquare(oppositeColor(US));
+      // 相手玉が九段目なら、歩で王手出来ないので、打ち歩詰めを調べる必要はない。
+      if (makeRank(ksq) != TRank1) {
+        const Square pawnDropCheckSquare = ksq + TDeltaS;
+        assert(isInSquare(pawnDropCheckSquare));
+        if (toBB.isSet(pawnDropCheckSquare) && pos.piece(pawnDropCheckSquare) == Empty) {
+          if (!pos.isPawnDropCheckMate(US, pawnDropCheckSquare)) {
+            // ここで clearBit だけして MakeMove しないことも出来る。
+            // 指し手が生成される順番が変わり、王手が先に生成されるが、後で問題にならないか?
+            (*moveStackList++).move = makeDropMove(Pawn, pawnDropCheckSquare);
+          }
+          toBB.xorBit(pawnDropCheckSquare);
+        }
+      }
+
+      Square to;
+      FOREACH_BB(toBB, to, {
+        (*moveStackList++).move = makeDropMove(Pawn, to);
+      });
+    }
+
+    // 歩 以外の駒を持っているか
+    if (hand.exceptPawnExists()) {
+      PieceType haveHand[6]; // 歩以外の持ち駒。vector 使いたいけど、速度を求めるので使わない。
+      int haveHandNum = 0; // 持ち駒の駒の種類の数
+
+                           // 桂馬、香車、それ以外の順番で格納する。(駒を打てる位置が限定的な順)
+      if (hand.exists<HKnight>()) { haveHand[haveHandNum++] = Knight; }
+      const int noKnightIdx = haveHandNum; // 桂馬を除く駒でループするときのループの初期値
+      if (hand.exists<HLance >()) { haveHand[haveHandNum++] = Lance; }
+      const int noKnightLanceIdx = haveHandNum; // 桂馬, 香車を除く駒でループするときのループの初期値
+      if (hand.exists<HSilver>()) { haveHand[haveHandNum++] = Silver; }
+      if (hand.exists<HGold  >()) { haveHand[haveHandNum++] = Gold; }
+      if (hand.exists<HBishop>()) { haveHand[haveHandNum++] = Bishop; }
+      if (hand.exists<HRook  >()) { haveHand[haveHandNum++] = Rook; }
+
+      const Rank TRank8 = (US == Black ? Rank8 : Rank2);
+      const Rank TRank9 = (US == Black ? Rank9 : Rank1);
+      const Bitboard TRank8BB = rankMask<TRank8>();
+      const Bitboard TRank9BB = rankMask<TRank9>();
+
+      Bitboard toBB;
+      Square to;
+      // 桂馬、香車 以外の持ち駒があれば、
+      // 一段目に対して、桂馬、香車以外の指し手を生成。
+      switch (haveHandNum - noKnightLanceIdx) {
+      case 0: break; // 桂馬、香車 以外の持ち駒がない。
+      case 1: toBB = target & TRank9BB; FOREACH_BB(toBB, to, { Unroller<1>()([&](const int i) { (*moveStackList++).move = makeDropMove(haveHand[noKnightLanceIdx + i], to); }); }); break;
+      case 2: toBB = target & TRank9BB; FOREACH_BB(toBB, to, { Unroller<2>()([&](const int i) { (*moveStackList++).move = makeDropMove(haveHand[noKnightLanceIdx + i], to); }); }); break;
+      case 3: toBB = target & TRank9BB; FOREACH_BB(toBB, to, { Unroller<3>()([&](const int i) { (*moveStackList++).move = makeDropMove(haveHand[noKnightLanceIdx + i], to); }); }); break;
+      case 4: toBB = target & TRank9BB; FOREACH_BB(toBB, to, { Unroller<4>()([&](const int i) { (*moveStackList++).move = makeDropMove(haveHand[noKnightLanceIdx + i], to); }); }); break;
+      default: UNREACHABLE;
+      }
+
+      // 桂馬以外の持ち駒があれば、
+      // 二段目に対して、桂馬以外の指し手を生成。
+      switch (haveHandNum - noKnightIdx) {
+      case 0: break; // 桂馬 以外の持ち駒がない。
+      case 1: toBB = target & TRank8BB; FOREACH_BB(toBB, to, { Unroller<1>()([&](const int i) { (*moveStackList++).move = makeDropMove(haveHand[noKnightIdx + i], to); }); }); break;
+      case 2: toBB = target & TRank8BB; FOREACH_BB(toBB, to, { Unroller<2>()([&](const int i) { (*moveStackList++).move = makeDropMove(haveHand[noKnightIdx + i], to); }); }); break;
+      case 3: toBB = target & TRank8BB; FOREACH_BB(toBB, to, { Unroller<3>()([&](const int i) { (*moveStackList++).move = makeDropMove(haveHand[noKnightIdx + i], to); }); }); break;
+      case 4: toBB = target & TRank8BB; FOREACH_BB(toBB, to, { Unroller<4>()([&](const int i) { (*moveStackList++).move = makeDropMove(haveHand[noKnightIdx + i], to); }); }); break;
+      case 5: toBB = target & TRank8BB; FOREACH_BB(toBB, to, { Unroller<5>()([&](const int i) { (*moveStackList++).move = makeDropMove(haveHand[noKnightIdx + i], to); }); }); break;
+      default: UNREACHABLE;
+      }
+
+      // 一、二段目以外に対して、全ての持ち駒の指し手を生成。
+      toBB = target & ~(TRank8BB | TRank9BB);
+      switch (haveHandNum) {
+      case 0: assert(false); break; // 最適化の為のダミー
+      case 1: FOREACH_BB(toBB, to, { Unroller<1>()([&](const int i) { (*moveStackList++).move = makeDropMove(haveHand[i], to); }); }); break;
+      case 2: FOREACH_BB(toBB, to, { Unroller<2>()([&](const int i) { (*moveStackList++).move = makeDropMove(haveHand[i], to); }); }); break;
+      case 3: FOREACH_BB(toBB, to, { Unroller<3>()([&](const int i) { (*moveStackList++).move = makeDropMove(haveHand[i], to); }); }); break;
+      case 4: FOREACH_BB(toBB, to, { Unroller<4>()([&](const int i) { (*moveStackList++).move = makeDropMove(haveHand[i], to); }); }); break;
+      case 5: FOREACH_BB(toBB, to, { Unroller<5>()([&](const int i) { (*moveStackList++).move = makeDropMove(haveHand[i], to); }); }); break;
+      case 6: FOREACH_BB(toBB, to, { Unroller<6>()([&](const int i) { (*moveStackList++).move = makeDropMove(haveHand[i], to); }); }); break;
+      default: UNREACHABLE;
+      }
+    }
+
     return moveStackList;
   }
 
@@ -562,11 +671,11 @@ namespace {
 template <MoveType MT>
 MoveStack* generateMoves(MoveStack* moveStackList, const Position& pos) {
   return (pos.turn() == Black ?
-    GenerateMoves<MT, Black>()(moveStackList, pos) : GenerateMoves<MT, White>()(moveStackList, pos));
+    generate_moves::GenerateMoves<MT, Black>()(moveStackList, pos) : generate_moves::GenerateMoves<MT, White>()(moveStackList, pos));
 }
 template <MoveType MT>
 MoveStack* generateMoves(MoveStack* moveStackList, const Position& pos, const Square to) {
-  return generateRecaptureMoves(moveStackList, pos, to, pos.turn());
+  return generate_moves::generateRecaptureMoves(moveStackList, pos, to, pos.turn());
 }
 
 // 明示的なインスタンス化
@@ -586,3 +695,8 @@ template MoveStack* generateMoves<Legal             >(MoveStack* moveStackList, 
 template MoveStack* generateMoves<LegalAll          >(MoveStack* moveStackList, const Position& pos);
 #endif
 template MoveStack* generateMoves<Recapture         >(MoveStack* moveStackList, const Position& pos, const Square to);
+
+template MoveStack* generate_moves::generateDropMoves20151211<Black>(MoveStack* moveStackList, const Position& pos, const Bitboard& target);
+template MoveStack* generate_moves::generateDropMoves20151211<White>(MoveStack* moveStackList, const Position& pos, const Bitboard& target);
+template MoveStack* generate_moves::generateDropMoves<Black>(MoveStack* moveStackList, const Position& pos, const Bitboard& target);
+template MoveStack* generate_moves::generateDropMoves<White>(MoveStack* moveStackList, const Position& pos, const Bitboard& target);

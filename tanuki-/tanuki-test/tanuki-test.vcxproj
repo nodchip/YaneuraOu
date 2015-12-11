@@ -168,6 +168,7 @@
   <ItemGroup>
     <ClCompile Include="..\..\src\csa_test.cpp" />
     <ClCompile Include="..\..\src\evaluate_test.cpp" />
+    <ClCompile Include="..\..\src\generateMoves_test.cpp" />
     <ClCompile Include="..\..\src\main_test.cpp" />
     <ClCompile Include="..\..\src\string_util_test.cpp" />
     <ClCompile Include="..\..\src\usi_test.cpp" />
