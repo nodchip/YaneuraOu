@@ -137,15 +137,6 @@ namespace generate_moves
   }
 
   using xmm = __m128i;
-  //using ymm = __m256i;
-
-  //ymm operator | (ymm a, ymm b) {
-  //  return _mm256_or_si256(a, b);
-  //}
-
-  xmm operator | (xmm a, xmm b) {
-    return _mm_or_si128(a, b);
-  }
 
   // 歩以外の駒打ちを生成する。
   // target: 空いているマスを表すビットボード
@@ -179,7 +170,7 @@ namespace generate_moves
       // 16マス分ずつ生成する
       for (int i = 0; i < numberOfTos; i += 8) {
         xmm moveTo = _mm_load_si128((const xmm*)&moveToTemplates[i]);
-        xmm moveMerged = moveTo | movePieceTypeTemplates;
+        xmm moveMerged = _mm_or_si128(moveTo, movePieceTypeTemplates);
         _mm_storeu_si128((xmm*)&moves[numberOfMoves], moveMerged);
         numberOfMoves += std::min(numberOfTos - i, 8);
       }
