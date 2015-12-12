@@ -248,56 +248,61 @@ namespace generate_moves
     alignas(32) u16 moves[1024];
     int numberOfMoves = 0;
 
-    // 一～七段目の駒打ちを生成する
-    {
-      // 歩以外の持ち駒。vector 使いたいけど、速度を求めるので使わない。
-      PieceType haveHands[8];
-      // 持ち駒の駒の種類の数
-      int numberOfHaveHands = 0;
-      // 持ち駒の中で一～七段目に打てる駒を列挙する
-      if (hand.exists<HKnight>()) { haveHands[numberOfHaveHands++] = Knight; }
-      if (hand.exists<HLance >()) { haveHands[numberOfHaveHands++] = Lance; }
-      if (hand.exists<HSilver>()) { haveHands[numberOfHaveHands++] = Silver; }
-      if (hand.exists<HGold  >()) { haveHands[numberOfHaveHands++] = Gold; }
-      if (hand.exists<HBishop>()) { haveHands[numberOfHaveHands++] = Bishop; }
-      if (hand.exists<HRook  >()) { haveHands[numberOfHaveHands++] = Rook; }
+    // 歩以外の持ち駒。vector 使いたいけど、速度を求めるので使わない。
+    PieceType haveHands[8];
+    // 持ち駒の駒の種類の数
+    int numberOfHaveHands = 0;
 
-      generaateDropMovesNonPawn(
-        Bitboard(target).andEqualNot(TRank8BB).andEqualNot(TRank9BB), haveHands, numberOfHaveHands, moves, numberOfMoves);
+    // 持ち駒の中で三～九段目に打てる駒を列挙する
+    if (hand.exists<HKnight>()) { haveHands[numberOfHaveHands++] = Knight; }
+    if (hand.exists<HLance >()) { haveHands[numberOfHaveHands++] = Lance; }
+    if (hand.exists<HSilver>()) { haveHands[numberOfHaveHands++] = Silver; }
+    if (hand.exists<HGold  >()) { haveHands[numberOfHaveHands++] = Gold; }
+    if (hand.exists<HBishop>()) { haveHands[numberOfHaveHands++] = Bishop; }
+    if (hand.exists<HRook  >()) { haveHands[numberOfHaveHands++] = Rook; }
+
+    // 高速化のため歩以外の手駒の種類が1種類の場合は単純なループを使用する
+    if (numberOfHaveHands == 1) {
+      Bitboard toBB = target;
+      if (haveHands[0] == Lance) {
+        toBB.andEqualNot(TRank9BB);
+      }
+      else if (haveHands[0] == Knight) {
+        toBB.andEqualNot(TRank9BB);
+        toBB.andEqualNot(TRank8BB);
+      }
+      Square to;
+      FOREACH_BB(toBB, to, { (*moveStackList++).move = makeDropMove(haveHands[0], to); });
+
+      return moveStackList;
     }
 
-    // 八段目の駒打ちを生成する
-    {
-      // 歩以外の持ち駒。vector 使いたいけど、速度を求めるので使わない。
-      PieceType haveHands[8];
-      // 持ち駒の駒の種類の数
-      int numberOfHaveHands = 0;
-      // 持ち駒の中で八段目に打てる駒を列挙する
-      if (hand.exists<HLance >()) { haveHands[numberOfHaveHands++] = Lance; }
-      if (hand.exists<HSilver>()) { haveHands[numberOfHaveHands++] = Silver; }
-      if (hand.exists<HGold  >()) { haveHands[numberOfHaveHands++] = Gold; }
-      if (hand.exists<HBishop>()) { haveHands[numberOfHaveHands++] = Bishop; }
-      if (hand.exists<HRook  >()) { haveHands[numberOfHaveHands++] = Rook; }
+    // 三～九段目の駒打ちを生成する
+    generaateDropMovesNonPawn(
+      Bitboard(target).andEqualNot(TRank8BB).andEqualNot(TRank9BB), haveHands, numberOfHaveHands, moves, numberOfMoves);
 
-      generaateDropMovesNonPawn(
-        target & TRank8BB, haveHands, numberOfHaveHands, moves, numberOfMoves);
-    }
+    // 持ち駒の中で二段目に打てる駒を列挙する
+    numberOfHaveHands = 0;
+    if (hand.exists<HLance >()) { haveHands[numberOfHaveHands++] = Lance; }
+    if (hand.exists<HSilver>()) { haveHands[numberOfHaveHands++] = Silver; }
+    if (hand.exists<HGold  >()) { haveHands[numberOfHaveHands++] = Gold; }
+    if (hand.exists<HBishop>()) { haveHands[numberOfHaveHands++] = Bishop; }
+    if (hand.exists<HRook  >()) { haveHands[numberOfHaveHands++] = Rook; }
 
-    // 九段目の駒打ちを生成する
-    {
-      // 歩以外の持ち駒。vector 使いたいけど、速度を求めるので使わない。
-      PieceType haveHands[8];
-      // 持ち駒の駒の種類の数
-      int numberOfHaveHands = 0;
-      // 持ち駒の中で九段目に打てる駒を列挙する
-      if (hand.exists<HSilver>()) { haveHands[numberOfHaveHands++] = Silver; }
-      if (hand.exists<HGold  >()) { haveHands[numberOfHaveHands++] = Gold; }
-      if (hand.exists<HBishop>()) { haveHands[numberOfHaveHands++] = Bishop; }
-      if (hand.exists<HRook  >()) { haveHands[numberOfHaveHands++] = Rook; }
+    // 二段目の駒打ちを生成する
+    generaateDropMovesNonPawn(
+      target & TRank8BB, haveHands, numberOfHaveHands, moves, numberOfMoves);
 
-      generaateDropMovesNonPawn(
-        target & TRank9BB, haveHands, numberOfHaveHands, moves, numberOfMoves);
-    }
+    // 持ち駒の中で一段目に打てる駒を列挙する
+    numberOfHaveHands = 0;
+    if (hand.exists<HSilver>()) { haveHands[numberOfHaveHands++] = Silver; }
+    if (hand.exists<HGold  >()) { haveHands[numberOfHaveHands++] = Gold; }
+    if (hand.exists<HBishop>()) { haveHands[numberOfHaveHands++] = Bishop; }
+    if (hand.exists<HRook  >()) { haveHands[numberOfHaveHands++] = Rook; }
+
+    // 一段目の駒打ちを生成する
+    generaateDropMovesNonPawn(
+      target & TRank9BB, haveHands, numberOfHaveHands, moves, numberOfMoves);
 
     // 2手分ずつ16ビット->64ビットに変換して
     // moveStackListに格納していく
@@ -305,7 +310,7 @@ namespace generate_moves
       // 8手分ロードする
       xmm moves16 = _mm_load_si128((const xmm*)&moves[i]);
       int j = std::min(numberOfMoves, i + 8);
-      for (;  i < j; i += 2) {
+      for (; i < j; i += 2) {
         // 2手分ずつストアする
         xmm moves64 = _mm_cvtepi16_epi64(moves16);
         _mm_storeu_si128((xmm*)moveStackList, moves64);
