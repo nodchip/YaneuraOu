@@ -6,6 +6,10 @@
 
 using namespace std;
 
+void PrintTo(const Move& value, ::std::ostream* os) {
+  *os << value.toCSA();
+}
+
 class GenerateMovesTest : public testing::Test {
 public:
   GenerateMovesTest() {}
@@ -39,6 +43,7 @@ TEST_F(GenerateMovesTest, generateDropMoves_verify) {
     std::istringstream ss_sfen(subSfen);
     Position pos;
     setPosition(pos, ss_sfen);
+    //pos.print();
 
     MoveStack moveStackExpected[1024];
     MoveStack* moveStakExpectedEnd = pos.turn() == Black ?
