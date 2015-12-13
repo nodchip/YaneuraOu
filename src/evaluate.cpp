@@ -65,33 +65,45 @@ namespace {
     const auto* pkppw = Evaluater::KPP[inverse(sq_wk)][index1];
 #if defined USE_AVX2_EVAL
     ymm zero = _mm256_setzero_si256();
-    xmm sum0 = _mm_setzero_si128();
-    xmm sum1 = _mm_setzero_si128();
+    ymm sum0 = zero;
+    ymm sum1 = zero;
     for (int i = 0; i < pos.nlist(); i += 8) {
       ymm index0 = _mm256_load_si256((const ymm*)&list0[i]);
       ymm index1 = _mm256_load_si256((const ymm*)&list1[i]);
       ymm mask = MASK[std::min(pos.nlist() - i, 8)];
       ymm kpp0 = _mm256_mask_i32gather_epi32(zero, (const int*)pkppb, index0, mask, 4);
       ymm kpp1 = _mm256_mask_i32gather_epi32(zero, (const int*)pkppw, index1, mask, 4);
-      // TODO(nodchip): _mm256_add_epi32()で上位128ビットがクリアされる原因を調べる
-      ymm y;
-      y = _mm256_cvtepi16_epi32(_mm256_extracti128_si256(kpp0, 0));
-      sum0 = _mm_add_epi32(sum0, _mm256_extracti128_si256(y, 0));
-      sum0 = _mm_add_epi32(sum0, _mm256_extracti128_si256(y, 1));
-      y = _mm256_cvtepi16_epi32(_mm256_extracti128_si256(kpp0, 1));
-      sum0 = _mm_add_epi32(sum0, _mm256_extracti128_si256(y, 0));
-      sum0 = _mm_add_epi32(sum0, _mm256_extracti128_si256(y, 1));
-      y = _mm256_cvtepi16_epi32(_mm256_extracti128_si256(kpp1, 0));
-      sum1 = _mm_add_epi32(sum1, _mm256_extracti128_si256(y, 0));
-      sum1 = _mm_add_epi32(sum1, _mm256_extracti128_si256(y, 1));
-      y = _mm256_cvtepi16_epi32(_mm256_extracti128_si256(kpp1, 1));
-      sum1 = _mm_add_epi32(sum1, _mm256_extracti128_si256(y, 0));
-      sum1 = _mm_add_epi32(sum1, _mm256_extracti128_si256(y, 1));
+      // デバッガをアタッチした場合にymmレジスタの上位128bitがクリアされるのを回避する
+      // TODO(nodchip): 上位128ビットも使用する
+      ymm kpp0lo = _mm256_cvtepi16_epi32(_mm256_extracti128_si256(kpp0, 0));
+      ymm kpp0lolo = _mm256_castsi128_si256(_mm256_extracti128_si256(kpp0lo, 0));
+      ymm kpp0lohi = _mm256_castsi128_si256(_mm256_extracti128_si256(kpp0lo, 1));
+      sum0 = _mm256_add_epi32(sum0, kpp0lolo);
+      sum0 = _mm256_add_epi32(sum0, kpp0lohi);
+      ymm kpp0hi = _mm256_cvtepi16_epi32(_mm256_extracti128_si256(kpp0, 1));
+      ymm kpp0hilo = _mm256_castsi128_si256(_mm256_extracti128_si256(kpp0hi, 0));
+      ymm kpp0hihi = _mm256_castsi128_si256(_mm256_extracti128_si256(kpp0hi, 1));
+      sum0 = _mm256_add_epi32(sum0, kpp0hilo);
+      sum0 = _mm256_add_epi32(sum0, kpp0hihi);
+
+      ymm kpp1lo = _mm256_cvtepi16_epi32(_mm256_extracti128_si256(kpp1, 0));
+      ymm kpp1lolo = _mm256_castsi128_si256(_mm256_extracti128_si256(kpp1lo, 0));
+      ymm kpp1lohi = _mm256_castsi128_si256(_mm256_extracti128_si256(kpp1lo, 1));
+      sum1 = _mm256_add_epi32(sum1, kpp1lolo);
+      sum1 = _mm256_add_epi32(sum1, kpp1lohi);
+      ymm kpp1hi = _mm256_cvtepi16_epi32(_mm256_extracti128_si256(kpp1, 1));
+      ymm kpp1hilo = _mm256_castsi128_si256(_mm256_extracti128_si256(kpp1hi, 0));
+      ymm kpp1hihi = _mm256_castsi128_si256(_mm256_extracti128_si256(kpp1hi, 1));
+      sum1 = _mm256_add_epi32(sum1, kpp1hilo);
+      sum1 = _mm256_add_epi32(sum1, kpp1hihi);
     }
-    sum0 = _mm_add_epi32(sum0, _mm_srli_si128(sum0, 8));
-    sum1 = _mm_add_epi32(sum1, _mm_srli_si128(sum1, 8));
-    _mm_storel_epi64((xmm*)&sum.p[0], sum0);
-    _mm_storel_epi64((xmm*)&sum.p[1], sum1);
+    //sum0 = _mm256_add_epi32(sum0, _mm256_srli_si256(sum0, 16));
+    sum0 = _mm256_add_epi32(sum0, _mm256_srli_si256(sum0, 8));
+    //sum1 = _mm256_add_epi32(sum1, _mm256_srli_si256(sum1, 16));
+    sum1 = _mm256_add_epi32(sum1, _mm256_srli_si256(sum1, 8));
+    _mm_storel_epi64((xmm*)&sum.p[0], _mm256_castsi256_si128(sum0));
+    _mm_storel_epi64((xmm*)&sum.p[1], _mm256_castsi256_si128(sum1));
+
 #elif defined USE_SSE_EVAL
     sum.m[0] = _mm_set_epi32(0, 0, *reinterpret_cast<const s32*>(&pkppw[list1[0]][0]), *reinterpret_cast<const s32*>(&pkppb[list0[0]][0]));
     sum.m[0] = _mm_cvtepi16_epi32(sum.m[0]);
@@ -203,7 +215,7 @@ namespace {
 
 #if defined USE_AVX2_EVAL
         ymm zero = _mm256_setzero_si256();
-        xmm sum1 = _mm_setzero_si128();
+        ymm sum1 = zero;
         for (int i = 0; i < pos.nlist(); ++i) {
           const int k1 = list1[i];
           const auto* pkppw = ppkppw[k1];
@@ -212,19 +224,23 @@ namespace {
             ymm mask = MASK[std::min(i - j, 8)];
             ymm kpp1 = _mm256_mask_i32gather_epi32(zero, (const int*)pkppw, index1, mask, 4);
             // TODO(nodchip): _mm256_add_epi32()で上位128ビットがクリアされる原因を調べる
-            ymm y;
-            y = _mm256_cvtepi16_epi32(_mm256_extracti128_si256(kpp1, 0));
-            sum1 = _mm_add_epi32(sum1, _mm256_extracti128_si256(y, 0));
-            sum1 = _mm_add_epi32(sum1, _mm256_extracti128_si256(y, 1));
-            y = _mm256_cvtepi16_epi32(_mm256_extracti128_si256(kpp1, 1));
-            sum1 = _mm_add_epi32(sum1, _mm256_extracti128_si256(y, 0));
-            sum1 = _mm_add_epi32(sum1, _mm256_extracti128_si256(y, 1));
+            ymm kpp1lo = _mm256_cvtepi16_epi32(_mm256_extracti128_si256(kpp1, 0));
+            ymm kpp1lolo = _mm256_castsi128_si256(_mm256_extracti128_si256(kpp1lo, 0));
+            ymm kpp1lohi = _mm256_castsi128_si256(_mm256_extracti128_si256(kpp1lo, 1));
+            sum1 = _mm256_add_epi32(sum1, kpp1lolo);
+            sum1 = _mm256_add_epi32(sum1, kpp1lohi);
+            ymm kpp1hi = _mm256_cvtepi16_epi32(_mm256_extracti128_si256(kpp1, 1));
+            ymm kpp1hilo = _mm256_castsi128_si256(_mm256_extracti128_si256(kpp1hi, 0));
+            ymm kpp1hihi = _mm256_castsi128_si256(_mm256_extracti128_si256(kpp1hi, 1));
+            sum1 = _mm256_add_epi32(sum1, kpp1hilo);
+            sum1 = _mm256_add_epi32(sum1, kpp1hihi);
           }
           diff.p[2][0] -= Evaluater::KKP[inverse(sq_wk)][inverse(sq_bk)][k1][0];
           diff.p[2][1] += Evaluater::KKP[inverse(sq_wk)][inverse(sq_bk)][k1][1];
         }
-        sum1 = _mm_add_epi32(sum1, _mm_srli_si128(sum1, 8));
-        _mm_storel_epi64((xmm*)&diff.p[1], sum1);
+        //sum1 = _mm256_add_epi32(sum1, _mm256_srli_si256(sum1, 16));
+        sum1 = _mm256_add_epi32(sum1, _mm256_srli_si256(sum1, 8));
+        _mm_storel_epi64((xmm*)&diff.p[1], _mm256_castsi256_si128(sum1));
 #else
         diff.p[1][0] = 0;
         diff.p[1][1] = 0;
@@ -246,15 +262,15 @@ namespace {
           pos.plist0()[listIndex_cap] = pos.cl().clistpair1.oldlist0;
           diff.p[0] -= doablack(pos, pos.cl().clistpair1.oldlist0, pos.cl().clistpair1.oldlist1);
           pos.plist0()[listIndex_cap] = pos.cl().clistpair1.newlist0;
-        }
       }
+    }
       else {
         const auto* ppkppb = Evaluater::KPP[sq_bk];
         const int* list0 = pos.plist0();
 
 #if defined USE_AVX2_EVAL
         ymm zero = _mm256_setzero_si256();
-        xmm sum0 = _mm_setzero_si128();
+        ymm sum0 = zero;
         for (int i = 0; i < pos.nlist(); ++i) {
           const int k0 = list0[i];
           const auto* pkppb = ppkppb[k0];
@@ -262,19 +278,24 @@ namespace {
             ymm index1 = _mm256_load_si256((const ymm*)&list0[j]);
             ymm mask = MASK[std::min(i - j, 8)];
             ymm kpp0 = _mm256_mask_i32gather_epi32(zero, (const int*)pkppb, index1, mask, 4);
-            // TODO(nodchip): _mm256_add_epi32()で上位128ビットがクリアされる原因を調べる
-            ymm y;
-            y = _mm256_cvtepi16_epi32(_mm256_extracti128_si256(kpp0, 0));
-            sum0 = _mm_add_epi32(sum0, _mm256_extracti128_si256(y, 0));
-            sum0 = _mm_add_epi32(sum0, _mm256_extracti128_si256(y, 1));
-            y = _mm256_cvtepi16_epi32(_mm256_extracti128_si256(kpp0, 1));
-            sum0 = _mm_add_epi32(sum0, _mm256_extracti128_si256(y, 0));
-            sum0 = _mm_add_epi32(sum0, _mm256_extracti128_si256(y, 1));
+            // デバッガをアタッチした場合にymmレジスタの上位128bitがクリアされるのを回避する
+            // TODO(nodchip): 上位128ビットも使用する
+            ymm kpp0lo = _mm256_cvtepi16_epi32(_mm256_extracti128_si256(kpp0, 0));
+            ymm kpp0lolo = _mm256_castsi128_si256(_mm256_extracti128_si256(kpp0lo, 0));
+            ymm kpp0lohi = _mm256_castsi128_si256(_mm256_extracti128_si256(kpp0lo, 1));
+            sum0 = _mm256_add_epi32(sum0, kpp0lolo);
+            sum0 = _mm256_add_epi32(sum0, kpp0lohi);
+            ymm kpp0hi = _mm256_cvtepi16_epi32(_mm256_extracti128_si256(kpp0, 1));
+            ymm kpp0hilo = _mm256_castsi128_si256(_mm256_extracti128_si256(kpp0hi, 0));
+            ymm kpp0hihi = _mm256_castsi128_si256(_mm256_extracti128_si256(kpp0hi, 1));
+            sum0 = _mm256_add_epi32(sum0, kpp0hilo);
+            sum0 = _mm256_add_epi32(sum0, kpp0hihi);
           }
           diff.p[2] += Evaluater::KKP[sq_bk][sq_wk][k0];
         }
-        sum0 = _mm_add_epi32(sum0, _mm_srli_si128(sum0, 8));
-        _mm_storel_epi64((xmm*)&diff.p[0], sum0);
+        //sum0 = _mm256_add_epi32(sum0, _mm256_srli_si256(sum0, 16));
+        sum0 = _mm256_add_epi32(sum0, _mm256_srli_si256(sum0, 8));
+        _mm_storel_epi64((xmm*)&diff.p[0], _mm256_castsi256_si128(sum0));
 #else
         diff.p[0][0] = 0;
         diff.p[0][1] = 0;
@@ -295,10 +316,10 @@ namespace {
           pos.plist1()[listIndex_cap] = pos.cl().clistpair1.oldlist1;
           diff.p[1] -= doawhite(pos, pos.cl().clistpair1.oldlist0, pos.cl().clistpair1.oldlist1);
           pos.plist1()[listIndex_cap] = pos.cl().clistpair1.newlist1;
-        }
       }
+  }
       ss->staticEvalRaw = diff;
-    }
+}
     else {
       const int listIndex = pos.cl().listindex0;
       auto diff = doapc(pos, pos.cl().clistpair0.newlist0, pos.cl().clistpair0.newlist1);
