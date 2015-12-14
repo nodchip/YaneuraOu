@@ -30,7 +30,6 @@
 #include <ctime>
 #include <cmath>
 #include <cstddef>
-#include <malloc.h>
 //#include <boost/align/aligned_alloc.hpp>
 
 #if defined HAVE_BMI2
@@ -338,35 +337,5 @@ template <typename T> inline void reverseEndian(T& r) {
   }
 }
 #endif
-
-#  if defined(_MSC_VER) && !defined(__INTEL_COMPILER)
-
-inline unsigned long lsb(unsigned long long b) {
-  unsigned long idx;
-  _BitScanForward64(&idx, b);
-  return idx;
-}
-
-inline unsigned long msb(unsigned long long b) {
-  unsigned long idx;
-  _BitScanReverse64(&idx, b);
-  return idx;
-}
-
-#  else // Assumed gcc or compatible compiler
-
-inline u64 lsb(u64 b) { // Assembly code by Heinz van Saanen
-  u64 idx;
-  __asm__("bsfq %1, %0": "=r"(idx) : "rm"(b));
-  return idx;
-}
-
-inline u64 msb(u64 b) {
-  u64 idx;
-  __asm__("bsrq %1, %0": "=r"(idx) : "rm"(b));
-  return idx;
-}
-
-#  endif
 
 #endif // #ifndef APERY_COMMON_HPP
