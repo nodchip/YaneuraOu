@@ -6,9 +6,9 @@
 #include "search.hpp"
 
 std::mt19937_64 Book::mt64bit_; // 定跡のhash生成用なので、seedは固定でデフォルト値を使う。
-Key Book::ZobPiece[PieceNone][SquareNum];
-Key Book::ZobHand[HandPieceNum][19]; // 持ち駒の同一種類の駒の数ごと
-Key Book::ZobTurn;
+BookKey Book::ZobPiece[PieceNone][SquareNum];
+BookKey Book::ZobHand[HandPieceNum][19]; // 持ち駒の同一種類の駒の数ごと
+BookKey Book::ZobTurn;
 
 void Book::init() {
   for (Piece p = Empty; p < PieceNone; ++p) {
@@ -55,8 +55,8 @@ bool Book::open(const char* fName) {
   return true;
 }
 
-Key Book::bookKey(const Position& pos) {
-  Key key = 0;
+BookKey Book::bookKey(const Position& pos) {
+  BookKey key = 0;
   Bitboard bb = pos.occupiedBB();
 
   while (bb.isNot0()) {
@@ -77,7 +77,7 @@ std::tuple<Move, Score> Book::probe(const Position& pos, const std::string& fNam
   u16 best = 0;
   u32 sum = 0;
   Move move = Move::moveNone();
-  const Key key = bookKey(pos);
+  const BookKey key = bookKey(pos);
   const Score min_book_score = static_cast<Score>(static_cast<int>(pos.searcher()->options[OptionNames::MIN_BOOK_SCORE]));
   Score score = ScoreZero;
 
@@ -128,7 +128,7 @@ std::vector<std::pair<Move, int> > Book::enumerateMoves(const Position& pos, con
     return{};
   }
 
-  const Key key = bookKey(pos);
+  const BookKey key = bookKey(pos);
 
   // 現在の局面における定跡手の数だけループする。
   std::vector<std::pair<Move, int> > moves;
@@ -199,14 +199,14 @@ void makeBook(Position& pos, std::istringstream& ssCmd) {
     return;
   }
   std::string line;
-  std::map<Key, std::vector<BookEntry> > bookMap;
+  std::map<BookKey, std::vector<BookEntry> > bookMap;
 
   double startSec = clock() / double(CLOCKS_PER_SEC);
   int numberOfGameRecords = 132960;
 
   int gameRecordIndex = 0;
   while (std::getline(ifs, line)) {
-    if (++gameRecordIndex % 100 == 0) {
+    if (++gameRecordIndex % 1000 == 0) {
       double currentSec = clock() / double(CLOCKS_PER_SEC);
       double secPerFile = (currentSec - startSec) / gameRecordIndex;
       int remainedSec = (numberOfGameRecords - gameRecordIndex) * secPerFile;
@@ -253,7 +253,7 @@ void makeBook(Position& pos, std::istringstream& ssCmd) {
       line.erase(0, 6); // 先頭から6文字削除
       if (pos.turn() == saveColor) {
         // 先手、後手の内、片方だけを記録する。
-        const Key key = Book::bookKey(pos);
+        const BookKey key = Book::bookKey(pos);
         bool isFind = false;
         if (bookMap.find(key) != bookMap.end()) {
           for (std::vector<BookEntry>::iterator it = bookMap[key].begin();
@@ -322,12 +322,22 @@ void makeBook(Position& pos, std::istringstream& ssCmd) {
     std::sort(elem.second.rbegin(), elem.second.rend(), countCompare);
   }
 
-#if 1
+#if 0
   // 2 回以上棋譜に出現していない手は削除する。
   for (auto& elem : bookMap) {
     auto& second = elem.second;
     auto erase_it = std::find_if(second.begin(), second.end(), [](decltype(*second.begin())& second_elem) { return second_elem.count < 2; });
     second.erase(erase_it, second.end());
+  }
+#endif
+
+#if 1
+  // 合法手が2手以上無い手は削除する。
+  for (auto& elem : bookMap) {
+    auto& second = elem.second;
+    if (second.size() == 1) {
+      second.clear();
+    }
   }
 #endif
 
@@ -340,7 +350,7 @@ void makeBook(Position& pos, std::istringstream& ssCmd) {
   }
 #endif
 
-  std::ofstream ofs("book-2015-11-23.bin", std::ios::binary);
+  std::ofstream ofs("book-2015-12-16-proposed.bin", std::ios::binary);
   for (auto& elem : bookMap) {
     for (auto& elel : elem.second) {
       ofs.write(reinterpret_cast<char*>(&(elel)), sizeof(BookEntry));
