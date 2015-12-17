@@ -27,7 +27,7 @@ void TranspositionTable::clear() {
   memset(entries_, 0, size() * sizeof(TTCluster));
 }
 
-void TranspositionTable::store(const Key posKey, const Score score, const Bound bound, Depth depth,
+void TranspositionTable::store(const Key& posKey, const Score score, const Bound bound, Depth depth,
   Move move, const Score evalScore)
 {
 #ifdef OUTPUT_TRANSPOSITION_EXPIRATION_RATE
@@ -36,7 +36,6 @@ void TranspositionTable::store(const Key posKey, const Score score, const Bound 
 
   TTEntry* tte = firstEntry(posKey);
   TTEntry* replace = tte;
-  const u32 posKeyHigh32 = posKey >> 32;
 
   if (depth < Depth0) {
     depth = Depth0;
@@ -44,13 +43,13 @@ void TranspositionTable::store(const Key posKey, const Score score, const Bound 
 
   for (int i = 0; i < ClusterSize; ++i, ++tte) {
     // 置換表が空か、keyが同じな古い情報が入っているとき
-    if (!tte->key() || tte->key() == posKeyHigh32) {
+    if (!tte->key() || tte->key() == posKey.p[1]) {
       // move が無いなら、とりあえず古い情報でも良いので、他の指し手を保存する。
       if (move.isNone()) {
         move = tte->move();
       }
 
-      tte->save(depth, score, move, posKeyHigh32,
+      tte->save(depth, score, move, posKey.p[1],
         bound, this->generation(), evalScore);
       return;
     }
@@ -70,18 +69,17 @@ void TranspositionTable::store(const Key posKey, const Score score, const Bound 
   }
 #endif
 
-  replace->save(depth, score, move, posKeyHigh32,
+  replace->save(depth, score, move, posKey.p[1],
     bound, this->generation(), evalScore);
 }
 
-TTEntry* TranspositionTable::probe(const Key posKey) {
-  const Key posKeyHigh32 = posKey >> 32;
+TTEntry* TranspositionTable::probe(const Key& posKey) {
   TTEntry* tte = firstEntry(posKey);
 
   // firstEntry() で、posKey の下位 (size() - 1) ビットを hash key に使用した。
   // ここでは posKey の上位 32bit が 保存されている hash key と同じか調べる。
   for (int i = 0; i < ClusterSize && tte[i].key(); ++i) {
-    if (tte[i].key() == posKeyHigh32) {
+    if (tte[i].key() == posKey.p[1]) {
 #ifdef OUTPUT_TRANSPOSITION_HIT_RATE
       ++numberOfHits;
 #endif

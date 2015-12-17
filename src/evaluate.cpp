@@ -533,7 +533,7 @@ Score evaluate(Position& pos, SearchStack* ss) {
     return score / FVScale;
   }
 
-  const Key keyExcludeTurn = pos.getKeyExcludeTurn();
+  const HashTableKey keyExcludeTurn = pos.getKeyExcludeTurn();
   EvaluateHashEntry entry = *g_evalTable[keyExcludeTurn]; // atomic にデータを取得する必要がある。
   entry.decode();
   if (entry.key == keyExcludeTurn) {
@@ -563,3 +563,10 @@ int EvaluateHashTable::getUtilizationPerMill() const
   return numberOfUsed * 1000 / EvaluateTableSize;
 }
 #endif
+
+std::ostream& operator<<(std::ostream& os, const Key& key)
+{
+  char buffer[64];
+  sprintf(buffer, "%016llx%016llx", key.p[1], key.p[0]);
+  return os << buffer;
+}

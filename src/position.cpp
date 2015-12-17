@@ -5,6 +5,7 @@
 #include "search.hpp"
 
 Key Position::zobrist_[PieceTypeNum][SquareNum][ColorNum];
+Key Position::zobTurn_;
 Key Position::zobHand_[HandPieceNum][ColorNum];
 Key Position::zobExclusion_;
 
@@ -1494,15 +1495,21 @@ void Position::initZobrist() {
   for (PieceType pt = Occupied; pt < PieceTypeNum; ++pt) {
     for (Square sq = I9; sq < SquareNum; ++sq) {
       for (Color c = Black; c < ColorNum; ++c) {
-        zobrist_[pt][sq][c] = mt64() & ~UINT64_C(1);
+        zobrist_[pt][sq][c].p[0] = mt64() & ~UINT64_C(1);
+        zobrist_[pt][sq][c].p[1] = mt64();
       }
     }
   }
+  zobTurn_.p[0] = 1;
+  zobTurn_.p[1] = 0;
   for (HandPiece hp = HPawn; hp < HandPieceNum; ++hp) {
-    zobHand_[hp][Black] = mt64() & ~UINT64_C(1);
-    zobHand_[hp][White] = mt64() & ~UINT64_C(1);
+    zobHand_[hp][Black].p[0] = mt64() & ~UINT64_C(1);
+    zobHand_[hp][Black].p[1] = mt64();
+    zobHand_[hp][White].p[0] = mt64() & ~UINT64_C(1);
+    zobHand_[hp][White].p[1] = mt64();
   }
-  zobExclusion_ = mt64() & ~UINT64_C(1);
+  zobExclusion_.p[0] = mt64() & ~UINT64_C(1);
+  zobExclusion_.p[1] = mt64();
 }
 
 void Position::print() const {
@@ -1670,7 +1677,7 @@ int Position::debugSetEvalList() const {
 #endif
 
 Key Position::computeBoardKey() const {
-  Key result = 0;
+  Key result;
   for (Square sq = I9; sq < SquareNum; ++sq) {
     if (piece(sq) != Empty) {
       result += zobrist(pieceToPieceType(piece(sq)), sq, pieceToColor(piece(sq)));
@@ -1683,7 +1690,7 @@ Key Position::computeBoardKey() const {
 }
 
 Key Position::computeHandKey() const {
-  Key result = 0;
+  Key result;
   for (HandPiece hp = HPawn; hp < HandPieceNum; ++hp) {
     for (Color c = Black; c < ColorNum; ++c) {
       const int num = hand(c).numOf(hp);

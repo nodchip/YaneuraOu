@@ -255,7 +255,67 @@ template <typename T> inline void prefetch(T* addr) {
 //#define ALIGNED_FREE(memblock) free(memblock)
 #endif
 
-using Key = u64;
+using xmm = __m128i;
+using ymm = __m256i;
+
+//using Key = u64;
+
+struct Key
+{
+  union
+  {
+    xmm m;
+    u64 p[2];
+  };
+
+  Key() {
+    m = _mm_setzero_si128();
+  }
+
+  Key(const Key& cp) {
+    m = cp.m;
+  }
+
+  Key& operator += (const Key& rh) {
+    m = _mm_add_epi64(m, rh.m);
+    return *this;
+  }
+
+  Key operator + (const Key& rh) const {
+    return Key(*this) += rh;
+  }
+
+  Key& operator -= (const Key& rh) {
+    m = _mm_sub_epi64(m, rh.m);
+    return *this;
+  }
+
+  Key operator - (const Key& rh) const {
+    return Key(*this) -= rh;
+  }
+
+  Key& operator ^= (const Key& rh) {
+    m = _mm_xor_si128(m, rh.m);
+    return *this;
+  }
+
+  Key operator ^ (const Key& rh) const {
+    return Key(*this) ^= rh;
+  }
+
+  bool operator == (const Key& rh) const {
+    __m128i neq = _mm_xor_si128(m, rh.m);
+    return _mm_test_all_zeros(neq, neq) != 0;
+  }
+
+  bool operator != (const Key& rh) const {
+    return !(*this == rh);
+  }
+
+  friend std::ostream& operator<<(std::ostream& os, const Key& key);
+};
+
+using HashTableKey = u64;
 
 // Size は 2のべき乗であること。
 template <typename T, size_t Size>
@@ -270,7 +330,7 @@ struct HashTable {
       entries_ = nullptr;
     }
   }
-  T* operator [] (const Key k) { return entries_ + (static_cast<size_t>(k) & (Size - 1)); }
+  T* operator [] (const HashTableKey k) { return entries_ + (static_cast<size_t>(k) & (Size - 1)); }
   void clear() { memset(entries_, 0, sizeof(T)*Size); }
   // Size が 2のべき乗であることのチェック
   static_assert((Size & (Size - 1)) == 0, "");

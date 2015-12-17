@@ -17,7 +17,7 @@ OverloadEnumOperators(Depth);
 
 class TTEntry {
 public:
-  u32   key() const { return key32_; }
+  u64   key() const { return key64_; }
   Depth depth() const { return static_cast<Depth>(depth8_); }
   Score score() const { return static_cast<Score>(score16_); }
   Move  move() const { return static_cast<Move>(move16_); }
@@ -27,10 +27,10 @@ public:
   void setGeneration(const u8 g) { genBound8_ = type() | (g << 2); }
 
   void save(const Depth depth, const Score score, const Move move,
-    const u32 posKeyHigh32, const Bound bound, const u8 generation,
+    const u64 posKeyTTEntryValue, const Bound bound, const u8 generation,
     const Score evalScore)
   {
-    key32_ = posKeyHigh32;
+    key64_ = posKeyTTEntryValue;
     move16_ = static_cast<u16>(move.value());
     genBound8_ = (generation << 2) | bound;
     score16_ = static_cast<s16>(score);
@@ -39,14 +39,14 @@ public:
   }
 
 private:
-  u32 key32_;
+  u64 key64_;
   u16 move16_;
   s16 score16_;
   s16 evalScore_;
   u8 genBound8_;
   u8 depth8_;
-  u32 dummy_;
 };
+static_assert(sizeof(TTEntry) == 16, "Size of TTEntry is not 16");
 
 constexpr int ClusterSize = 1;
 
@@ -60,11 +60,11 @@ public:
   ~TranspositionTable();
   void setSize(const size_t mbSize); // Mega Byte 指定
   void clear();
-  void store(const Key posKey, const Score score, const Bound bound, Depth depth,
+  void store(const Key& posKey, const Score score, const Bound bound, Depth depth,
     Move move, const Score evalScore);
-  TTEntry* probe(const Key posKey);
+  TTEntry* probe(const Key& posKey);
   void newSearch();
-  TTEntry* firstEntry(const Key posKey) const;
+  TTEntry* firstEntry(const Key& posKey) const;
   void refresh(const TTEntry* tte) const;
 
   size_t size() const { return size_; }
@@ -115,7 +115,7 @@ inline TranspositionTable::~TranspositionTable() {
   ALIGNED_FREE(entries_);
 }
 
-inline TTEntry* TranspositionTable::firstEntry(const Key posKey) const {
+inline TTEntry* TranspositionTable::firstEntry(const Key& posKey) const {
   // (size() - 1) は置換表で使用するバイト数のマスク
   // posKey の下位 (size() - 1) ビットを hash key として使用。
   // ここで posKey の下位ビットの一致を確認。
@@ -123,7 +123,7 @@ inline TTEntry* TranspositionTable::firstEntry(const Key posKey) const {
   // ここでは下位32bit 以上が確認出来れば完璧。
   // 置換表のサイズを小さく指定しているときは下位32bit の一致は確認出来ないが、
   // 仕方ない。
-  return entries_[posKey & (size() - 1)].data;
+  return entries_[posKey.p[0] & (size() - 1)].data;
 }
 
 inline void TranspositionTable::refresh(const TTEntry* tte) const {
