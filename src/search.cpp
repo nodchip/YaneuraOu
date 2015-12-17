@@ -260,6 +260,8 @@ namespace {
       ss << "mate " << (0 < score ? ScoreMate0Ply - score : -ScoreMate0Ply - score);
     }
 
+    ss << (beta <= score ? " lowerbound" : score <= alpha ? " upperbound" : "");
+
     return ss.str();
   }
 
