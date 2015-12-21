@@ -33,7 +33,8 @@ void benchmark(Position& pos) {
   int sumOfSeaerchTimeMs = 0;
   while (std::getline(ifs, sfen)) {
     setPosition(pos, sfen);
-    go(pos, "byoyomi 10000");
+    //go(pos, "byoyomi 10000");
+    go(pos, "infinite");
     pos.searcher()->threads.waitForThinkFinished();
 
     sumOfSearchedNodes += pos.searcher()->lastSearchedNodes;

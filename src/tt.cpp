@@ -1,136 +1,101 @@
 ﻿#include "tt.hpp"
 
-void TranspositionTable::setSize(const size_t mbSize) { // Mega Byte 指定
-                                                        // 確保する要素数を取得する。
-  size_t newSize = (mbSize << 20) / sizeof(TTCluster);
-  newSize = std::max(static_cast<size_t>(1024), newSize); // 最小値は 1024 としておく。
-                                                          // 確保する要素数は 2 のべき乗である必要があるので、MSB以外を捨てる。
-  const int msbIndex = 63 - firstOneFromMSB(static_cast<u64>(newSize));
-  newSize = UINT64_C(1) << msbIndex;
+// Our global transposition table
+//TranspositionTable TT;
 
-  if (newSize == this->size()) {
-    // 現在と同じサイズなら何も変更する必要がない。
+
+/// TranspositionTable::resize() sets the size of the transposition table,
+/// measured in megabytes. Transposition table consists of a power of 2 number
+/// of clusters and each cluster consists of ClusterSize number of TTEntry.
+
+void TranspositionTable::resize(size_t mbSize) {
+
+  size_t newClusterCount = size_t(1) << msb((mbSize * 1024 * 1024) / sizeof(Cluster));
+
+  if (newClusterCount == clusterCount)
     return;
-  }
 
-  size_ = newSize;
-  ALIGNED_FREE(entries_);
-  entries_ = (TTCluster*)ALIGNED_ALLOC(sizeof(TTCluster), newSize * sizeof(TTCluster));
-  if (!entries_) {
-    std::cerr << "Failed to allocate transposition table: " << mbSize << "MB";
+  clusterCount = newClusterCount;
+
+  if (table) {
+    ALIGNED_FREE(table);
+    table = nullptr;
+  }
+  table = (Cluster*)ALIGNED_ALLOC(
+    sizeof(Cluster), clusterCount * sizeof(Cluster));
+
+  if (!table)
+  {
+    SYNCCOUT << "info string Failed to allocate " << mbSize
+      << "MB for transposition table." << SYNCENDL;
     exit(EXIT_FAILURE);
   }
-  clear();
 }
+
+TranspositionTable::~TranspositionTable() {
+  if (table) {
+    ALIGNED_FREE(table);
+    table = nullptr;
+  }
+}
+
+
+/// TranspositionTable::clear() overwrites the entire transposition table
+/// with zeros. It is called whenever the table is resized, or when the
+/// user asks the program to clear the table (from the UCI interface).
 
 void TranspositionTable::clear() {
-  memset(entries_, 0, size() * sizeof(TTCluster));
+  std::memset(table, 0, clusterCount * sizeof(Cluster));
 }
 
-void TranspositionTable::store(const Key& posKey, const Score score, const Bound bound, Depth depth,
-  Move move, const Score evalScore)
-{
-#ifdef OUTPUT_TRANSPOSITION_EXPIRATION_RATE
-  ++numberOfSaves;
-#endif
 
-  TTEntry* tte = firstEntry(posKey);
+/// TranspositionTable::probe() looks up the current position in the transposition
+/// table. It returns true and a pointer to the TTEntry if the position is found.
+/// Otherwise, it returns false and a pointer to an empty or least valuable TTEntry
+/// to be replaced later. The replace value of an entry is calculated as its depth
+/// minus 8 times its relative age. TTEntry t1 is considered more valuable than
+/// TTEntry t2 if its replace value is greater than that of t2.
+
+TTEntry* TranspositionTable::probe(const Key& key, bool& found) const {
+
+  TTEntry* const tte = first_entry(key);
+
+  for (int i = 0; i < ClusterSize; ++i)
+    if (!tte[i].key64 || tte[i].key64 == key.p[1])
+    {
+      if ((tte[i].genBound8 & 0xFC) != generation8 && tte[i].key64)
+        tte[i].genBound8 = uint8_t(generation8 | tte[i].bound()); // Refresh
+
+      return found = tte[i].key64 != 0, &tte[i];
+    }
+
+  // Find an entry to be replaced according to the replacement strategy
   TTEntry* replace = tte;
+  for (int i = 1; i < ClusterSize; ++i)
+    // Due to our packed storage format for generation and its cyclic
+    // nature we add 259 (256 is the modulus plus 3 to keep the lowest
+    // two bound bits from affecting the result) to calculate the entry
+    // age correctly even after generation8 overflows into the next cycle.
+    if (replace->depth8 - ((259 + generation8 - replace->genBound8) & 0xFC) * 2 * OnePly
+  >   tte[i].depth8 - ((259 + generation8 - tte[i].genBound8) & 0xFC) * 2 * OnePly)
+      replace = &tte[i];
 
-  if (depth < Depth0) {
-    depth = Depth0;
-  }
-
-  for (int i = 0; i < ClusterSize; ++i, ++tte) {
-    // 置換表が空か、keyが同じな古い情報が入っているとき
-    if (!tte->key() || tte->key() == posKey.p[1]) {
-      // move が無いなら、とりあえず古い情報でも良いので、他の指し手を保存する。
-      if (move.isNone()) {
-        move = tte->move();
-      }
-
-      tte->save(depth, score, move, posKey.p[1],
-        bound, this->generation(), evalScore);
-      return;
-    }
-
-    int c = (replace->generation() == this->generation() ? 2 : 0);
-    c += (tte->generation() == this->generation() || tte->type() == BoundExact ? -2 : 0);
-    c += (tte->depth() < replace->depth() ? 1 : 0);
-
-    if (0 < c) {
-      replace = tte;
-    }
-  }
-
-#ifdef OUTPUT_TRANSPOSITION_EXPIRATION_RATE
-  if (replace->key() != 0 && replace->key() != posKeyHigh32) {
-    ++numberOfCacheExpirations;
-  }
-#endif
-
-  replace->save(depth, score, move, posKey.p[1],
-    bound, this->generation(), evalScore);
+  return found = false, replace;
 }
 
-TTEntry* TranspositionTable::probe(const Key& posKey) {
-  TTEntry* tte = firstEntry(posKey);
 
-  // firstEntry() で、posKey の下位 (size() - 1) ビットを hash key に使用した。
-  // ここでは posKey の上位 32bit が 保存されている hash key と同じか調べる。
-  for (int i = 0; i < ClusterSize && tte[i].key(); ++i) {
-    if (tte[i].key() == posKey.p[1]) {
-#ifdef OUTPUT_TRANSPOSITION_HIT_RATE
-      ++numberOfHits;
-#endif
-      return &tte[i];
-    }
-  }
-#ifdef OUTPUT_TRANSPOSITION_HIT_RATE
-  ++numberOfMissHits;
-#endif
-  return nullptr;
-}
+/// Returns an approximation of the hashtable occupation during a search. The
+/// hash is x permill full, as per UCI protocol.
 
-#if defined(OUTPUT_TRANSPOSITION_TABLE_UTILIZATION)
-int TranspositionTable::getUtilizationPerMill() const
+int TranspositionTable::hashfull() const
 {
-  long numberOfUsed = 0;
-  int maxIndex = 64 * 1024;
-  for (int i = 0; i < maxIndex; ++i) {
-    for (int j = 0; j < ClusterSize; ++j) {
-      if (entries_[i].data[j].key() != 0) {
-        ++numberOfUsed;
-      }
-    }
+  int cnt = 0;
+  for (int i = 0; i < 1000 / ClusterSize; i++)
+  {
+    const TTEntry* tte = &table[i].entry[0];
+    for (int j = 0; j < ClusterSize; j++)
+      if ((tte[j].genBound8 & 0xFC) == generation8)
+        cnt++;
   }
-
-  return numberOfUsed * 1000 / (maxIndex * ClusterSize);
+  return cnt;
 }
-#elif defined(OUTPUT_TRANSPOSITION_HIT_RATE)
-int TranspositionTable::getHitRatePerMill() const
-{
-  if (numberOfHits == 0) {
-    return 0;
-  }
-  return numberOfHits * 1000 / (numberOfHits + numberOfMissHits);
-}
-#elif defined(OUTPUT_TRANSPOSITION_EXPIRATION_RATE)
-int TranspositionTable::getCacheExpirationRatePerMill() const
-{
-  if (numberOfCacheExpirations == 0) {
-    return 0;
-  }
-  return numberOfCacheExpirations * 1000 / numberOfSaves;
-}
-
-u64 TranspositionTable::getNumberOfSaves() const
-{
-  return numberOfSaves;
-}
-
-u64 TranspositionTable::getNumberOfCacheExpirations() const
-{
-  return numberOfCacheExpirations;
-}
-#endif
