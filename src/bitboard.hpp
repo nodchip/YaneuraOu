@@ -29,7 +29,7 @@ public:
   u64 merge() const { return this->p(0) | this->p(1); }
   bool isNot0() const {
 #ifdef HAVE_SSE4
-    return !(_mm_testz_si128(this->m_, _mm_set1_epi8(static_cast<char>(0xffu))));
+    return !(_mm_test_all_zeros(this->m_, this->m_));
 #else
     return (this->merge() ? true : false);
 #endif
@@ -142,7 +142,7 @@ public:
   FORCE_INLINE Square firstOneRightFromI9() {
     const Square sq = static_cast<Square>(firstOneFromLSB(this->p(0)));
     // LSB 側の最初の 1 の bit を 0 にする
-    this->p_[0] &= this->p(0) - 1;
+    this->p_[0] = _blsr_u64(this->p(0));
     return sq;
   }
   // Bitboard の left 側だけの要素を調べて、最初に 1 であるマスの index を返す。
@@ -151,7 +151,7 @@ public:
   FORCE_INLINE Square firstOneLeftFromB9() {
     const Square sq = static_cast<Square>(firstOneFromLSB(this->p(1)) + 63);
     // LSB 側の最初の 1 の bit を 0 にする
-    this->p_[1] &= this->p(1) - 1;
+    this->p_[1] = _blsr_u64(this->p(1));
     return sq;
   }
   // Bitboard を I9 から A1 まで調べて、最初に 1 であるマスの index を返す。

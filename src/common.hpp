@@ -107,15 +107,11 @@ template <> struct Binary<0> {
 
 #if defined(_MSC_VER) && !defined(__INTEL_COMPILER) && defined(_WIN64)
 #include <intrin.h>
-FORCE_INLINE int firstOneFromLSB(const u64 b) {
-  unsigned long index;
-  _BitScanForward64(&index, b);
-  return index;
+FORCE_INLINE int firstOneFromLSB(u64 b) {
+  return static_cast<int>(_tzcnt_u64(b));
 }
-FORCE_INLINE int firstOneFromMSB(const u64 b) {
-  unsigned long index;
-  _BitScanReverse64(&index, b);
-  return 63 - index;
+FORCE_INLINE int firstOneFromMSB(u64 b) {
+  return static_cast<int>(_lzcnt_u64(b));
 }
 #elif defined(__GNUC__) && ( defined(__i386__) || defined(__x86_64__) )
 FORCE_INLINE int firstOneFromLSB(const u64 b) {
