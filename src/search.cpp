@@ -408,7 +408,7 @@ Score Searcher::qsearch(Position& pos, SearchStack* ss, Score alpha, Score beta,
     }
 
     if (beta <= bestScore) {
-      if (tte == nullptr) {
+      if (!ttHit) {
         tte->save(pos.getKey(), scoreToTT(bestScore, ss->ply), BoundLower,
           DepthNone, Move::moveNone(), ss->staticEval, tt.generation());
       }
