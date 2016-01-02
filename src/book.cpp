@@ -5,6 +5,7 @@
 #include "position.hpp"
 #include "search.hpp"
 #include "thread.hpp"
+#include "time_util.hpp"
 #include "usi.hpp"
 
 std::mt19937_64 Book::mt64bit_; // 定跡のhash生成用なので、seedは固定でデフォルト値を使う。
@@ -203,17 +204,12 @@ void makeBook(Position& pos, std::istringstream& ssCmd) {
   // bookMap[BookKey, proFromTo] -> BookEntry
   std::map<std::pair<BookKey, u16>, BookEntry> bookMap;
 
-  double startSec = clock() / double(CLOCKS_PER_SEC);
+  double startClockSec = clock() / double(CLOCKS_PER_SEC);
   int gameRecordIndex = 0;
   for (const auto& gameRecord : gameRecords) {
-    if (++gameRecordIndex % 1 == 0) {
-      double currentSec = clock() / double(CLOCKS_PER_SEC);
-      double secPerFile = (currentSec - startSec) / gameRecordIndex;
-      int remainedSec = (gameRecords.size() - gameRecordIndex) * secPerFile;
-      int second = remainedSec % 60;
-      int minute = remainedSec / 60 % 60;
-      int hour = remainedSec / 3600;
-      printf("%d/%d %d:%02d:%02d\n", gameRecordIndex, gameRecords.size(), hour, minute, second);
+    if (++gameRecordIndex % 1000 == 0) {
+      std::cout << time_util::formatRemainingTime(
+        startClockSec, gameRecordIndex, gameRecords.size());
     }
     Color winner = gameRecord.winner == 1 ? Black : White;
     // 勝った方の指し手を記録していく。
@@ -287,13 +283,8 @@ void makeBook(Position& pos, std::istringstream& ssCmd) {
   std::set<BookKey> recordedKeys;
   for (const auto& gameRecord : gameRecords) {
     if (++gameRecordIndex % 1 == 0) {
-      double currentSec = clock() / double(CLOCKS_PER_SEC);
-      double secPerFile = (currentSec - startSec) / gameRecordIndex;
-      int remainedSec = (gameRecords.size() - gameRecordIndex) * secPerFile;
-      int second = remainedSec % 60;
-      int minute = remainedSec / 60 % 60;
-      int hour = remainedSec / 3600;
-      printf("%d/%d %d:%02d:%02d\n", gameRecordIndex, gameRecords.size(), hour, minute, second);
+      std::cout << time_util::formatRemainingTime(
+        startClockSec, gameRecordIndex, gameRecords.size());
     }
 
     pos.set(DefaultStartPositionSFEN, pos.searcher()->threads.mainThread());
@@ -332,7 +323,6 @@ void makeBook(Position& pos, std::istringstream& ssCmd) {
       pos.doMove(move, SetUpStates->top());
     }
   }
-
 
   std::ofstream ofs("../bin/book-2016-01-02.bin", std::ios::binary);
   for (auto& elem : bookReduced) {

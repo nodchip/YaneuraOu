@@ -176,6 +176,7 @@
     <ClInclude Include="..\..\src\string_util.hpp" />
     <ClInclude Include="..\..\src\thread.hpp" />
     <ClInclude Include="..\..\src\timeManager.hpp" />
+    <ClInclude Include="..\..\src\time_util.hpp" />
     <ClInclude Include="..\..\src\tt.hpp" />
     <ClInclude Include="..\..\src\usi.hpp" />
   </ItemGroup>
@@ -207,6 +208,7 @@
     <ClCompile Include="..\..\src\string_util.cpp" />
     <ClCompile Include="..\..\src\thread.cpp" />
     <ClCompile Include="..\..\src\timeManager.cpp" />
+    <ClCompile Include="..\..\src\time_util.cpp" />
     <ClCompile Include="..\..\src\tt.cpp" />
     <ClCompile Include="..\..\src\usi.cpp" />
   </ItemGroup>
