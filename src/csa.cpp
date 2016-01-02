@@ -304,12 +304,10 @@ bool csa::readCsa(const std::tr2::sys::path& filepath, GameRecord& gameRecord)
       std::string csaMove = line.substr(1);
       Move move = csaToMove(position, csaMove);
 
-#if !defined NDEBUG
-      if (!position.moveIsLegal(move)) {
-        cout << "!!! Found an illegal move." << endl;
-        break;
+      if (!position.moveIsPseudoLegal(move)) {
+        std::cout << "!!! Found an illegal move." << std::endl;
+        return false;
       }
-#endif
 
       stateInfos.push_back(StateInfo());
       position.doMove(move, stateInfos.back());
@@ -362,7 +360,11 @@ bool csa::readCsas(
     }
 
     GameRecord gameRecord;
-    RETURN_IF_FALSE(readCsa(it->path(), gameRecord));
+    if (!readCsa(it->path(), gameRecord)) {
+      std::cout << "Skipped" << std::endl;
+      continue;
+    }
+
     if (!gameRecordFilter(gameRecord)) {
       continue;
     }
