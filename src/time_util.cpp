@@ -10,7 +10,7 @@ std::string time_util::formatRemainingTime(
 
   if (currentIndex == 0 || startClockSec == currentClockSec) {
     char buffer[1024];
-    sprintf(buffer, "%d/%d ??:??:??\n", currentIndex, numberOfData);
+    sprintf(buffer, "%d/%d ??d day(s) ??:??:??\n", currentIndex, numberOfData);
     return buffer;
   }
 
@@ -18,9 +18,10 @@ std::string time_util::formatRemainingTime(
   int remainedSec = (numberOfData - currentIndex) * secPerFile;
   int second = remainedSec % 60;
   int minute = remainedSec / 60 % 60;
-  int hour = remainedSec / 3600;
+  int hour = remainedSec / 3600 % 24;
+  int day = remainedSec / 86400;
   char buffer[1024];
-  sprintf(buffer, "%d/%d %d:%02d:%02d\n",
-    currentIndex, numberOfData, hour, minute, second);
+  sprintf(buffer, "%d/%d %d day(s) %d:%02d:%02d\n",
+    currentIndex, numberOfData, day, hour, minute, second);
   return buffer;
 }
