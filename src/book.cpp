@@ -211,7 +211,7 @@ void makeBook(Position& pos, std::istringstream& ssCmd) {
       std::cout << time_util::formatRemainingTime(
         startClockSec, gameRecordIndex, gameRecords.size());
     }
-    Color winner = gameRecord.winner == 1 ? Black : White;
+    Color winner = gameRecord.winner == 1 ? Black : gameRecord.winner == 2 ? White : ColorNum;
     // 勝った方の指し手を記録していく。
     // 又は稲庭戦法側を記録していく。
     const Color saveColor = winner;
