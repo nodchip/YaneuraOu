@@ -128,14 +128,8 @@ constexpr File SquareToFile[SquareNum] = {
 };
 
 // 速度が必要な場面で使用する。
-inline Rank makeRank(const Square s) {
-  assert(isInSquare(s));
-  return SquareToRank[s];
-}
-inline File makeFile(const Square s) {
-  assert(isInSquare(s));
-  return SquareToFile[s];
-}
+Rank makeRank(const Square s);
+File makeFile(const Square s);
 
 // 位置関係、方向
 // ボナンザそのまま
