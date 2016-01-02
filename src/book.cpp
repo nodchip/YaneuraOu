@@ -265,6 +265,7 @@ void makeBook(Position& pos, std::istringstream& ssCmd) {
     bookKeyToEntries[p.first.first].push_back(p.second);
   }
 
+  int numberOfEntries = 0;
   std::map<BookKey, std::vector<BookEntry> > bookReduced;
   for (const auto& p : bookKeyToEntries) {
     if (p.second.size() <= 1) {
@@ -272,6 +273,7 @@ void makeBook(Position& pos, std::istringstream& ssCmd) {
       continue;
     }
     bookReduced.insert(p);
+    numberOfEntries += p.second.size();
   }
 
   // BookEntry::count の値で降順にソート
@@ -280,13 +282,10 @@ void makeBook(Position& pos, std::istringstream& ssCmd) {
   }
 
   // Scoreをつけていく
+  int entryIndex = 0;
   std::set<BookKey> recordedKeys;
+  startClockSec = clock() / double(CLOCKS_PER_SEC);
   for (const auto& gameRecord : gameRecords) {
-    if (++gameRecordIndex % 1 == 0) {
-      std::cout << time_util::formatRemainingTime(
-        startClockSec, gameRecordIndex, gameRecords.size());
-    }
-
     pos.set(DefaultStartPositionSFEN, pos.searcher()->threads.mainThread());
     StateStackPtr SetUpStates = StateStackPtr(new std::stack<StateInfo>());
     for (const auto& move : gameRecord.moves) {
@@ -315,6 +314,10 @@ void makeBook(Position& pos, std::istringstream& ssCmd) {
         entry.score = -pos.csearcher()->rootMoves[0].score_;
         //pos.print();
         printf("score=%d\n", entry.score);
+
+        ++entryIndex;
+        std::cout << time_util::formatRemainingTime(
+          startClockSec, entryIndex, numberOfEntries);
       }
 
       recordedKeys.insert(key);
