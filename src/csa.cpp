@@ -382,6 +382,7 @@ bool csa::readCsas(
 
 bool csa::readCsa1(
   const std::tr2::sys::path& filepath,
+  Position& pos,
   std::vector<GameRecord>& gameRecords)
 {
   std::ifstream ifs(filepath);
@@ -427,7 +428,6 @@ bool csa::readCsa1(
       continue;
     }
 
-    Position pos;
     pos.set(DefaultStartPositionSFEN, pos.searcher()->threads.mainThread());
     StateStackPtr stateStack = make_unique<std::stack<StateInfo>>();
     for (int play = 0; play < gameRecord.numberOfPlays; ++play) {
@@ -488,12 +488,13 @@ bool csa::writeCsa1(
 
 bool csa::mergeCsa1s(
   const std::vector<std::tr2::sys::path>& inputFilepaths,
-  const std::tr2::sys::path& outputFilepath)
+  const std::tr2::sys::path& outputFilepath,
+  Position& pos)
 {
   std::vector<GameRecord> gameRecords;
   for (const auto& p : inputFilepaths) {
     cout << p << endl;
-    if (!readCsa1(p, gameRecords)) {
+    if (!readCsa1(p, pos, gameRecords)) {
       return false;
     }
   }

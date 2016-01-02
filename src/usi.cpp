@@ -657,7 +657,8 @@ void Searcher::doUSICommandLoop(int argc, char* argv[]) {
       csa::mergeCsa1s({
         "C:\\home\\develop\\shogi-kifu\\2chkifu_csa\\2chkifu.csa1",
         "C:\\home\\develop\\shogi-kifu\\wdoor.csa1" },
-        "C:\\home\\develop\\shogi-kifu\\merged.csa1");
+        "C:\\home\\develop\\shogi-kifu\\merged.csa1",
+        pos);
       std::cout << "Finished..." << std::endl;
     }
     else if (token == "extract_tanuki_lose") {

@@ -1,9 +1,11 @@
 ﻿#include "book.hpp"
-#include "position.hpp"
+#include "csa.hpp"
+#include "game_record.hpp"
 #include "move.hpp"
-#include "usi.hpp"
-#include "thread.hpp"
+#include "position.hpp"
 #include "search.hpp"
+#include "thread.hpp"
+#include "usi.hpp"
 
 std::mt19937_64 Book::mt64bit_; // 定跡のhash生成用なので、seedは固定でデフォルト値を使う。
 BookKey Book::ZobPiece[PieceNone][SquareNum];
@@ -182,57 +184,41 @@ void makeBook(Position& pos, std::istringstream& ssCmd) {
     "name MultiPV value 1",
     "name OwnBook value false",
     "name Max_Random_Score_Diff value 0",
-    "name USI_Hash value 8192",
+    "name USI_Hash value 32",
     "name Use_Sleeping_Threads value true",
   };
   for (auto& option : options) {
     pos.searcher()->setOption(option);
   }
 
-  Searcher::outputInfo = false;
+  Searcher::outputInfo = true;
 
   std::string fileName;
   ssCmd >> fileName;
-  std::ifstream ifs(fileName.c_str());
-  if (!ifs) {
-    std::cout << "I cannot open " << fileName << std::endl;
+  std::vector<GameRecord> gameRecords;
+  if (!csa::readCsa1(fileName, pos, gameRecords)) {
     return;
   }
-  std::string line;
-  std::map<BookKey, std::vector<BookEntry> > bookMap;
+
+  // bookMap[BookKey, proFromTo] -> BookEntry
+  std::map<std::pair<BookKey, u16>, BookEntry> bookMap;
 
   double startSec = clock() / double(CLOCKS_PER_SEC);
-  int numberOfGameRecords = 132960;
-
   int gameRecordIndex = 0;
-  while (std::getline(ifs, line)) {
-    if (++gameRecordIndex % 1000 == 0) {
+  for (const auto& gameRecord : gameRecords) {
+    if (++gameRecordIndex % 1 == 0) {
       double currentSec = clock() / double(CLOCKS_PER_SEC);
       double secPerFile = (currentSec - startSec) / gameRecordIndex;
-      int remainedSec = (numberOfGameRecords - gameRecordIndex) * secPerFile;
+      int remainedSec = (gameRecords.size() - gameRecordIndex) * secPerFile;
       int second = remainedSec % 60;
       int minute = remainedSec / 60 % 60;
       int hour = remainedSec / 3600;
-      printf("%d/%d %d:%02d:%02d\n", gameRecordIndex, numberOfGameRecords, hour, minute, second);
+      printf("%d/%d %d:%02d:%02d\n", gameRecordIndex, gameRecords.size(), hour, minute, second);
     }
-    std::string elem;
-    std::stringstream ss(line);
-    ss >> elem; // 棋譜番号を飛ばす。
-    ss >> elem; // 対局日を飛ばす。
-    ss >> elem; // 先手
-    const std::string sente = elem;
-    ss >> elem; // 後手
-    const std::string gote = elem;
-    ss >> elem; // (0:引き分け,1:先手の勝ち,2:後手の勝ち)
-    const Color winner = (elem == "1" ? Black : elem == "2" ? White : ColorNum);
+    Color winner = gameRecord.winner == 1 ? Black : White;
     // 勝った方の指し手を記録していく。
     // 又は稲庭戦法側を記録していく。
     const Color saveColor = winner;
-
-    if (!std::getline(ifs, line)) {
-      std::cout << "!!! header only !!!" << std::endl;
-      return;
-    }
 
     if (winner == ColorNum) {
       continue;
@@ -242,116 +228,114 @@ void makeBook(Position& pos, std::istringstream& ssCmd) {
 
     pos.set(DefaultStartPositionSFEN, pos.searcher()->threads.mainThread());
     StateStackPtr SetUpStates = StateStackPtr(new std::stack<StateInfo>());
-    while (!line.empty()) {
-      const std::string moveStrCSA = line.substr(0, 6);
-      const Move move = csaToMove(pos, moveStrCSA);
+    for (const auto& move : gameRecord.moves) {
       if (move.isNone()) {
         //pos.print();
-        std::cout << "!!! Illegal move = " << moveStrCSA << " !!!" << std::endl;
+        std::cout << "!!! Illegal move = !!!" << std::endl;
         break;
       }
-      line.erase(0, 6); // 先頭から6文字削除
-      if (pos.turn() == saveColor) {
-        // 先手、後手の内、片方だけを記録する。
-        const BookKey key = Book::bookKey(pos);
-        bool isFind = false;
-        if (bookMap.find(key) != bookMap.end()) {
-          for (std::vector<BookEntry>::iterator it = bookMap[key].begin();
-          it != bookMap[key].end();
-            ++it)
-          {
-            if (it->fromToPro == move.proFromAndTo()) {
-              ++it->count;
-              if (it->count < 1) {
-                // 数えられる数の上限を超えたので元に戻す。
-                --it->count;
-              }
-              isFind = true;
-            }
-          }
-        }
-        if (isFind == false) {
-#if defined MAKE_SEARCHED_BOOK
-          //SetUpStates->push(StateInfo());
-          //pos.doMove(move, SetUpStates->top());
-          //SearchStack searchStack[MaxPlyPlus2];
-          //memset(searchStack, 0, sizeof(searchStack));
-          //searchStack[0].currentMove = Move::moveNull(); // skip update gains
-          //searchStack[0].staticEvalRaw = (Score)INT_MAX;
-          //searchStack[1].staticEvalRaw = (Score)INT_MAX;
-          //Score score = -evaluate(pos, &searchStack[1]);
-          //pos.undoMove(move);
-          //SetUpStates->pop();
 
-          SetUpStates->push(StateInfo());
-          pos.doMove(move, SetUpStates->top());
-          << << << < HEAD
-            go(pos, "depth 3");
-          == == == =
+      if (pos.turn() != saveColor) {
+        SetUpStates->push(StateInfo());
+        pos.doMove(move, SetUpStates->top());
+        continue;
+      }
 
-            std::istringstream ssCmd("byoyomi 1000");
-          go(pos, ssCmd);
-          >> >> >> > parent of 135c4ee... Scannerクラスを追加した
-            pos.searcher()->threads.waitForThinkFinished();
-          pos.undoMove(move);
-          SetUpStates->pop();
-          // doMove してから search してるので点数が反転しているので直す。
-          const Score score = -pos.csearcher()->rootMoves[0].score_;
-
-          //pos.print();
-          printf("score=%d\n", score);
-#else
-          const Score score = ScoreZero;
-#endif
-          // 未登録の手
-          BookEntry be;
-          be.score = score;
-          be.key = key;
-          be.fromToPro = static_cast<u16>(move.proFromAndTo());
-          be.count = 1;
-          bookMap[key].push_back(be);
+      // 先手、後手の内、片方だけを記録する。
+      BookKey key = Book::bookKey(pos);
+      if (bookMap.count(std::make_pair(key, move.proFromAndTo()))) {
+        if (++bookMap[std::make_pair(key, move.proFromAndTo())].count < 0) {
+          // 数えられる数の上限を超えたので元に戻す。
+          --bookMap[std::make_pair(key, move.proFromAndTo())].count;
         }
       }
+      else {
+        // 未登録の手
+        BookEntry be;
+        be.score = static_cast<Score>(0);
+        be.key = key;
+        be.fromToPro = static_cast<u16>(move.proFromAndTo());
+        be.count = 1;
+        bookMap[std::make_pair(key, move.proFromAndTo())] = be;
+      }
+
       SetUpStates->push(StateInfo());
       pos.doMove(move, SetUpStates->top());
     }
   }
 
+  std::map<BookKey, std::vector<BookEntry> > bookKeyToEntries;
+  for (const auto& p : bookMap) {
+    bookKeyToEntries[p.first.first].push_back(p.second);
+  }
+
+  std::map<BookKey, std::vector<BookEntry> > bookReduced;
+  for (const auto& p : bookKeyToEntries) {
+    if (p.second.size() <= 1) {
+      // 候補手が一手しか存在しないエントリーを削除する
+      continue;
+    }
+    bookReduced.insert(p);
+  }
+
   // BookEntry::count の値で降順にソート
-  for (auto& elem : bookMap) {
+  for (auto& elem : bookReduced) {
     std::sort(elem.second.rbegin(), elem.second.rend(), countCompare);
   }
 
-#if 0
-  // 2 回以上棋譜に出現していない手は削除する。
-  for (auto& elem : bookMap) {
-    auto& second = elem.second;
-    auto erase_it = std::find_if(second.begin(), second.end(), [](decltype(*second.begin())& second_elem) { return second_elem.count < 2; });
-    second.erase(erase_it, second.end());
-  }
-#endif
+  // Scoreをつけていく
+  std::set<BookKey> recordedKeys;
+  for (const auto& gameRecord : gameRecords) {
+    if (++gameRecordIndex % 1 == 0) {
+      double currentSec = clock() / double(CLOCKS_PER_SEC);
+      double secPerFile = (currentSec - startSec) / gameRecordIndex;
+      int remainedSec = (gameRecords.size() - gameRecordIndex) * secPerFile;
+      int second = remainedSec % 60;
+      int minute = remainedSec / 60 % 60;
+      int hour = remainedSec / 3600;
+      printf("%d/%d %d:%02d:%02d\n", gameRecordIndex, gameRecords.size(), hour, minute, second);
+    }
 
-#if 1
-  // 合法手が2手以上無い手は削除する。
-  for (auto& elem : bookMap) {
-    auto& second = elem.second;
-    if (second.size() == 1) {
-      second.clear();
+    pos.set(DefaultStartPositionSFEN, pos.searcher()->threads.mainThread());
+    StateStackPtr SetUpStates = StateStackPtr(new std::stack<StateInfo>());
+    for (const auto& move : gameRecord.moves) {
+      if (move.isNone()) {
+        //pos.print();
+        std::cout << "!!! Illegal move = !!!" << std::endl;
+        break;
+      }
+
+      BookKey key = Book::bookKey(pos);
+      if (recordedKeys.count(key) || !bookReduced.count(key)) {
+        SetUpStates->push(StateInfo());
+        pos.doMove(move, SetUpStates->top());
+        continue;
+      }
+
+      for (auto& entry : bookReduced[key]) {
+        Move entryMove = move16toMove(entry.fromToPro, pos);
+        SetUpStates->push(StateInfo());
+        pos.doMove(entryMove, SetUpStates->top());
+        go(pos, "depth 3");
+        pos.searcher()->threads.waitForThinkFinished();
+        pos.undoMove(entryMove);
+        SetUpStates->pop();
+        // doMove してから search してるので点数が反転しているので直す。
+        entry.score = -pos.csearcher()->rootMoves[0].score_;
+        //pos.print();
+        printf("score=%d\n", entry.score);
+      }
+
+      recordedKeys.insert(key);
+
+      SetUpStates->push(StateInfo());
+      pos.doMove(move, SetUpStates->top());
     }
   }
-#endif
 
-#if 0
-  // narrow book
-  for (auto& elem : bookMap) {
-    auto& second = elem.second;
-    auto erase_it = std::find_if(second.begin(), second.end(), [&](decltype(*second.begin())& second_elem) { return second_elem.count < second[0].count / 2; });
-    second.erase(erase_it, second.end());
-  }
-#endif
 
-  std::ofstream ofs("book-2015-12-16-proposed.bin", std::ios::binary);
-  for (auto& elem : bookMap) {
+  std::ofstream ofs("../bin/book-2016-01-02.bin", std::ios::binary);
+  for (auto& elem : bookReduced) {
     for (auto& elel : elem.second) {
       ofs.write(reinterpret_cast<char*>(&(elel)), sizeof(BookEntry));
     }

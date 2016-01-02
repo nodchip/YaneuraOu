@@ -156,7 +156,8 @@ TEST_F(CsaTest, readCsa1_convert) {
   path inputFilePath = "../src/testdata/csa1line/utf82chkifu.csa";
   std::vector<GameRecord> gameRecords;
 
-  EXPECT_TRUE(csa::readCsa1(inputFilePath, gameRecords));
+  Position pos;
+  EXPECT_TRUE(csa::readCsa1(inputFilePath, pos, gameRecords));
 
   EXPECT_EQ(1, gameRecords[0].gameRecordIndex);
   EXPECT_EQ("2003/09/08", gameRecords[0].date);
@@ -232,7 +233,11 @@ TEST_F(CsaTest, mergeCsa1s_merge) {
   path inputFilePath = "../src/testdata/csa1line/utf82chkifu.csa";
   path outputFilePath = TEMP_OUTPUT_DIRECTORY_PATH / "temp.csa1";
 
-  EXPECT_TRUE(csa::mergeCsa1s({ inputFilePath, inputFilePath }, outputFilePath));
+  Position pos;
+  EXPECT_TRUE(csa::mergeCsa1s(
+  { inputFilePath, inputFilePath },
+    outputFilePath,
+    pos));
 
   ifstream ifs(outputFilePath);
   for (int loop = 0; loop < 12; ++loop) {

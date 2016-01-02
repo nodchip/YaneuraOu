@@ -49,6 +49,7 @@ namespace csa {
   // CSA1ファイルを読み込む
   bool readCsa1(
     const std::tr2::sys::path& filepath,
+    Position& pos,
     std::vector<GameRecord>& gameRecords);
 
   // CSA1ファイルを保存する
@@ -59,7 +60,8 @@ namespace csa {
   // CSA1ファイルをマージする
   bool mergeCsa1s(
     const std::vector<std::tr2::sys::path>& inputFilepaths,
-    const std::tr2::sys::path& outputFilepath);
+    const std::tr2::sys::path& outputFilepath,
+    Position& pos);
 }
 
 #endif
