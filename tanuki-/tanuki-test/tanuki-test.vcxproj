@@ -167,6 +167,7 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\..\src\csa1_test.cpp" />
     <ClCompile Include="..\..\src\csa_test.cpp" />
     <ClCompile Include="..\..\src\evaluate_test.cpp" />
     <ClCompile Include="..\..\src\generateMoves_test.cpp" />

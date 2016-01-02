@@ -45,23 +45,6 @@ namespace csa {
     const std::function<bool(const std::tr2::sys::path&)>& pathFilter,
     const std::function<bool(const GameRecord&)>& gameRecordFilter,
     std::vector<GameRecord>& gameRecords);
-
-  // CSA1ファイルを読み込む
-  bool readCsa1(
-    const std::tr2::sys::path& filepath,
-    Position& pos,
-    std::vector<GameRecord>& gameRecords);
-
-  // CSA1ファイルを保存する
-  bool writeCsa1(
-    const std::tr2::sys::path& filepath,
-    const std::vector<GameRecord>& gameRecords);
-
-  // CSA1ファイルをマージする
-  bool mergeCsa1s(
-    const std::vector<std::tr2::sys::path>& inputFilepaths,
-    const std::tr2::sys::path& outputFilepath,
-    Position& pos);
 }
 
 #endif

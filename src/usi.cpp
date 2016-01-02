@@ -10,6 +10,7 @@
 #include "thread.hpp"
 #include "tt.hpp"
 #include "usi.hpp"
+#include "csa1.hpp"
 
 #ifdef _MSC_VER
 #include "csa.hpp"
