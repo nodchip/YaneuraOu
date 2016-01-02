@@ -242,20 +242,26 @@ template <typename T> inline void prefetch(T* addr) {
 #endif
 }
 
-#ifdef _MSC_VER
+#if defined _MSC_VER
+// VS2015
+#define ALIGNED_ALLOC(alignment, size) _aligned_malloc((size), (alignment))
+#define ALIGNED_FREE(memblock) _aligned_free(memblock)
+#elif defined _WIN32
+// GCC on Windows
 #define ALIGNED_ALLOC(alignment, size) _aligned_malloc((size), (alignment))
 #define ALIGNED_FREE(memblock) _aligned_free(memblock)
 #else
-#define ALIGNED_ALLOC(alignment, size) _aligned_malloc((size), (alignment))
-#define ALIGNED_FREE(memblock) _aligned_free(memblock)
-//#define ALIGNED_ALLOC(alignment, size) memalign(alignment, size)
-//#define ALIGNED_FREE(memblock) free(memblock)
+// GCC on Linux
+#define ALIGNED_ALLOC(alignment, size) memalign(alignment, size)
+#define ALIGNED_FREE(memblock) free(memblock)
 #endif
 
+#if defined (HAVE_SSE42)
 using xmm = __m128i;
+#endif
+#if defined (HAVE_AVX2)
 using ymm = __m256i;
-
-//using Key = u64;
+#endif
 
 struct Key
 {
