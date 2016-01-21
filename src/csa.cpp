@@ -62,7 +62,7 @@ bool csa::toSfen(const std::tr2::sys::path& filepath, std::vector<std::string>& 
 
 #if !defined NDEBUG
     if (!position.moveIsLegal(move)) {
-      cout << "!!! Found an illegal move." << endl;
+      std::cout << "!!! Found an illegal move." << std::endl;
       break;
     }
 #endif
