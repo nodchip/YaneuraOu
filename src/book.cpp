@@ -156,7 +156,18 @@ std::vector<std::pair<Move, int> > Book::enumerateMoves(const Position& pos, con
         move = makeCaptureMove(ptFrom, from, to, pos);
       }
     }
-    moves.push_back(std::make_pair(move, it->second.count));
+
+    if (pos.searcher()->options[OptionNames::MIN_BOOK_SCORE]) {
+      if (moves.empty()) {
+        moves.push_back(std::make_pair(move, it->second.score));
+      }
+      else if (it->second.score > moves.front().second) {
+        moves[0] = std::make_pair(move, it->second.score);
+      }
+    }
+    else {
+      moves.push_back(std::make_pair(move, it->second.count));
+    }
   }
 
   return moves;
