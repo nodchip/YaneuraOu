@@ -64,8 +64,6 @@ namespace {
   // info を標準出力へ出力するスロットル
   // 前回出力してから以下の時間を経過していない場合は出力しない
   static constexpr int THROTTLE_TO_OUTPUT_INFO_MS = 200;
-  // Fail-low/highでない評価値を必ず出力する経過時間
-  static constexpr int OUTPUT_COMPLETE_SCORE_FROM_MS = 1000;
   static constexpr Score INITIAL_ASPIRATION_WINDOW_WIDTH = (Score)16;
   static constexpr Score SECOND_ASPIRATION_WINDOW_WIDTH = (Score)64;
   // true にすると、シングルスレッドで動作する。デバッグ用。
@@ -640,10 +638,10 @@ void Searcher::idLoop(Position& pos) {
           rootMoves[i].insertPvInTT(pos);
         }
 
-#if 1
+#if 0
         // 詰みを発見したら即指す。
         if (ScoreMateInMaxPly <= abs(bestScore) && abs(bestScore) < ScoreInfinite) {
-          SYNCCOUT << pvInfoToUSI(pos, depth, alpha, beta) << SYNCENDL;
+          SYNCCOUT << pvInfoToUSI(pos, ply, alpha, beta) << SYNCENDL;
           signals.stop = true;
         }
 #endif
@@ -652,9 +650,7 @@ void Searcher::idLoop(Position& pos) {
         break;
 #endif
 
-        if (lastTimeToOutputInfoMs + THROTTLE_TO_OUTPUT_INFO_MS < searchTimer.elapsed() ||
-          (OUTPUT_COMPLETE_SCORE_FROM_MS < searchTimer.elapsed() &&
-            (alpha < bestScore && bestScore < beta))) {
+        if (lastTimeToOutputInfoMs + THROTTLE_TO_OUTPUT_INFO_MS < searchTimer.elapsed()) {
           if (outputInfo) {
             SYNCCOUT << pvInfoToUSI(pos, depth, alpha, beta) << SYNCENDL;
           }
@@ -773,7 +769,7 @@ void Searcher::detectInaniwa(const Position& pos) {
       inaniwaFlag = (pos.turn() == Black ? InaniwaIsWhite : InaniwaIsBlack);
       tt.clear();
     }
-}
+  }
 }
 #endif
 #if defined BISHOP_IN_DANGER
@@ -1194,9 +1190,9 @@ split_point_start:
         SYNCCOUT << "info depth " << depth / OnePly
           << " currmove " << move.toUSI()
           << " currmovenumber " << moveCount + pvIdx << SYNCENDL;
-  }
+      }
 #endif
-}
+    }
 
     extension = Depth0;
     captureOrPawnPromotion = move.isCaptureOrPawnPromotion();
@@ -1373,14 +1369,14 @@ split_point_start:
           || (bishopInDangerFlag == WhiteBishopInDangerIn78 && move.toCSA() == "0078KA"))
         {
           rm.score_ -= options[OptionNames::DANGER_DEMERIT_SCORE];
-      }
+        }
 #endif
         rm.extractPvFromTT(pos);
 
         if (!isPVMove) {
           ++bestMoveChanges;
         }
-    }
+      }
       else {
         rm.score_ = -ScoreInfinite;
       }
