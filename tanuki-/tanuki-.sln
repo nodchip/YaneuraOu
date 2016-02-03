@@ -14,64 +14,46 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "tanuki-book-viewer", "tanuk
 		{ECAB6310-9796-46DE-ACBA-361DA4928A70} = {ECAB6310-9796-46DE-ACBA-361DA4928A70}
 	EndProjectSection
 EndProject
-Project("{888888A0-9F3D-457C-B088-3A5042F75D52}") = "tanuxy", "tanuxy\tanuxy.pyproj", "{64DF0966-D0AF-45C8-9F2E-52CAFBA9EDA9}"
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
-		Debug|Any CPU = Debug|Any CPU
 		Debug|x64 = Debug|x64
 		Debug|x86 = Debug|x86
-		Release|Any CPU = Release|Any CPU
 		Release|x64 = Release|x64
 		Release|x86 = Release|x86
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{22A2B7E8-90CC-4ED4-AA10-C3DE5B4A74A9}.Debug|Any CPU.ActiveCfg = Debug|Win32
 		{22A2B7E8-90CC-4ED4-AA10-C3DE5B4A74A9}.Debug|x64.ActiveCfg = Debug|x64
 		{22A2B7E8-90CC-4ED4-AA10-C3DE5B4A74A9}.Debug|x64.Build.0 = Debug|x64
 		{22A2B7E8-90CC-4ED4-AA10-C3DE5B4A74A9}.Debug|x86.ActiveCfg = Debug|Win32
 		{22A2B7E8-90CC-4ED4-AA10-C3DE5B4A74A9}.Debug|x86.Build.0 = Debug|Win32
-		{22A2B7E8-90CC-4ED4-AA10-C3DE5B4A74A9}.Release|Any CPU.ActiveCfg = Release|Win32
 		{22A2B7E8-90CC-4ED4-AA10-C3DE5B4A74A9}.Release|x64.ActiveCfg = Release|x64
 		{22A2B7E8-90CC-4ED4-AA10-C3DE5B4A74A9}.Release|x64.Build.0 = Release|x64
 		{22A2B7E8-90CC-4ED4-AA10-C3DE5B4A74A9}.Release|x86.ActiveCfg = Release|Win32
 		{22A2B7E8-90CC-4ED4-AA10-C3DE5B4A74A9}.Release|x86.Build.0 = Release|Win32
-		{ECAB6310-9796-46DE-ACBA-361DA4928A70}.Debug|Any CPU.ActiveCfg = Debug|Win32
 		{ECAB6310-9796-46DE-ACBA-361DA4928A70}.Debug|x64.ActiveCfg = Debug|x64
 		{ECAB6310-9796-46DE-ACBA-361DA4928A70}.Debug|x64.Build.0 = Debug|x64
 		{ECAB6310-9796-46DE-ACBA-361DA4928A70}.Debug|x86.ActiveCfg = Debug|Win32
 		{ECAB6310-9796-46DE-ACBA-361DA4928A70}.Debug|x86.Build.0 = Debug|Win32
-		{ECAB6310-9796-46DE-ACBA-361DA4928A70}.Release|Any CPU.ActiveCfg = Release|Win32
 		{ECAB6310-9796-46DE-ACBA-361DA4928A70}.Release|x64.ActiveCfg = Release|x64
 		{ECAB6310-9796-46DE-ACBA-361DA4928A70}.Release|x64.Build.0 = Release|x64
 		{ECAB6310-9796-46DE-ACBA-361DA4928A70}.Release|x86.ActiveCfg = Release|Win32
 		{ECAB6310-9796-46DE-ACBA-361DA4928A70}.Release|x86.Build.0 = Release|Win32
-		{C89FEDBD-E8B6-4071-B7D4-1FC1EB30DE05}.Debug|Any CPU.ActiveCfg = Debug|Win32
 		{C89FEDBD-E8B6-4071-B7D4-1FC1EB30DE05}.Debug|x64.ActiveCfg = Debug|x64
 		{C89FEDBD-E8B6-4071-B7D4-1FC1EB30DE05}.Debug|x64.Build.0 = Debug|x64
 		{C89FEDBD-E8B6-4071-B7D4-1FC1EB30DE05}.Debug|x86.ActiveCfg = Debug|Win32
 		{C89FEDBD-E8B6-4071-B7D4-1FC1EB30DE05}.Debug|x86.Build.0 = Debug|Win32
-		{C89FEDBD-E8B6-4071-B7D4-1FC1EB30DE05}.Release|Any CPU.ActiveCfg = Release|Win32
 		{C89FEDBD-E8B6-4071-B7D4-1FC1EB30DE05}.Release|x64.ActiveCfg = Release|x64
 		{C89FEDBD-E8B6-4071-B7D4-1FC1EB30DE05}.Release|x64.Build.0 = Release|x64
 		{C89FEDBD-E8B6-4071-B7D4-1FC1EB30DE05}.Release|x86.ActiveCfg = Release|Win32
 		{C89FEDBD-E8B6-4071-B7D4-1FC1EB30DE05}.Release|x86.Build.0 = Release|Win32
-		{E4A82C69-B4FB-41A8-AE55-2F9B7EE722FF}.Debug|Any CPU.ActiveCfg = Debug|Win32
 		{E4A82C69-B4FB-41A8-AE55-2F9B7EE722FF}.Debug|x64.ActiveCfg = Debug|x64
 		{E4A82C69-B4FB-41A8-AE55-2F9B7EE722FF}.Debug|x64.Build.0 = Debug|x64
 		{E4A82C69-B4FB-41A8-AE55-2F9B7EE722FF}.Debug|x86.ActiveCfg = Debug|Win32
 		{E4A82C69-B4FB-41A8-AE55-2F9B7EE722FF}.Debug|x86.Build.0 = Debug|Win32
-		{E4A82C69-B4FB-41A8-AE55-2F9B7EE722FF}.Release|Any CPU.ActiveCfg = Release|Win32
 		{E4A82C69-B4FB-41A8-AE55-2F9B7EE722FF}.Release|x64.ActiveCfg = Release|x64
 		{E4A82C69-B4FB-41A8-AE55-2F9B7EE722FF}.Release|x64.Build.0 = Release|x64
 		{E4A82C69-B4FB-41A8-AE55-2F9B7EE722FF}.Release|x86.ActiveCfg = Release|Win32
 		{E4A82C69-B4FB-41A8-AE55-2F9B7EE722FF}.Release|x86.Build.0 = Release|Win32
-		{64DF0966-D0AF-45C8-9F2E-52CAFBA9EDA9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{64DF0966-D0AF-45C8-9F2E-52CAFBA9EDA9}.Debug|x64.ActiveCfg = Debug|Any CPU
-		{64DF0966-D0AF-45C8-9F2E-52CAFBA9EDA9}.Debug|x86.ActiveCfg = Debug|Any CPU
-		{64DF0966-D0AF-45C8-9F2E-52CAFBA9EDA9}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{64DF0966-D0AF-45C8-9F2E-52CAFBA9EDA9}.Release|x64.ActiveCfg = Release|Any CPU
-		{64DF0966-D0AF-45C8-9F2E-52CAFBA9EDA9}.Release|x86.ActiveCfg = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
