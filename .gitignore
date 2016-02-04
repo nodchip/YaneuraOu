@@ -14,3 +14,5 @@
 /tanuki-/tanuki-lib/tanuki-lib.vcxproj.user
 /tanuki-/tanuki-test/tanuki-test.vcxproj.user
 /external/googletest
+/tanuki-/tanuki-proxy/obj
+/tanuki-/tanuki-proxy/bin
