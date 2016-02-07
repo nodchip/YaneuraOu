@@ -16,6 +16,8 @@ namespace tanuki_proxy
         public static int depth = 0;
         public static string bestmoveBestMove = null;
         public static string bestmovePonder = null;
+        // Ponder中にbestmoveを返してしまう場合があるバグへの対処
+        public static bool pondering = false;
 
         struct Option
         {
@@ -90,6 +92,18 @@ namespace tanuki_proxy
                     new Option("Max_Random_Score_Diff_Ply", "0"),
                     new Option("Threads", "4"),
                 }));
+            engines.Add(new Engine(
+                "ssh",
+                "nue ./tanuki.sh",
+                "C:\\home\\develop\\tanuki-\\bin",
+                new[] {
+                    new Option("USI_Hash", "4096"),
+                    new Option("Book_File", "../bin/book-2016-02-01.bin"),
+                    new Option("Best_Book_Move", "true"),
+                    new Option("Max_Random_Score_Diff", "0"),
+                    new Option("Max_Random_Score_Diff_Ply", "0"),
+                    new Option("Threads", "4"),
+                }));
 
             // 子プロセスの標準入出力 (System.Diagnostics.Process) - Programming/.NET Framework/標準入出力 - 総武ソフトウェア推進所 http://smdn.jp/programming/netfx/standard_streams/1_process/
             try
@@ -107,6 +121,32 @@ namespace tanuki_proxy
                 string input;
                 while ((input = Console.ReadLine()) != null)
                 {
+                    string[] split = Split(input);
+                    if (split[0] == "go")
+                    {
+                        // 思考開始の合図です。エンジンはこれを受信すると思考を開始します。
+                        lock (lockObject)
+                        {
+                            thinking = true;
+                            bestmoveBestMove = null;
+                            bestmovePonder = null;
+                            depth = 0;
+                            pondering = input.Contains("ponder");
+                        }
+                    }
+                    else if (split[0] == "ponderhit")
+                    {
+                        // エンジンが先読み中、
+                        // 前回のbestmoveコマンドでエンジンが予想した通りの手を相手が指した時に送ります。
+                        // エンジンはこれを受信すると、
+                        // 先読み思考から通常の思考に切り替わることになり、
+                        // 任意の時点でbestmoveで指し手を返すことができます。
+                        lock (lockObject)
+                        {
+                            pondering = false;
+                        }
+                    }
+
                     WriteToEachEngine(input);
 
                     if (input == "quit")
@@ -155,20 +195,15 @@ namespace tanuki_proxy
                         }
                     }
                 }
-                else if (split[0] == "go")
-                {
-                    // 思考開始の合図です。エンジンはこれを受信すると思考を開始します。
-                    lock (lockObject)
-                    {
-                        thinking = true;
-                        bestmoveBestMove = null;
-                        bestmovePonder = null;
-                        depth = 0;
-                    }
-                }
 
                 engine.process.StandardInput.WriteLine(Concat(split));
                 engine.process.StandardInput.Flush();
+
+                // usiコマンドは1回だけ処理する
+                if (split[0] == "usi")
+                {
+                    break;
+                }
             }
         }
 
@@ -188,7 +223,7 @@ namespace tanuki_proxy
             // bestmoveは直接親に返さず、OutputBestMove()の中で返すようにする
             if (output.Contains("bestmove"))
             {
-                if (thinking)
+                if (thinking && !pondering)
                 {
                     OutputBestMove();
                 }
@@ -196,11 +231,15 @@ namespace tanuki_proxy
                 return;
             }
 
+            // info depthは直接返さず、HandleInfo()の中で返すようにする
+            if (output.Contains("depth"))
+            {
+                HandleInfo(output);
+                return;
+            }
+
             //Console.Error.WriteLine(output);
             Console.WriteLine(output);
-
-            // infoをパースする
-            HandleInfo(output);
         }
 
         /// <summary>
@@ -242,6 +281,8 @@ namespace tanuki_proxy
                 bestmoveBestMove = tempBestmoveBestMove;
                 bestmovePonder = tempBestmovePonder;
             }
+
+            Console.WriteLine(output);
         }
 
         /// <summary>
@@ -269,6 +310,7 @@ namespace tanuki_proxy
                 depth = 0;
                 bestmoveBestMove = null;
                 bestmovePonder = null;
+                pondering = false;
             }
         }
 
