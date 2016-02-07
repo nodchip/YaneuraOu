@@ -18,6 +18,7 @@ namespace tanuki_proxy
         private const string optionNameMaxRandomScoreDiffPly = "Max_Random_Score_Diff_Ply";
         private const string optionNameThreads = "Threads";
         private const string optionNameOutputBestmove = "Output_Bestmove";
+        private const int MAX_PLAY_DIFF = 3;
 
         public static object lockObject = new object();
         public static int depth = 0;
@@ -166,7 +167,7 @@ namespace tanuki_proxy
                         {
                             // ponder時はfalseとなっているのでtrueにする
                             canOutputBestmove = true;
-                            TryOutputBestMove();
+                            //ForceBestMove();
                         }
                     }
 
@@ -244,7 +245,7 @@ namespace tanuki_proxy
             }
 
             // bestmoveは直接親に返さず、OutputBestMove()の中で返すようにする
-            if (output.Contains("bestmove"))
+            if (output.Contains("bestmove") && !output.Contains("resign") && !output.Contains("win"))
             {
                 TryOutputBestMove();
                 return;
@@ -280,6 +281,12 @@ namespace tanuki_proxy
             }
 
             int tempDepth = int.Parse(split[depthIndex + 1]);
+            // 前の手の思考が続いている場合、現在の深さより大幅に深い探索結果が返ってくる。
+            // それらの手を受理しないようにする。
+            if (Math.Abs(tempDepth - depth) > MAX_PLAY_DIFF)
+            {
+                return;
+            }
 
             Debug.Assert(pvIndex + 1 < split.Length);
             string tempBestmoveBestMove = split[pvIndex + 1];
@@ -316,6 +323,17 @@ namespace tanuki_proxy
                     return;
                 }
 
+                ForceBestMove();
+            }
+        }
+
+        /// <summary>
+        /// bestmoveを出力する
+        /// </summary>
+        static void ForceBestMove()
+        {
+            lock (lockObject)
+            {
                 string command = null;
                 if (!string.IsNullOrEmpty(bestmovePonder))
                 {
