@@ -79,6 +79,7 @@ namespace tanuki_proxy
                     new Option("Max_Random_Score_Diff", "0"),
                     new Option("Max_Random_Score_Diff_Ply", "0"),
                     new Option("Threads", "2"),
+                    new Option("Output_Bestmove", "true"),
                 }));
             engines.Add(new Engine(
                 "ssh",
@@ -91,6 +92,7 @@ namespace tanuki_proxy
                     new Option("Max_Random_Score_Diff", "0"),
                     new Option("Max_Random_Score_Diff_Ply", "0"),
                     new Option("Threads", "4"),
+                    new Option("Output_Bestmove", "false"),
                 }));
             engines.Add(new Engine(
                 "ssh",
@@ -103,6 +105,7 @@ namespace tanuki_proxy
                     new Option("Max_Random_Score_Diff", "0"),
                     new Option("Max_Random_Score_Diff_Ply", "0"),
                     new Option("Threads", "4"),
+                    new Option("Output_Bestmove", "false"),
                 }));
 
             // 子プロセスの標準入出力 (System.Diagnostics.Process) - Programming/.NET Framework/標準入出力 - 総武ソフトウェア推進所 http://smdn.jp/programming/netfx/standard_streams/1_process/
