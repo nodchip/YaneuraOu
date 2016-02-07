@@ -1715,7 +1715,7 @@ finalize:
     pos.thisThread()->waitFor(signals.stop);
   }
 
-  if (outputInfo) {
+  if (outputInfo && options[OptionNames::OUTPUT_BESTMOVE]) {
     if (nyugyokuWin) {
       SYNCCOUT << "bestmove win" << SYNCENDL;
     }
