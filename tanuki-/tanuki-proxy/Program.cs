@@ -12,12 +12,11 @@ namespace tanuki_proxy
     class Program
     {
         public static object lockObject = new object();
-        public static bool thinking = false;
         public static int depth = 0;
         public static string bestmoveBestMove = null;
         public static string bestmovePonder = null;
         // Ponder中にbestmoveを返してしまう場合があるバグへの対処
-        public static bool pondering = false;
+        public static bool canOutputBestmove = false;
 
         struct Option
         {
@@ -127,11 +126,11 @@ namespace tanuki_proxy
                         // 思考開始の合図です。エンジンはこれを受信すると思考を開始します。
                         lock (lockObject)
                         {
-                            thinking = true;
                             bestmoveBestMove = null;
                             bestmovePonder = null;
                             depth = 0;
-                            pondering = input.Contains("ponder");
+                            // ponder時はfalseにする
+                            canOutputBestmove = !input.Contains("ponder");
                         }
                     }
                     else if (split[0] == "ponderhit")
@@ -143,7 +142,20 @@ namespace tanuki_proxy
                         // 任意の時点でbestmoveで指し手を返すことができます。
                         lock (lockObject)
                         {
-                            pondering = false;
+                            canOutputBestmove = true;
+                        }
+                    }
+                    else if (split[0] == "stop")
+                    {
+                        // エンジンに対し思考停止を命令するコマンドです。
+                        // エンジンはこれを受信したら、できるだけすぐ思考を中断し、
+                        // bestmoveで指し手を返す必要があります。
+                        // （現時点で最善と考えている手を返すようにして下さい。）
+                        lock (lockObject)
+                        {
+                            // ponder時はfalseとなっているのでtrueにする
+                            canOutputBestmove = true;
+                            TryOutputBestMove();
                         }
                     }
 
@@ -223,11 +235,7 @@ namespace tanuki_proxy
             // bestmoveは直接親に返さず、OutputBestMove()の中で返すようにする
             if (output.Contains("bestmove"))
             {
-                if (thinking && !pondering)
-                {
-                    OutputBestMove();
-                }
-                WriteToEachEngine("stop");
+                TryOutputBestMove();
                 return;
             }
 
@@ -288,11 +296,14 @@ namespace tanuki_proxy
         /// <summary>
         /// bestmoveを出力する
         /// </summary>
-        static void OutputBestMove()
+        static void TryOutputBestMove()
         {
             lock (lockObject)
             {
-                Debug.Assert(!string.IsNullOrEmpty(bestmoveBestMove));
+                if (string.IsNullOrEmpty(bestmoveBestMove) || !canOutputBestmove)
+                {
+                    return;
+                }
 
                 string command = null;
                 if (!string.IsNullOrEmpty(bestmovePonder))
@@ -306,11 +317,10 @@ namespace tanuki_proxy
                 //Console.Error.WriteLine(command);
                 Console.WriteLine(command);
 
-                thinking = false;
                 depth = 0;
                 bestmoveBestMove = null;
                 bestmovePonder = null;
-                pondering = false;
+                canOutputBestmove = false;
             }
         }
 
