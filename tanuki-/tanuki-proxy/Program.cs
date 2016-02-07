@@ -11,21 +11,13 @@ namespace tanuki_proxy
 {
     class Program
     {
-        private const string optionNameUsiHash = "USI_Hash";
-        private const string optionNameBookFile = "Book_File";
-        private const string optionNameBestBookMove = "Best_Book_Move";
-        private const string optionNameMaxRandomScoreDiff = "Max_Random_Score_Diff";
-        private const string optionNameMaxRandomScoreDiffPly = "Max_Random_Score_Diff_Ply";
-        private const string optionNameThreads = "Threads";
-        private const string optionNameOutputBestmove = "Output_Bestmove";
-        private const int MAX_PLAY_DIFF = 3;
-
         public static object lockObject = new object();
+        public static bool thinking = false;
         public static int depth = 0;
         public static string bestmoveBestMove = null;
         public static string bestmovePonder = null;
         // Ponder中にbestmoveを返してしまう場合があるバグへの対処
-        public static bool canOutputBestmove = false;
+        public static bool pondering = false;
 
         struct Option
         {
@@ -81,39 +73,36 @@ namespace tanuki_proxy
                 "",
                 "C:\\home\\develop\\tanuki-\\bin",
                 new[] {
-                    new Option(optionNameUsiHash, "2048"),
-                    new Option(optionNameBookFile, "../bin/book-2016-02-01.bin"),
-                    new Option(optionNameBestBookMove, "true"),
-                    new Option(optionNameMaxRandomScoreDiff, "0"),
-                    new Option(optionNameMaxRandomScoreDiffPly, "0"),
-                    new Option(optionNameThreads, "2"),
-                    new Option(optionNameOutputBestmove, "true"),
+                    new Option("USI_Hash", "2048"),
+                    new Option("Book_File", "../bin/book-2016-02-01.bin"),
+                    new Option("Best_Book_Move", "true"),
+                    new Option("Max_Random_Score_Diff", "0"),
+                    new Option("Max_Random_Score_Diff_Ply", "0"),
+                    new Option("Threads", "2"),
                 }));
             engines.Add(new Engine(
                 "ssh",
                 "nighthawk ./tanuki.sh",
                 "C:\\home\\develop\\tanuki-\\bin",
                 new[] {
-                    new Option(optionNameUsiHash, "16384"),
-                    new Option(optionNameBookFile, "../bin/book-2016-02-01.bin"),
-                    new Option(optionNameBestBookMove, "true"),
-                    new Option(optionNameMaxRandomScoreDiff, "0"),
-                    new Option(optionNameMaxRandomScoreDiffPly, "0"),
-                    new Option(optionNameThreads, "4"),
-                    new Option(optionNameOutputBestmove, "false"),
+                    new Option("USI_Hash", "16384"),
+                    new Option("Book_File", "../bin/book-2016-02-01.bin"),
+                    new Option("Best_Book_Move", "true"),
+                    new Option("Max_Random_Score_Diff", "0"),
+                    new Option("Max_Random_Score_Diff_Ply", "0"),
+                    new Option("Threads", "4"),
                 }));
             engines.Add(new Engine(
                 "ssh",
                 "nue ./tanuki.sh",
                 "C:\\home\\develop\\tanuki-\\bin",
                 new[] {
-                    new Option(optionNameUsiHash, "4096"),
-                    new Option(optionNameBookFile, "../bin/book-2016-02-01.bin"),
-                    new Option(optionNameBestBookMove, "true"),
-                    new Option(optionNameMaxRandomScoreDiff, "0"),
-                    new Option(optionNameMaxRandomScoreDiffPly, "0"),
-                    new Option(optionNameThreads, "4"),
-                    new Option(optionNameOutputBestmove, "false"),
+                    new Option("USI_Hash", "4096"),
+                    new Option("Book_File", "../bin/book-2016-02-01.bin"),
+                    new Option("Best_Book_Move", "true"),
+                    new Option("Max_Random_Score_Diff", "0"),
+                    new Option("Max_Random_Score_Diff_Ply", "0"),
+                    new Option("Threads", "4"),
                 }));
 
             // 子プロセスの標準入出力 (System.Diagnostics.Process) - Programming/.NET Framework/標準入出力 - 総武ソフトウェア推進所 http://smdn.jp/programming/netfx/standard_streams/1_process/
@@ -138,11 +127,11 @@ namespace tanuki_proxy
                         // 思考開始の合図です。エンジンはこれを受信すると思考を開始します。
                         lock (lockObject)
                         {
+                            thinking = true;
                             bestmoveBestMove = null;
                             bestmovePonder = null;
                             depth = 0;
-                            // ponder時はfalseにする
-                            canOutputBestmove = !input.Contains("ponder");
+                            pondering = input.Contains("ponder");
                         }
                     }
                     else if (split[0] == "ponderhit")
@@ -154,20 +143,7 @@ namespace tanuki_proxy
                         // 任意の時点でbestmoveで指し手を返すことができます。
                         lock (lockObject)
                         {
-                            canOutputBestmove = true;
-                        }
-                    }
-                    else if (split[0] == "stop")
-                    {
-                        // エンジンに対し思考停止を命令するコマンドです。
-                        // エンジンはこれを受信したら、できるだけすぐ思考を中断し、
-                        // bestmoveで指し手を返す必要があります。
-                        // （現時点で最善と考えている手を返すようにして下さい。）
-                        lock (lockObject)
-                        {
-                            // ponder時はfalseとなっているのでtrueにする
-                            canOutputBestmove = true;
-                            //ForceBestMove();
+                            pondering = false;
                         }
                     }
 
@@ -245,9 +221,13 @@ namespace tanuki_proxy
             }
 
             // bestmoveは直接親に返さず、OutputBestMove()の中で返すようにする
-            if (output.Contains("bestmove") && !output.Contains("resign") && !output.Contains("win"))
+            if (output.Contains("bestmove"))
             {
-                TryOutputBestMove();
+                if (thinking && !pondering)
+                {
+                    OutputBestMove();
+                }
+                WriteToEachEngine("stop");
                 return;
             }
 
@@ -281,12 +261,6 @@ namespace tanuki_proxy
             }
 
             int tempDepth = int.Parse(split[depthIndex + 1]);
-            // 前の手の思考が続いている場合、現在の深さより大幅に深い探索結果が返ってくる。
-            // それらの手を受理しないようにする。
-            if (Math.Abs(tempDepth - depth) > MAX_PLAY_DIFF)
-            {
-                return;
-            }
 
             Debug.Assert(pvIndex + 1 < split.Length);
             string tempBestmoveBestMove = split[pvIndex + 1];
@@ -314,26 +288,12 @@ namespace tanuki_proxy
         /// <summary>
         /// bestmoveを出力する
         /// </summary>
-        static void TryOutputBestMove()
+        static void OutputBestMove()
         {
             lock (lockObject)
             {
-                if (string.IsNullOrEmpty(bestmoveBestMove) || !canOutputBestmove)
-                {
-                    return;
-                }
+                Debug.Assert(!string.IsNullOrEmpty(bestmoveBestMove));
 
-                ForceBestMove();
-            }
-        }
-
-        /// <summary>
-        /// bestmoveを出力する
-        /// </summary>
-        static void ForceBestMove()
-        {
-            lock (lockObject)
-            {
                 string command = null;
                 if (!string.IsNullOrEmpty(bestmovePonder))
                 {
@@ -346,10 +306,11 @@ namespace tanuki_proxy
                 //Console.Error.WriteLine(command);
                 Console.WriteLine(command);
 
+                thinking = false;
                 depth = 0;
                 bestmoveBestMove = null;
                 bestmovePonder = null;
-                canOutputBestmove = false;
+                pondering = false;
             }
         }
 
