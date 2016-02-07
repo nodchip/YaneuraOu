@@ -224,7 +224,7 @@ namespace tanuki_proxy
             }
 
             // bestmoveは直接親に返さず、OutputBestMove()の中で返すようにする
-            if (output.Contains("bestmove"))
+            if (output.Contains("bestmove") && !output.Contains("resign") && !output.Contains("win"))
             {
                 if (thinking && !pondering)
                 {
