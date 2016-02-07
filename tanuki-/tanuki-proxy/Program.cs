@@ -11,6 +11,14 @@ namespace tanuki_proxy
 {
     class Program
     {
+        private const string optionNameUsiHash = "USI_Hash";
+        private const string optionNameBookFile = "Book_File";
+        private const string optionNameBestBookMove = "Best_Book_Move";
+        private const string optionNameMaxRandomScoreDiff = "Max_Random_Score_Diff";
+        private const string optionNameMaxRandomScoreDiffPly = "Max_Random_Score_Diff_Ply";
+        private const string optionNameThreads = "Threads";
+        private const string optionNameOutputBestmove = "Output_Bestmove";
+
         public static object lockObject = new object();
         public static int depth = 0;
         public static string bestmoveBestMove = null;
@@ -72,36 +80,39 @@ namespace tanuki_proxy
                 "",
                 "C:\\home\\develop\\tanuki-\\bin",
                 new[] {
-                    new Option("USI_Hash", "2048"),
-                    new Option("Book_File", "../bin/book-2016-02-01.bin"),
-                    new Option("Best_Book_Move", "true"),
-                    new Option("Max_Random_Score_Diff", "0"),
-                    new Option("Max_Random_Score_Diff_Ply", "0"),
-                    new Option("Threads", "2"),
+                    new Option(optionNameUsiHash, "2048"),
+                    new Option(optionNameBookFile, "../bin/book-2016-02-01.bin"),
+                    new Option(optionNameBestBookMove, "true"),
+                    new Option(optionNameMaxRandomScoreDiff, "0"),
+                    new Option(optionNameMaxRandomScoreDiffPly, "0"),
+                    new Option(optionNameThreads, "2"),
+                    new Option(optionNameOutputBestmove, "true"),
                 }));
             engines.Add(new Engine(
                 "ssh",
                 "nighthawk ./tanuki.sh",
                 "C:\\home\\develop\\tanuki-\\bin",
                 new[] {
-                    new Option("USI_Hash", "16384"),
-                    new Option("Book_File", "../bin/book-2016-02-01.bin"),
-                    new Option("Best_Book_Move", "true"),
-                    new Option("Max_Random_Score_Diff", "0"),
-                    new Option("Max_Random_Score_Diff_Ply", "0"),
-                    new Option("Threads", "4"),
+                    new Option(optionNameUsiHash, "16384"),
+                    new Option(optionNameBookFile, "../bin/book-2016-02-01.bin"),
+                    new Option(optionNameBestBookMove, "true"),
+                    new Option(optionNameMaxRandomScoreDiff, "0"),
+                    new Option(optionNameMaxRandomScoreDiffPly, "0"),
+                    new Option(optionNameThreads, "4"),
+                    new Option(optionNameOutputBestmove, "false"),
                 }));
             engines.Add(new Engine(
                 "ssh",
                 "nue ./tanuki.sh",
                 "C:\\home\\develop\\tanuki-\\bin",
                 new[] {
-                    new Option("USI_Hash", "4096"),
-                    new Option("Book_File", "../bin/book-2016-02-01.bin"),
-                    new Option("Best_Book_Move", "true"),
-                    new Option("Max_Random_Score_Diff", "0"),
-                    new Option("Max_Random_Score_Diff_Ply", "0"),
-                    new Option("Threads", "4"),
+                    new Option(optionNameUsiHash, "4096"),
+                    new Option(optionNameBookFile, "../bin/book-2016-02-01.bin"),
+                    new Option(optionNameBestBookMove, "true"),
+                    new Option(optionNameMaxRandomScoreDiff, "0"),
+                    new Option(optionNameMaxRandomScoreDiffPly, "0"),
+                    new Option(optionNameThreads, "4"),
+                    new Option(optionNameOutputBestmove, "false"),
                 }));
 
             // 子プロセスの標準入出力 (System.Diagnostics.Process) - Programming/.NET Framework/標準入出力 - 総武ソフトウェア推進所 http://smdn.jp/programming/netfx/standard_streams/1_process/
