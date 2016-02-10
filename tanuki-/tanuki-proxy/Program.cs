@@ -196,12 +196,12 @@ namespace tanuki_proxy
 
                     // 手番かつ他の思考エンジンがbestmoveを返していない時のみ
                     // bestmoveを返すようにする
-                    if (upstreamState == UpstreamState.Thinking || upstreamState == UpstreamState.Stopping)
+                    lock (lockObject)
                     {
-                        // bestmoveは直接上流に送信せず、OutputBestMove()の中で送信する
-                        OutputBestMove();
-                        lock (lockObject)
+                        if (upstreamState == UpstreamState.Thinking || upstreamState == UpstreamState.Stopping)
                         {
+                            // bestmoveは直接上流に送信せず、OutputBestMove()の中で送信する
+                            OutputBestMove();
                             upstreamState = UpstreamState.Stopped;
                         }
                     }
@@ -214,7 +214,10 @@ namespace tanuki_proxy
                 // info depthは直接返さず、HandleInfo()の中で返すようにする
                 if (e.Data.Contains("depth"))
                 {
-                    HandleInfo(e.Data);
+                    if (upstreamState == UpstreamState.Thinking || upstreamState == UpstreamState.Pondering)
+                    {
+                        HandleInfo(e.Data);
+                    }
                     return;
                 }
 
@@ -253,30 +256,30 @@ namespace tanuki_proxy
                     new Option("Max_Random_Score_Diff_Ply", "0"),
                     new Option("Threads", "1"),
                 }));
-            //engines.Add(new Engine(
-            //    "ssh",
-            //    "nighthawk ./tanuki.sh",
-            //    "C:\\home\\develop\\tanuki-\\bin",
-            //    new[] {
-            //        new Option("USI_Hash", "16384"),
-            //        new Option("Book_File", "../bin/book-2016-02-01.bin"),
-            //        new Option("Best_Book_Move", "true"),
-            //        new Option("Max_Random_Score_Diff", "0"),
-            //        new Option("Max_Random_Score_Diff_Ply", "0"),
-            //        new Option("Threads", "4"),
-            //    }));
-            //engines.Add(new Engine(
-            //    "ssh",
-            //    "nue ./tanuki.sh",
-            //    "C:\\home\\develop\\tanuki-\\bin",
-            //    new[] {
-            //        new Option("USI_Hash", "4096"),
-            //        new Option("Book_File", "../bin/book-2016-02-01.bin"),
-            //        new Option("Best_Book_Move", "true"),
-            //        new Option("Max_Random_Score_Diff", "0"),
-            //        new Option("Max_Random_Score_Diff_Ply", "0"),
-            //        new Option("Threads", "4"),
-            //    }));
+            engines.Add(new Engine(
+                "ssh",
+                "nighthawk ./tanuki.sh",
+                "C:\\home\\develop\\tanuki-\\bin",
+                new[] {
+                    new Option("USI_Hash", "16384"),
+                    new Option("Book_File", "../bin/book-2016-02-01.bin"),
+                    new Option("Best_Book_Move", "true"),
+                    new Option("Max_Random_Score_Diff", "0"),
+                    new Option("Max_Random_Score_Diff_Ply", "0"),
+                    new Option("Threads", "4"),
+                }));
+            engines.Add(new Engine(
+                "ssh",
+                "nue ./tanuki.sh",
+                "C:\\home\\develop\\tanuki-\\bin",
+                new[] {
+                    new Option("USI_Hash", "4096"),
+                    new Option("Book_File", "../bin/book-2016-02-01.bin"),
+                    new Option("Best_Book_Move", "true"),
+                    new Option("Max_Random_Score_Diff", "0"),
+                    new Option("Max_Random_Score_Diff_Ply", "0"),
+                    new Option("Threads", "4"),
+                }));
 
             // 子プロセスの標準入出力 (System.Diagnostics.Process) - Programming/.NET Framework/標準入出力 - 総武ソフトウェア推進所 http://smdn.jp/programming/netfx/standard_streams/1_process/
             try
