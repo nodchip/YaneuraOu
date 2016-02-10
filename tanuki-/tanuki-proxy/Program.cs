@@ -11,13 +11,19 @@ namespace tanuki_proxy
 {
     class Program
     {
+        public enum UpstreamState
+        {
+            Stopped,
+            Thinking,
+            Pondering,
+            Stopping,
+        }
+
         public static object lockObject = new object();
-        public static bool thinking = false;
+        public static UpstreamState upstreamState = UpstreamState.Stopped;
         public static int depth = 0;
-        public static string bestmoveBestMove = null;
+        public static string bestmoveBestMove = "None";
         public static string bestmovePonder = null;
-        // Ponder中にbestmoveを返してしまう場合があるバグへの対処
-        public static bool pondering = false;
 
         struct Option
         {
@@ -31,14 +37,24 @@ namespace tanuki_proxy
             }
         }
 
-        struct Engine
+        class Engine
         {
-            public Process process;
-            public Option[] optionOverrides;
+            private enum DownstreamState
+            {
+                Stopped,
+                Thinking,
+                Pondering,
+                Stopping,
+            }
+
+            private Process process = new Process();
+            private Option[] optionOverrides;
+            private DownstreamState downstreamState = DownstreamState.Stopped;
+            private ManualResetEvent bestmoveReceivedEvent = new ManualResetEvent(true);
+            private object ioLock = new object();
 
             public Engine(string fileName, string arguments, string workingDirectory, Option[] optionOverrides)
             {
-                this.process = new Process();
                 this.process.StartInfo.FileName = fileName;
                 this.process.StartInfo.Arguments = arguments;
                 this.process.StartInfo.WorkingDirectory = workingDirectory;
@@ -47,6 +63,163 @@ namespace tanuki_proxy
                 this.process.StartInfo.RedirectStandardOutput = true;
                 this.process.OutputDataReceived += HandleStdout;
                 this.optionOverrides = optionOverrides;
+            }
+            public void Start()
+            {
+                process.Start();
+                process.BeginOutputReadLine();
+            }
+            public void Close()
+            {
+                process.Close();
+            }
+
+            /// <summary>
+            /// エンジンに対して出力する
+            /// </summary>
+            /// <param name="input">親ソフトウェアからの入力。USIプロトコルサーバーまたは親tanuki-proxy</param>
+            public void Write(string input)
+            {
+                string[] split = Split(input);
+                if (split.Length == 0)
+                {
+                    return;
+                }
+
+                // 将棋所：USIプロトコルとは http://www.geocities.jp/shogidokoro/usi.html
+                if (split[0] == "setoption")
+                {
+                    // エンジンに対して値を設定する時に送ります。
+                    Debug.Assert(split.Length == 5);
+                    Debug.Assert(split[1] == "name");
+                    Debug.Assert(split[3] == "value");
+
+                    // オプションをオーバーライドする
+                    foreach (var optionOverride in optionOverrides)
+                    {
+                        if (split[2] == optionOverride.name)
+                        {
+                            split[4] = optionOverride.value;
+                        }
+                    }
+                }
+
+                switch (downstreamState)
+                {
+                    case DownstreamState.Stopped:
+                        Debug.Assert(split[0] != "stop");
+                        Debug.Assert(split[0] != "ponderhit");
+                        break;
+
+                    case DownstreamState.Thinking:
+                        Debug.Assert(split[0] != "go");
+                        Debug.Assert(split[0] != "stop");
+                        Debug.Assert(split[0] != "ponderhit");
+                        break;
+
+                    case DownstreamState.Pondering:
+                        Debug.Assert(split[0] != "go");
+                        if (Contains(split, "stop"))
+                        {
+                            downstreamState = DownstreamState.Stopping;
+                            // bestmoveを受信するまで上流からのコマンドの受信を停止する
+                            bestmoveReceivedEvent.Reset();
+                        }
+                        else if (split[0] == "ponderhit")
+                        {
+                            downstreamState = DownstreamState.Thinking;
+                        }
+                        break;
+
+                    case DownstreamState.Stopping:
+                        bestmoveReceivedEvent.WaitOne(10 * 1000);
+                        break;
+                }
+
+                if (split[0] == "go")
+                {
+                    downstreamState = Contains(split, "ponder") ? DownstreamState.Pondering : DownstreamState.Thinking;
+                }
+
+                process.StandardInput.WriteLine(Concat(split));
+                process.StandardInput.Flush();
+            }
+
+            /// <summary>
+            /// 思考エンジンの出力を処理する
+            /// </summary>
+            /// <param name="sender">出力を送ってきた思考エンジンのプロセス</param>
+            /// <param name="e">思考エンジンの出力</param>
+            private void HandleStdout(object sender, DataReceivedEventArgs e)
+            {
+                if (string.IsNullOrEmpty(e.Data))
+                {
+                    return;
+                }
+
+                string[] split = Split(e.Data);
+
+                switch (downstreamState)
+                {
+                    case DownstreamState.Stopped:
+                        Debug.Assert(split[0] != "bestmove");
+                        // 上流からのstopコマンドを受信して停止中にinfoを処理しないようにする
+                        if (Contains(split, "depth"))
+                        {
+                            return;
+                        }
+                        break;
+
+                    case DownstreamState.Thinking:
+                        break;
+
+                    case DownstreamState.Pondering:
+                        Debug.Assert(split[0] != "bestmove");
+                        break;
+
+                    case DownstreamState.Stopping:
+                        Debug.Assert(split[0] != "stop");
+                        // 上流からのstopコマンドを受信して停止中にinfoを処理しないようにする
+                        if (Contains(split, "depth"))
+                        {
+                            return;
+                        }
+                        break;
+                }
+
+                if (split[0] == "bestmove")
+                {
+                    if (split[1] == "resign" || split[1] == "win")
+                    {
+                        bestmoveBestMove = split[1];
+                    }
+
+                    // 手番かつ他の思考エンジンがbestmoveを返していない時のみ
+                    // bestmoveを返すようにする
+                    if (upstreamState == UpstreamState.Thinking || upstreamState == UpstreamState.Stopping)
+                    {
+                        // bestmoveは直接上流に送信せず、OutputBestMove()の中で送信する
+                        OutputBestMove();
+                        lock (lockObject)
+                        {
+                            upstreamState = UpstreamState.Stopped;
+                        }
+                    }
+                    downstreamState = DownstreamState.Stopped;
+                    // コマンドを送信できるようにする
+                    bestmoveReceivedEvent.Set();
+                    return;
+                }
+
+                // info depthは直接返さず、HandleInfo()の中で返すようにする
+                if (e.Data.Contains("depth"))
+                {
+                    HandleInfo(e.Data);
+                    return;
+                }
+
+                //Console.Error.WriteLine(output);
+                Console.WriteLine(e.Data);
             }
         }
 
@@ -78,47 +251,39 @@ namespace tanuki_proxy
                     new Option("Best_Book_Move", "true"),
                     new Option("Max_Random_Score_Diff", "0"),
                     new Option("Max_Random_Score_Diff_Ply", "0"),
-                    new Option("Threads", "2"),
-                    new Option("Output_Bestmove", "true"),
+                    new Option("Threads", "1"),
                 }));
-            engines.Add(new Engine(
-                "ssh",
-                "nighthawk ./tanuki.sh",
-                "C:\\home\\develop\\tanuki-\\bin",
-                new[] {
-                    new Option("USI_Hash", "16384"),
-                    new Option("Book_File", "../bin/book-2016-02-01.bin"),
-                    new Option("Best_Book_Move", "true"),
-                    new Option("Max_Random_Score_Diff", "0"),
-                    new Option("Max_Random_Score_Diff_Ply", "0"),
-                    new Option("Threads", "4"),
-                    new Option("Output_Bestmove", "false"),
-                }));
-            engines.Add(new Engine(
-                "ssh",
-                "nue ./tanuki.sh",
-                "C:\\home\\develop\\tanuki-\\bin",
-                new[] {
-                    new Option("USI_Hash", "4096"),
-                    new Option("Book_File", "../bin/book-2016-02-01.bin"),
-                    new Option("Best_Book_Move", "true"),
-                    new Option("Max_Random_Score_Diff", "0"),
-                    new Option("Max_Random_Score_Diff_Ply", "0"),
-                    new Option("Threads", "4"),
-                    new Option("Output_Bestmove", "false"),
-                }));
+            //engines.Add(new Engine(
+            //    "ssh",
+            //    "nighthawk ./tanuki.sh",
+            //    "C:\\home\\develop\\tanuki-\\bin",
+            //    new[] {
+            //        new Option("USI_Hash", "16384"),
+            //        new Option("Book_File", "../bin/book-2016-02-01.bin"),
+            //        new Option("Best_Book_Move", "true"),
+            //        new Option("Max_Random_Score_Diff", "0"),
+            //        new Option("Max_Random_Score_Diff_Ply", "0"),
+            //        new Option("Threads", "4"),
+            //    }));
+            //engines.Add(new Engine(
+            //    "ssh",
+            //    "nue ./tanuki.sh",
+            //    "C:\\home\\develop\\tanuki-\\bin",
+            //    new[] {
+            //        new Option("USI_Hash", "4096"),
+            //        new Option("Book_File", "../bin/book-2016-02-01.bin"),
+            //        new Option("Best_Book_Move", "true"),
+            //        new Option("Max_Random_Score_Diff", "0"),
+            //        new Option("Max_Random_Score_Diff_Ply", "0"),
+            //        new Option("Threads", "4"),
+            //    }));
 
             // 子プロセスの標準入出力 (System.Diagnostics.Process) - Programming/.NET Framework/標準入出力 - 総武ソフトウェア推進所 http://smdn.jp/programming/netfx/standard_streams/1_process/
             try
             {
                 foreach (var engine in engines)
                 {
-                    if (!engine.process.Start())
-                    {
-                        return;
-                    }
-
-                    engine.process.BeginOutputReadLine();
+                    engine.Start();
                 }
 
                 string input;
@@ -130,11 +295,10 @@ namespace tanuki_proxy
                         // 思考開始の合図です。エンジンはこれを受信すると思考を開始します。
                         lock (lockObject)
                         {
-                            thinking = true;
-                            bestmoveBestMove = null;
+                            bestmoveBestMove = "None";
                             bestmovePonder = null;
                             depth = 0;
-                            pondering = input.Contains("ponder");
+                            upstreamState = input.Contains("ponder") ? UpstreamState.Pondering : UpstreamState.Thinking;
                         }
                     }
                     else if (split[0] == "ponderhit")
@@ -146,7 +310,17 @@ namespace tanuki_proxy
                         // 任意の時点でbestmoveで指し手を返すことができます。
                         lock (lockObject)
                         {
-                            pondering = false;
+                            upstreamState = UpstreamState.Thinking;
+                        }
+                    }
+                    else if (split[0] == "stop")
+                    {
+                        // エンジンに対し思考停止を命令するコマンドです。
+                        // エンジンはこれを受信したら、できるだけすぐ思考を中断し、bestmoveで指し手を返す必要があります。
+                        // （現時点で最善と考えている手を返すようにして下さい。）
+                        lock (lockObject)
+                        {
+                            upstreamState = UpstreamState.Stopping;
                         }
                     }
 
@@ -162,87 +336,25 @@ namespace tanuki_proxy
             {
                 foreach (var engine in engines)
                 {
-                    engine.process.Close();
+                    engine.Close();
                 }
             }
         }
 
         /// <summary>
-        /// 各思考エンジンに対して出力する
+        /// エンジンに対して出力する
         /// </summary>
         /// <param name="input">親ソフトウェアからの入力。USIプロトコルサーバーまたは親tanuki-proxy</param>
         private static void WriteToEachEngine(string input)
         {
             foreach (var engine in engines)
             {
-                string[] split = Split(input);
-                if (split.Length == 0)
-                {
-                    continue;
-                }
-
-                // 将棋所：USIプロトコルとは http://www.geocities.jp/shogidokoro/usi.html
-                if (split[0] == "setoption")
-                {
-                    // エンジンに対して値を設定する時に送ります。
-                    Debug.Assert(split.Length == 5);
-                    Debug.Assert(split[1] == "name");
-                    Debug.Assert(split[3] == "value");
-
-                    // オプションをオーバーライドする
-                    foreach (var optionOverride in engine.optionOverrides)
-                    {
-                        if (split[2] == optionOverride.name)
-                        {
-                            split[4] = optionOverride.value;
-                        }
-                    }
-                }
-
-                engine.process.StandardInput.WriteLine(Concat(split));
-                engine.process.StandardInput.Flush();
-
-                // usiコマンドは1回だけ処理する
-                if (split[0] == "usi")
+                engine.Write(input);
+                if (input == "usi")
                 {
                     break;
                 }
             }
-        }
-
-        /// <summary>
-        /// 思考エンジンの出力を処理する
-        /// </summary>
-        /// <param name="sender">出力を送ってきた思考エンジンのプロセス</param>
-        /// <param name="e">思考エンジンの出力</param>
-        private static void HandleStdout(object sender, DataReceivedEventArgs e)
-        {
-            string output = e.Data;
-            if (string.IsNullOrEmpty(output))
-            {
-                return;
-            }
-
-            // bestmoveは直接親に返さず、OutputBestMove()の中で返すようにする
-            if (output.Contains("bestmove") && !output.Contains("resign") && !output.Contains("win"))
-            {
-                if (thinking && !pondering)
-                {
-                    OutputBestMove();
-                }
-                WriteToEachEngine("stop");
-                return;
-            }
-
-            // info depthは直接返さず、HandleInfo()の中で返すようにする
-            if (output.Contains("depth"))
-            {
-                HandleInfo(output);
-                return;
-            }
-
-            //Console.Error.WriteLine(output);
-            Console.WriteLine(output);
         }
 
         /// <summary>
@@ -309,17 +421,21 @@ namespace tanuki_proxy
                 //Console.Error.WriteLine(command);
                 Console.WriteLine(command);
 
-                thinking = false;
+                upstreamState = UpstreamState.Stopped;
                 depth = 0;
-                bestmoveBestMove = null;
+                bestmoveBestMove = "None";
                 bestmovePonder = null;
-                pondering = false;
             }
         }
 
         static string[] Split(string s)
         {
             return new Regex("\\s+").Split(s);
+        }
+
+        static bool Contains(string[] strings, string s)
+        {
+            return Array.FindIndex(strings, x => x == s) != -1;
         }
     }
 }
