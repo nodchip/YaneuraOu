@@ -502,7 +502,10 @@ void Searcher::doUSICommandLoop(int argc, char* argv[]) {
         << "\n" << options
         << "\nusiok" << SYNCENDL;
     }
-    else if (token == "go") { go(pos, ssCmd); }
+    else if (token == "go") {
+      go(pos, ssCmd);
+      SYNCCOUT << "info string started" << SYNCENDL;
+    }
     else if (token == "isready") { SYNCCOUT << "readyok" << SYNCENDL; }
     else if (token == "position") { setPosition(pos, ssCmd); }
     else if (token == "setoption") { setOption(ssCmd); }
@@ -514,7 +517,7 @@ void Searcher::doUSICommandLoop(int argc, char* argv[]) {
 #else
       learner->learn(pos, ssCmd);
 #endif
-    }
+  }
 #endif
 #if !defined MINIMUL
     // 以下、デバッグ用
@@ -682,10 +685,10 @@ void Searcher::doUSICommandLoop(int argc, char* argv[]) {
 #endif
 #endif
     else { SYNCCOUT << "unknown command: " << cmd << SYNCENDL; }
-  } while (token != "quit" && argc == 1);
+} while (token != "quit" && argc == 1);
 
-  if (options[OptionNames::WRITE_SYNTHESIZED_EVAL])
-    Evaluater::writeSynthesized(options[OptionNames::EVAL_DIR]);
+if (options[OptionNames::WRITE_SYNTHESIZED_EVAL])
+Evaluater::writeSynthesized(options[OptionNames::EVAL_DIR]);
 
-  threads.waitForThinkFinished();
+threads.waitForThinkFinished();
 }
