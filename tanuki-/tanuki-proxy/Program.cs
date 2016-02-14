@@ -7,6 +7,7 @@ using System.Diagnostics;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Collections.Concurrent;
+using System.IO;
 
 namespace tanuki_proxy
 {
@@ -45,9 +46,11 @@ namespace tanuki_proxy
             private object downstreamLockObject = new object();
             private BlockingCollection<string> commandQueue = new BlockingCollection<string>();
             private Thread thread;
+            public string name { get; }
 
-            public Engine(string fileName, string arguments, string workingDirectory, Option[] optionOverrides)
+            public Engine(string engineName, string fileName, string arguments, string workingDirectory, Option[] optionOverrides)
             {
+                this.name = engineName;
                 this.process.StartInfo.FileName = fileName;
                 this.process.StartInfo.Arguments = arguments;
                 this.process.StartInfo.WorkingDirectory = workingDirectory;
@@ -112,14 +115,21 @@ namespace tanuki_proxy
             }
 
             /// <summary>
-            /// エンジンに対して出力する
+            /// エンジンにコマンドを書き込む。
             /// </summary>
-            /// <param name="input">親ソフトウェアからの入力。USIプロトコルサーバーまたは親tanuki-proxy</param>
+            /// <param name="input"></param>
             public void Write(string input)
             {
+                // コマンドをBlockingCollectionに入れる。
+                // 入れられたコマンドは別のスレッドで処理される。
                 commandQueue.Add(input);
             }
 
+            /// <summary>
+            /// setoptionコマンドを処理する
+            /// </summary>
+            /// <param name="input">UIまたは上流proxyからのコマンド文字列</param>
+            /// <returns>コマンドをこの関数で処理した場合はtrue、そうでない場合はfalse</returns>
             private bool HandleSetoption(string input)
             {
                 string[] split = Split(input);
@@ -187,8 +197,8 @@ namespace tanuki_proxy
             /// <summary>
             /// info string startedを受信し、goコマンドが受理されたときの処理を行う
             /// </summary>
-            /// <param name="output"></param>
-            /// <returns></returns>
+            /// <param name="output">思考エンジンの出力文字列</param>
+            /// <returns>コマンドをこの関数で処理した場合はtrue、そうでない場合はfalse</returns>
             private bool HandleStarted(string output)
             {
                 string[] split = Split(output);
@@ -207,9 +217,9 @@ namespace tanuki_proxy
             }
 
             /// <summary>
-            /// 
+            /// pvを含むinfoコマンドを処理する
             /// </summary>
-            /// <param name="split"></param>
+            /// <param name="output">思考エンジンの出力文字列</param>
             /// <returns>コマンドをこの関数で処理した場合はtrue、そうでない場合はfalse</returns>
             private bool HandlePv(string output)
             {
@@ -265,6 +275,8 @@ namespace tanuki_proxy
                     }
 
                     Debug.WriteLine("  <<    process={0} command={1}", "-", output);
+                    Console.WriteLine("info string " + name);
+
                     Console.WriteLine(output);
                 }
 
@@ -349,6 +361,7 @@ namespace tanuki_proxy
             Debug.Listeners.Add(new TextWriterTraceListener(Console.Error));
 
             engines.Add(new Engine(
+                "doutanuki",
                 "C:\\home\\develop\\tanuki-\\tanuki-\\x64\\Release\\tanuki-.exe",
                 "",
                 "C:\\home\\develop\\tanuki-\\bin",
@@ -361,6 +374,7 @@ namespace tanuki_proxy
                     new Option("Threads", "1"),
                 }));
             engines.Add(new Engine(
+                "nighthawk",
                 "ssh",
                 "nighthawk ./tanuki.sh",
                 "C:\\home\\develop\\tanuki-\\bin",
@@ -373,6 +387,7 @@ namespace tanuki_proxy
                     new Option("Threads", "4"),
                 }));
             engines.Add(new Engine(
+                "nue",
                 "ssh",
                 "nue ./tanuki.sh",
                 "C:\\home\\develop\\tanuki-\\bin",
