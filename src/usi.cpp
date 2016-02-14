@@ -469,6 +469,7 @@ void Searcher::doUSICommandLoop(int argc, char* argv[]) {
       if (token != "ponderhit" || signals.stopOnPonderHit) {
         signals.stop = true;
         threads.mainThread()->notifyOne();
+        threads.waitForThinkFinished();
       }
       else {
         limits.ponder = false;
