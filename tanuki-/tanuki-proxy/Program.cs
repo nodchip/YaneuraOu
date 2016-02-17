@@ -57,7 +57,9 @@ namespace tanuki_proxy
                 this.process.StartInfo.UseShellExecute = false;
                 this.process.StartInfo.RedirectStandardInput = true;
                 this.process.StartInfo.RedirectStandardOutput = true;
+                this.process.StartInfo.RedirectStandardError = true;
                 this.process.OutputDataReceived += HandleStdout;
+                this.process.ErrorDataReceived += HandleStderr;
                 this.optionOverrides = optionOverrides;
             }
 
@@ -71,6 +73,7 @@ namespace tanuki_proxy
             {
                 process.Start();
                 process.BeginOutputReadLine();
+                process.BeginErrorReadLine();
 
                 while (!commandQueue.IsCompleted)
                 {
@@ -84,7 +87,7 @@ namespace tanuki_proxy
                         continue;
                     }
 
-                    if (input == null)
+                    if (string.IsNullOrEmpty(input))
                     {
                         continue;
                     }
@@ -101,7 +104,7 @@ namespace tanuki_proxy
                         continue;
                     }
 
-                    Debug.WriteLine("     >> process={0} command={1}", process, Concat(split));
+                    Debug.WriteLine("     >> engine={0} command={1}", name, Concat(split));
                     process.StandardInput.WriteLine(input);
                     process.StandardInput.Flush();
                 }
@@ -152,14 +155,14 @@ namespace tanuki_proxy
                     }
                 }
 
-                Debug.WriteLine("     >> process={0} command={1}", process, Concat(split));
+                Debug.WriteLine("     >> engine={0} command={1}", name, Concat(split));
                 process.StandardInput.WriteLine(Concat(split));
                 process.StandardInput.Flush();
                 return true;
             }
 
             /// <summary>
-            /// 思考エンジンの出力を処理する
+            /// 思考エンジンの標準出力を処理する
             /// </summary>
             /// <param name="sender">出力を送ってきた思考エンジンのプロセス</param>
             /// <param name="e">思考エンジンの出力</param>
@@ -170,7 +173,7 @@ namespace tanuki_proxy
                     return;
                 }
 
-                Debug.WriteLine("     << process={0} command={1}", process, e.Data);
+                Debug.WriteLine("     << engine={0} command={1}", name, e.Data);
 
                 string[] split = Split(e.Data);
 
@@ -189,9 +192,23 @@ namespace tanuki_proxy
                     return;
                 }
 
-                Debug.WriteLine("  <<    process={0} command={1}", process, e.Data);
+                Debug.WriteLine("  <<    engine={0} command={1}", name, e.Data);
                 Console.WriteLine(e.Data);
                 Console.Out.Flush();
+            }
+
+            /// <summary>
+            /// 思考エンジンの標準エラー出力を処理する
+            /// </summary>
+            /// <param name="sender">出力を送ってきた思考エンジンのプロセス</param>
+            /// <param name="e">思考エンジンの出力</param>
+            private void HandleStderr(object sender, DataReceivedEventArgs e)
+            {
+                if (string.IsNullOrEmpty(e.Data))
+                {
+                    return;
+                }
+                Debug.WriteLine("!!!!! engine={0} command={1}", name, e.Data);
             }
 
             /// <summary>
@@ -274,7 +291,7 @@ namespace tanuki_proxy
                         bestmovePonder = split[pvIndex + 2];
                     }
 
-                    Debug.WriteLine("  <<    process={0} command={1}", "-", output);
+                    Debug.WriteLine("  <<    engine={0} command={1}", name, output);
                     Console.WriteLine("info string " + name);
 
                     Console.WriteLine(output);
@@ -327,7 +344,7 @@ namespace tanuki_proxy
                         command = string.Format("bestmove {0}", bestmoveBestMove);
                     }
 
-                    Debug.WriteLine("  <<    process={0} command={1}", "-", command);
+                    Debug.WriteLine("  <<    engine={0} command={1}", name, command);
                     Console.WriteLine(command);
 
                     TransitUpstreamState(UpstreamState.Stopped);
@@ -359,6 +376,8 @@ namespace tanuki_proxy
         static void Main(string[] args)
         {
             Debug.Listeners.Add(new TextWriterTraceListener(Console.Error));
+            string logFileFormat = "C:\\home\\develop\\tanuki-\\" + DateTime.Now.ToString("yyyy-MM-dd-HH-mm-ss") + ".txt";
+            Debug.Listeners.Add(new TextWriterTraceListener(new StreamWriter(logFileFormat, false, Encoding.UTF8)));
 
             engines.Add(new Engine(
                 "doutanuki",
@@ -373,23 +392,23 @@ namespace tanuki_proxy
                     new Option("Max_Random_Score_Diff_Ply", "0"),
                     new Option("Threads", "1"),
                 }));
-            engines.Add(new Engine(
-                "nighthawk",
-                "ssh",
-                "nighthawk ./tanuki.sh",
-                "C:\\home\\develop\\tanuki-\\bin",
-                new[] {
-                    new Option("USI_Hash", "16384"),
-                    new Option("Book_File", "../bin/book-2016-02-01.bin"),
-                    new Option("Best_Book_Move", "true"),
-                    new Option("Max_Random_Score_Diff", "0"),
-                    new Option("Max_Random_Score_Diff_Ply", "0"),
-                    new Option("Threads", "4"),
-                }));
+            //engines.Add(new Engine(
+            //    "nighthawk",
+            //    "ssh",
+            //    "-vvv nighthawk ./tanuki.sh",
+            //    "C:\\home\\develop\\tanuki-\\bin",
+            //    new[] {
+            //        new Option("USI_Hash", "8192"),
+            //        new Option("Book_File", "../bin/book-2016-02-01.bin"),
+            //        new Option("Best_Book_Move", "true"),
+            //        new Option("Max_Random_Score_Diff", "0"),
+            //        new Option("Max_Random_Score_Diff_Ply", "0"),
+            //        new Option("Threads", "4"),
+            //    }));
             engines.Add(new Engine(
                 "nue",
                 "ssh",
-                "nue ./tanuki.sh",
+                "-vvv nue tanuki-.bat",
                 "C:\\home\\develop\\tanuki-\\bin",
                 new[] {
                     new Option("USI_Hash", "4096"),
