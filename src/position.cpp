@@ -1713,9 +1713,17 @@ RepetitionType Position::isDraw(const int checkMaxPly) const {
   if (i <= e) {
     // 現在の局面と、少なくとも 4 手戻らないと同じ局面にならない。
     // ここでまず 2 手戻る。
+    if (!st_ || !st_->previous || !st_->previous->previous) {
+      return NotRepetition;
+    }
     StateInfo* stp = st_->previous->previous;
 
     do {
+      // Ubuntu 15.10+gccでここで落ちるのでおまじない
+      if (!stp || !stp->previous || !stp->previous->previous) {
+        break;
+      }
+
       // 更に 2 手戻る。
       stp = stp->previous->previous;
       if (stp->key() == st_->key()) {
