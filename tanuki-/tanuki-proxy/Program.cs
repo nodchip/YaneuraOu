@@ -25,6 +25,7 @@ namespace tanuki_proxy
         public static string bestmoveBestMove = "None";
         public static string bestmovePonder = null;
         public static int upstreamGoIndex = 0;
+        public static int numberOfReadyoks = 0;
 
         struct Option
         {
@@ -177,6 +178,11 @@ namespace tanuki_proxy
 
                 string[] split = Split(e.Data);
 
+                if (HandleReadyok(e.Data))
+                {
+                    return;
+                }
+
                 if (HandleStarted(e.Data))
                 {
                     return;
@@ -209,6 +215,27 @@ namespace tanuki_proxy
                     return;
                 }
                 Debug.WriteLine("!!!!! engine={0} command={1}", name, e.Data);
+            }
+
+            private bool HandleReadyok(string output)
+            {
+                string[] split = Split(output);
+                if (!Contains(split, "readyok"))
+                {
+                    return false;
+                }
+
+                // goコマンドが受理されたのでpvの受信を開始する
+                lock (upstreamLockObject)
+                {
+                    if (engines.Count == ++numberOfReadyoks)
+                    {
+                        Debug.WriteLine("  <<    engine={0} command={1}", name, output);
+                        Console.WriteLine(output);
+                    }
+                }
+
+                return true;
             }
 
             /// <summary>
@@ -442,6 +469,13 @@ namespace tanuki_proxy
                             depth = 0;
                             ++upstreamGoIndex;
                             TransitUpstreamState(UpstreamState.Thinking);
+                        }
+                    }
+                    else if (split[0] == "isready")
+                    {
+                        lock (upstreamLockObject)
+                        {
+                            numberOfReadyoks = 0;
                         }
                     }
 
