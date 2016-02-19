@@ -378,6 +378,7 @@ namespace tanuki_proxy
                     depth = 0;
                     bestmoveBestMove = "None";
                     bestmovePonder = null;
+                    WriteToEachEngine("stop");
                 }
 
                 return true;
@@ -419,26 +420,26 @@ namespace tanuki_proxy
                     new Option("Max_Random_Score_Diff_Ply", "0"),
                     new Option("Threads", "1"),
                 }));
-            //engines.Add(new Engine(
-            //    "nighthawk",
-            //    "ssh",
-            //    "-vvv nighthawk ./tanuki.sh",
-            //    "C:\\home\\develop\\tanuki-\\bin",
-            //    new[] {
-            //        new Option("USI_Hash", "8192"),
-            //        new Option("Book_File", "../bin/book-2016-02-01.bin"),
-            //        new Option("Best_Book_Move", "true"),
-            //        new Option("Max_Random_Score_Diff", "0"),
-            //        new Option("Max_Random_Score_Diff_Ply", "0"),
-            //        new Option("Threads", "4"),
-            //    }));
+            engines.Add(new Engine(
+                "nighthawk",
+                "ssh",
+                "-vvv nighthawk tanuki-.bat",
+                "C:\\home\\develop\\tanuki-\\bin",
+                new[] {
+                    new Option("USI_Hash", "8192"),
+                    new Option("Book_File", "../bin/book-2016-02-01.bin"),
+                    new Option("Best_Book_Move", "true"),
+                    new Option("Max_Random_Score_Diff", "0"),
+                    new Option("Max_Random_Score_Diff_Ply", "0"),
+                    new Option("Threads", "4"),
+                }));
             engines.Add(new Engine(
                 "nue",
                 "ssh",
                 "-vvv nue tanuki-.bat",
                 "C:\\home\\develop\\tanuki-\\bin",
                 new[] {
-                    new Option("USI_Hash", "4096"),
+                    new Option("USI_Hash", "2048"),
                     new Option("Book_File", "../bin/book-2016-02-01.bin"),
                     new Option("Best_Book_Move", "true"),
                     new Option("Max_Random_Score_Diff", "0"),
