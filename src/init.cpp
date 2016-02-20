@@ -42,7 +42,7 @@ namespace {
   // Rook or Bishop の利きの範囲を調べて bitboard で返す。
   // occupied  障害物があるマスが 1 の bitboard
   Bitboard attackCalc(const Square square, const Bitboard& occupied, const bool isBishop) {
-    const SquareDelta deltaArray[2][4] = { {DeltaN, DeltaS, DeltaE, DeltaW}, {DeltaNE, DeltaSE, DeltaSW, DeltaNW} };
+    constexpr SquareDelta deltaArray[2][4] = { {DeltaN, DeltaS, DeltaE, DeltaW}, {DeltaNE, DeltaSE, DeltaSW, DeltaNW} };
     Bitboard result = allZeroBB();
     for (SquareDelta delta : deltaArray[isBishop]) {
       for (Square sq = square + delta;
