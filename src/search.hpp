@@ -32,6 +32,7 @@ struct SignalsType {
   std::atomic<bool> firstRootMove;
   std::atomic<bool> stop;
   std::atomic<bool> failedLowAtRoot;
+  std::atomic<bool> skipMainThreadCurrentDepth;
 };
 
 enum InaniwaFlag {
@@ -149,6 +150,9 @@ struct Searcher {
   STATIC OptionsMap options;
   static bool outputInfo;
   STATIC Book book;
+  STATIC int broadcastedPvDepth;
+  STATIC std::string broadcastedPvInfo;
+  STATIC std::atomic<int> mainThreadCurrentSearchDepth;
 
   STATIC void init();
   STATIC void idLoop(Position& pos);

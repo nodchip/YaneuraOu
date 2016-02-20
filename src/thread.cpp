@@ -132,6 +132,10 @@ void ThreadPool::startThinking(
   pos.searcher()->searchTimer.set(goReceivedTime);
   pos.searcher()->signals.stopOnPonderHit = pos.searcher()->signals.firstRootMove = false;
   pos.searcher()->signals.stop = pos.searcher()->signals.failedLowAtRoot = false;
+  pos.searcher()->signals.skipMainThreadCurrentDepth = false;
+  pos.searcher()->broadcastedPvDepth = -1;
+  pos.searcher()->broadcastedPvInfo.clear();
+  pos.searcher()->mainThreadCurrentSearchDepth = 0;
 
   pos.searcher()->rootPosition = pos;
   pos.searcher()->limits.set(limits);

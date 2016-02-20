@@ -322,6 +322,7 @@ namespace tanuki_proxy
                     Console.WriteLine("info string " + name);
 
                     Console.WriteLine(output);
+                    WriteToEachEngine("broadcast " + output);
                 }
 
                 return true;

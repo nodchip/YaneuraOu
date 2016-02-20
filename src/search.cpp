@@ -47,6 +47,9 @@ ThreadPool Searcher::threads;
 OptionsMap Searcher::options;
 Searcher* Searcher::thisptr;
 Book Searcher::book;
+int Searcher::broadcastedPvDepth;
+std::string Searcher::broadcastedPvInfo;
+std::atomic<int> Searcher::mainThreadCurrentSearchDepth;
 #endif
 bool Searcher::outputInfo = true;
 
@@ -599,6 +602,61 @@ void Searcher::idLoop(Position& pos) {
 
   // 反復深化で探索を行う。
   while (++depth <= MaxPly && !signals.stop && (!limits.depth || depth <= limits.depth)) {
+    mainThreadCurrentSearchDepth = depth;
+
+    // Lazy Parallel Aspiration Windows Search
+    // 他の思考エンジンから送られてきた探索結果の
+    // 次のイテレーションから再開する
+    if (signals.skipMainThreadCurrentDepth) {
+      StateInfo state[MaxPlyPlus2];
+      StateInfo* st = state;
+
+      signals.skipMainThreadCurrentDepth = false;
+      depth = broadcastedPvDepth + 1;
+
+      // broadcastされたPVをstd::vector<Move>に変換する
+      std::vector<Move> moves;
+      std::istringstream iss(broadcastedPvInfo);
+      std::string term;
+      int score = 0;
+      while (iss >> term && term != "pv") {
+        if (term == "score") {
+          iss >> term;
+          if (term == "cp") {
+            iss >> score;
+          }
+        }
+      }
+      while (iss >> term) {
+        Move move = usiToMove(pos, term);
+        assert(!move.isNone());
+        assert(pos.moveIsLegal(move));
+        pos.doMove(move, *st++);
+        moves.push_back(move);
+      }
+
+      for (auto rit = moves.rbegin(); rit != moves.rend(); ++rit) {
+        pos.undoMove(*rit);
+      }
+
+      assert(!moves.empty());
+
+      RootMove* rootMove = nullptr;
+      for (auto& rm : rootMoves) {
+        if (rm == moves.front()) {
+          rootMove = &rm;
+          break;
+        }
+      }
+      assert(rootMove);
+
+      rootMove->pv_ = moves;
+      rootMove->pv_.push_back(Move::moveNone());
+      rootMove->score_ = static_cast<Score>(score);
+      // broadcastされたPVのrootMoveを先頭に移動する
+      std::swap(rootMoves[0], *rootMove);
+    }
+
     // 前回の iteration の結果を全てコピー
     for (size_t i = 0; i < rootMoves.size(); ++i) {
       rootMoves[i].prevScore_ = rootMoves[i].score_;
@@ -608,7 +666,7 @@ void Searcher::idLoop(Position& pos) {
     bestMoveChanges = 0;
 
     // Multi PV loop
-    for (pvIdx = 0; pvIdx < pvSize && !signals.stop; ++pvIdx) {
+    for (pvIdx = 0; pvIdx < pvSize && !signals.stop && !signals.skipMainThreadCurrentDepth; ++pvIdx) {
 #if defined LEARN
       alpha = this->alpha;
       beta = this->beta;
@@ -662,6 +720,10 @@ void Searcher::idLoop(Position& pos) {
         }
 
         if (signals.stop) {
+          break;
+        }
+
+        if (signals.skipMainThreadCurrentDepth) {
           break;
         }
 
@@ -912,7 +974,7 @@ Score Searcher::search(Position& pos, SearchStack* ss, Score alpha, Score beta, 
     // step2
     // stop と最大探索深さのチェック
     switch (pos.isDraw(16)) {
-    case NotRepetition: if (!signals.stop && ss->ply <= MaxPly) { break; }
+    case NotRepetition: if (!signals.stop && !signals.skipMainThreadCurrentDepth && ss->ply <= MaxPly) { break; }
     case RepetitionDraw: return ScoreDraw;
     case RepetitionWin: return mateIn(ss->ply);
     case RepetitionLose: return matedIn(ss->ply);
@@ -1358,6 +1420,10 @@ split_point_start:
     }
 
     if (signals.stop || thisThread->cutoffOccurred()) {
+      return score;
+    }
+
+    if (signals.skipMainThreadCurrentDepth) {
       return score;
     }
 

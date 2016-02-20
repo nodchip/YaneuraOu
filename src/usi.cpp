@@ -509,6 +509,22 @@ void Searcher::doUSICommandLoop(int argc, char* argv[]) {
     else if (token == "isready") { SYNCCOUT << "readyok" << SYNCENDL; }
     else if (token == "position") { setPosition(pos, ssCmd); }
     else if (token == "setoption") { setOption(ssCmd); }
+    else if (token == "broadcast") {
+      std::getline(ssCmd, pos.searcher()->broadcastedPvInfo);
+
+      pos.searcher()->broadcastedPvDepth = 0;
+      std::istringstream iss(pos.searcher()->broadcastedPvInfo);
+      std::string term;
+      while (iss >> term) {
+        if (term != "depth") {
+          continue;
+        }
+        iss >> pos.searcher()->broadcastedPvDepth;
+        break;
+      }
+      signals.skipMainThreadCurrentDepth =
+        pos.searcher()->broadcastedPvDepth >= pos.searcher()->mainThreadCurrentSearchDepth;
+    }
 #if defined LEARN
     else if (token == "l") {
       auto learner = std::unique_ptr<Learner>(new Learner());
