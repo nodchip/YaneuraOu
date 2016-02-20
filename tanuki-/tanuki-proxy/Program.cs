@@ -217,6 +217,19 @@ namespace tanuki_proxy
                 Debug.WriteLine("!!!!! engine={0} command={1}", name, e.Data);
             }
 
+            private int getNumberOfRunningEngines()
+            {
+                int numberOfRunningEngines = 0;
+                foreach (var engine in engines)
+                {
+                    if (engine.process.HasExited)
+                    {
+                        ++numberOfRunningEngines;
+                    }
+                }
+                return numberOfRunningEngines;
+            }
+
             private bool HandleReadyok(string output)
             {
                 string[] split = Split(output);
@@ -228,7 +241,7 @@ namespace tanuki_proxy
                 // goコマンドが受理されたのでpvの受信を開始する
                 lock (upstreamLockObject)
                 {
-                    if (engines.Count == ++numberOfReadyoks)
+                    if (getNumberOfRunningEngines() == ++numberOfReadyoks)
                     {
                         Debug.WriteLine("  <<    engine={0} command={1}", name, output);
                         Console.WriteLine(output);
