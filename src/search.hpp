@@ -156,6 +156,7 @@ struct Searcher {
 
   STATIC void init();
   STATIC void idLoop(Position& pos);
+  STATIC void skipCurrentDepth(Position& pos, Ply& depth);
   STATIC std::string pvInfoToUSI(Position& pos, const Ply depth, const Score alpha, const Score beta);
   template <NodeType NT, bool INCHECK>
   STATIC Score qsearch(Position& pos, SearchStack* ss, Score alpha, Score beta, const Depth depth);

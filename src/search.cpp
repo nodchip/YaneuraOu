@@ -14,7 +14,7 @@ FORCE_INLINE void ThreadPool::wakeUp(Searcher* s) {
   for (size_t i = 0; i < size(); ++i) {
     (*this)[i]->maxPly = 0;
   }
-  sleepWhileIdle_ = s->options[OptionNames::USE_SLEEPING_THREADS];
+  sleepWhileIdle_ = s->options[OptionNames::USE_SLEEPING_THREADS] != 0;
 }
 // 一箇所でしか呼ばないので、FORCE_INLINE
 FORCE_INLINE void ThreadPool::sleep() {
@@ -524,6 +524,59 @@ Score Searcher::qsearch(Position& pos, SearchStack* ss, Score alpha, Score beta,
   return bestScore;
 }
 
+void Searcher::skipCurrentDepth(Position& pos, Ply& depth)
+{
+  StateInfo state[MaxPlyPlus2];
+  StateInfo* st = state;
+
+  signals.skipMainThreadCurrentDepth = false;
+
+  // broadcastされたPVをstd::vector<Move>に変換する
+  std::vector<Move> moves;
+  std::istringstream iss(broadcastedPvInfo);
+  std::string term;
+  int score = 0;
+  while (iss >> term && term != "pv") {
+    if (term == "score") {
+      iss >> term;
+      if (term == "cp") {
+        iss >> score;
+      }
+    }
+  }
+  while (iss >> term) {
+    Move move = usiToMove(pos, term);
+    assert(!move.isNone());
+    assert(pos.moveIsLegal(move));
+    pos.doMove(move, *st++);
+    moves.push_back(move);
+  }
+
+  for (auto rit = moves.rbegin(); rit != moves.rend(); ++rit) {
+    pos.undoMove(*rit);
+  }
+
+  if (moves.empty()) {
+    return;
+  }
+
+  RootMove* rootMove = nullptr;
+  for (auto& rm : rootMoves) {
+    if (rm == moves.front()) {
+      rootMove = &rm;
+      break;
+    }
+  }
+  assert(rootMove);
+
+  rootMove->pv_ = moves;
+  rootMove->pv_.push_back(Move::moveNone());
+  rootMove->score_ = static_cast<Score>(score);
+  // broadcastされたPVのrootMoveを先頭に移動する
+  std::swap(rootMoves[0], *rootMove);
+  depth = static_cast<Depth>(broadcastedPvDepth) + 1;
+}
+
 // iterative deepening loop
 void Searcher::idLoop(Position& pos) {
 #ifdef RECORD_ITERATIVE_DEEPNING_SCORES
@@ -608,53 +661,7 @@ void Searcher::idLoop(Position& pos) {
     // 他の思考エンジンから送られてきた探索結果の
     // 次のイテレーションから再開する
     if (signals.skipMainThreadCurrentDepth) {
-      StateInfo state[MaxPlyPlus2];
-      StateInfo* st = state;
-
-      signals.skipMainThreadCurrentDepth = false;
-      depth = broadcastedPvDepth + 1;
-
-      // broadcastされたPVをstd::vector<Move>に変換する
-      std::vector<Move> moves;
-      std::istringstream iss(broadcastedPvInfo);
-      std::string term;
-      int score = 0;
-      while (iss >> term && term != "pv") {
-        if (term == "score") {
-          iss >> term;
-          if (term == "cp") {
-            iss >> score;
-          }
-        }
-      }
-      while (iss >> term) {
-        Move move = usiToMove(pos, term);
-        assert(!move.isNone());
-        assert(pos.moveIsLegal(move));
-        pos.doMove(move, *st++);
-        moves.push_back(move);
-      }
-
-      for (auto rit = moves.rbegin(); rit != moves.rend(); ++rit) {
-        pos.undoMove(*rit);
-      }
-
-      assert(!moves.empty());
-
-      RootMove* rootMove = nullptr;
-      for (auto& rm : rootMoves) {
-        if (rm == moves.front()) {
-          rootMove = &rm;
-          break;
-        }
-      }
-      assert(rootMove);
-
-      rootMove->pv_ = moves;
-      rootMove->pv_.push_back(Move::moveNone());
-      rootMove->score_ = static_cast<Score>(score);
-      // broadcastされたPVのrootMoveを先頭に移動する
-      std::swap(rootMoves[0], *rootMove);
+      skipCurrentDepth(pos, depth);
     }
 
     // 前回の iteration の結果を全てコピー
