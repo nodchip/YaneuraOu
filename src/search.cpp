@@ -556,6 +556,7 @@ void Searcher::skipCurrentDepth(Position& pos, Ply& depth)
     pos.undoMove(*rit);
   }
 
+  // 実機でテストしたところmovesがからの場合があるためreturn
   if (moves.empty()) {
     return;
   }
@@ -567,7 +568,11 @@ void Searcher::skipCurrentDepth(Position& pos, Ply& depth)
       break;
     }
   }
-  assert(rootMove);
+
+  // 実機でテストしたところrootMoveがnullptrの場合があるためreturn
+  if (!rootMove) {
+    return;
+  }
 
   rootMove->pv_ = moves;
   rootMove->pv_.push_back(Move::moveNone());
