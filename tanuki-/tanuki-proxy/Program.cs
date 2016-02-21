@@ -222,7 +222,7 @@ namespace tanuki_proxy
                 int numberOfRunningEngines = 0;
                 foreach (var engine in engines)
                 {
-                    if (engine.process.HasExited)
+                    if (!engine.process.HasExited)
                     {
                         ++numberOfRunningEngines;
                     }
@@ -427,7 +427,7 @@ namespace tanuki_proxy
                 "",
                 "C:\\home\\develop\\tanuki-\\bin",
                 new[] {
-                    new Option("USI_Hash", "2048"),
+                    new Option("USI_Hash", "1024"),
                     new Option("Book_File", "../bin/book-2016-02-01.bin"),
                     new Option("Best_Book_Move", "true"),
                     new Option("Max_Random_Score_Diff", "0"),
@@ -440,7 +440,7 @@ namespace tanuki_proxy
                 "-vvv nighthawk tanuki-.bat",
                 "C:\\home\\develop\\tanuki-\\bin",
                 new[] {
-                    new Option("USI_Hash", "8192"),
+                    new Option("USI_Hash", "1024"),
                     new Option("Book_File", "../bin/book-2016-02-01.bin"),
                     new Option("Best_Book_Move", "true"),
                     new Option("Max_Random_Score_Diff", "0"),
@@ -453,7 +453,7 @@ namespace tanuki_proxy
                 "-vvv nue tanuki-.bat",
                 "C:\\home\\develop\\tanuki-\\bin",
                 new[] {
-                    new Option("USI_Hash", "2048"),
+                    new Option("USI_Hash", "1024"),
                     new Option("Book_File", "../bin/book-2016-02-01.bin"),
                     new Option("Best_Book_Move", "true"),
                     new Option("Max_Random_Score_Diff", "0"),
