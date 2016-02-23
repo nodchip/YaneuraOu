@@ -78,7 +78,7 @@ const USIOption OptionsMap::INVALID_OPTION;
 void OptionsMap::init(Searcher* s) {
   (*this)[OptionNames::USI_HASH] = USIOption(256, 1, 65536, onHashSize, s);
   (*this)[OptionNames::CLEAR_HASH] = USIOption(onClearHash, s);
-  (*this)[OptionNames::BOOK_FILE] = USIOption("../bin/book-2015-11-23.bin");
+  (*this)[OptionNames::BOOK_FILE] = USIOption("../binbook-2016-02-01.bin");
   (*this)[OptionNames::BEST_BOOK_MOVE] = USIOption(false);
   (*this)[OptionNames::OWNBOOK] = USIOption(true);
   (*this)[OptionNames::MIN_BOOK_PLY] = USIOption(SHRT_MAX, 0, SHRT_MAX);
@@ -91,8 +91,8 @@ void OptionsMap::init(Searcher* s) {
   (*this)[OptionNames::PONDER_TIME_MARGIN] = USIOption(500, 0, INT_MAX);
   (*this)[OptionNames::MULTIPV] = USIOption(1, 1, MaxLegalMoves);
   (*this)[OptionNames::SKILL_LEVEL] = USIOption(20, 0, 20);
-  (*this)[OptionNames::MAX_RANDOM_SCORE_DIFF] = USIOption(30, 0, ScoreMate0Ply);
-  (*this)[OptionNames::MAX_RANDOM_SCORE_DIFF_PLY] = USIOption(20, 0, SHRT_MAX);
+  (*this)[OptionNames::MAX_RANDOM_SCORE_DIFF] = USIOption(0, 0, ScoreMate0Ply);
+  (*this)[OptionNames::MAX_RANDOM_SCORE_DIFF_PLY] = USIOption(0, 0, SHRT_MAX);
   (*this)[OptionNames::EMERGENCY_MOVE_HORIZON] = USIOption(40, 0, 50);
   (*this)[OptionNames::EMERGENCY_BASE_TIME] = USIOption(200, 0, 30000);
   (*this)[OptionNames::EMERGENCY_MOVE_TIME] = USIOption(70, 0, 5000);
