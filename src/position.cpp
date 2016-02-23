@@ -1717,9 +1717,22 @@ RepetitionType Position::isDraw(const int checkMaxPly) const {
   if (i <= e) {
     // 現在の局面と、少なくとも 4 手戻らないと同じ局面にならない。
     // ここでまず 2 手戻る。
+    // floodgateで対戦中にstpがnullptrとなるバグが確認されたので
+    // nullptrチェック
+    if (!st_ || !st_->previous || !st_->previous->previous) {
+      return NotRepetition;
+    }
     StateInfo* stp = st_->previous->previous;
 
     do {
+      // floodgateで対戦中にstpがnullptrとなるバグが確認されたので
+      // nullptrをチェックする
+      // TODO(nodchip) ここでbreakするとsearch()のループ中で王を取る手が
+      // 生成される可能性があるのでチェックする
+      if (!stp || !stp->previous || !stp->previous->previous) {
+        break;
+      }
+
       // 更に 2 手戻る。
       stp = stp->previous->previous;
       if (stp->key() == st_->key()) {
