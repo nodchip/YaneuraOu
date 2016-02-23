@@ -1367,6 +1367,12 @@ split_point_start:
       movesSearched[playedMoveCount++] = move;
     }
 
+    // 相手王を取って手駒にしてしまうバグに対するハック
+    if (move.cap() == King) {
+      SYNCCOUT << "info string Tried to capture the opponent's king." << SYNCENDL;
+      return mateIn(ss->ply);
+    }
+
     // step14
     pos.doMove(move, st, ci, givesCheck);
     (ss + 1)->staticEvalRaw.p[0][0] = ScoreNotEvaluated;
