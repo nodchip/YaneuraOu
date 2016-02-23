@@ -301,6 +301,10 @@ void Position::doMove(const Move move, StateInfo& newSt, const CheckInfo& ci, co
     boardKey += zobrist(ptTo, to, us);
 
     if (ptCaptured) {
+      assert(ptCaptured != Occupied);
+      assert(ptCaptured != King);
+      assert(ptCaptured < PieceTypeNum);
+
       // 駒を取ったとき
       const HandPiece hpCaptured = pieceTypeToHandPiece(ptCaptured);
       const Color them = oppositeColor(us);
