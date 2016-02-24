@@ -485,6 +485,14 @@ Score Searcher::qsearch(Position& pos, SearchStack* ss, Score alpha, Score beta,
 
     ss->currentMove = move;
 
+    // 王を手駒に加えようとして落ちるバグに対するハック
+    if (move.cap() == King) {
+      SYNCCOUT << "info string " __FUNCTION__ " Tried to capture the opponent's king." << SYNCENDL;
+      // TODO(nodchip): 置換表に保存しなくていよいのか？
+      // 上にあるmateMoveIn1Ply()では保存していない。
+      return mateIn(ss->ply);
+    }
+
     pos.doMove(move, st, ci, givesCheck);
     (ss + 1)->staticEvalRaw.p[0][0] = ScoreNotEvaluated;
     score = (givesCheck ? -qsearch<NT, true>(pos, ss + 1, -beta, -alpha, depth - OnePly)
@@ -1369,7 +1377,7 @@ split_point_start:
 
     // 相手王を取って手駒にしてしまうバグに対するハック
     if (move.cap() == King) {
-      SYNCCOUT << "info string Tried to capture the opponent's king." << SYNCENDL;
+      SYNCCOUT << "info string " __FUNCTION__ " Tried to capture the opponent's king." << SYNCENDL;
       return mateIn(ss->ply);
     }
 
