@@ -1,13 +1,14 @@
-﻿#include "search.hpp"
-#include "position.hpp"
-#include "usi.hpp"
+﻿#include "book.hpp"
 #include "evaluate.hpp"
-#include "movePicker.hpp"
-#include "tt.hpp"
 #include "generateMoves.hpp"
+#include "movePicker.hpp"
+#include "parameters.hpp"
+#include "position.hpp"
+#include "search.hpp"
 #include "thread.hpp"
 #include "timeManager.hpp"
-#include "book.hpp"
+#include "tt.hpp"
+#include "usi.hpp"
 
 // 一箇所でしか呼ばないので、FORCE_INLINE
 FORCE_INLINE void ThreadPool::wakeUp(Searcher* s) {
@@ -75,12 +76,13 @@ namespace {
   constexpr bool FakeSplit = false;
 
   inline Score razorMargin(const Depth d) {
-    return static_cast<Score>(512 + 16 * static_cast<int>(d));
+    return static_cast<Score>((SEARCH_RAZORING_MARGIN_SLOPE * d
+      + SEARCH_RAZORING_MARGIN_INTERCEPT) / FLOAT_SCALE);
   }
 
   Score FutilityMargins[16][64]; // [depth][moveCount]
   inline Score futilityMargin(const Depth depth, const int moveCount) {
-    return (depth < 7 * OnePly ?
+    return (depth < static_cast<Depth>(SEARCH_FUTILITY_MARGIN_DEPTH_THRESHOLD) ?
       FutilityMargins[std::max(depth, Depth1)][std::min(moveCount, 63)]
       : 2 * ScoreInfinite);
   }
@@ -425,7 +427,7 @@ Score Searcher::qsearch(Position& pos, SearchStack* ss, Score alpha, Score beta,
       alpha = bestScore;
     }
 
-    futilityBase = bestScore + 128; // todo: 128 より大きくて良いと思う。
+    futilityBase = bestScore + QSEARCH_FUTILITY_MARGIN;
   }
 
   evaluate(pos, ss);
@@ -1098,7 +1100,7 @@ Score Searcher::search(Position& pos, SearchStack* ss, Score alpha, Score beta, 
   // step6
   // razoring
   if (!PVNode
-    && depth < 4 * OnePly
+    && depth < SEARCH_RAZORING_DEPTH
     && eval + razorMargin(depth) < beta
     && ttMove.isNone()
     && abs(beta) < ScoreMateInMaxPly)
@@ -1114,7 +1116,7 @@ Score Searcher::search(Position& pos, SearchStack* ss, Score alpha, Score beta, 
   // static null move pruning
   if (!PVNode
     && !ss->skipNullMove
-    && depth < 4 * OnePly
+    && depth < STATIC_NULL_MOVE_PRUNING_DEPTH_THRESHOLD
     && beta <= eval - FutilityMargins[depth][0]
     && abs(beta) < ScoreMateInMaxPly)
   {
@@ -1125,14 +1127,15 @@ Score Searcher::search(Position& pos, SearchStack* ss, Score alpha, Score beta, 
   // null move
   if (!PVNode
     && !ss->skipNullMove
-    && 2 * OnePly <= depth
+    && static_cast<Depth>(SEARCH_NULL_MOVE_DEPTH_THRESHOLD) <= depth
     && beta <= eval
     && abs(beta) < ScoreMateInMaxPly)
   {
     ss->currentMove = Move::moveNull();
-    Depth reduction = static_cast<Depth>(3) * OnePly + depth / 4;
+    Depth reduction = (SEARCH_NULL_MOVE_REDUCTION_SLOPE * depth
+      + SEARCH_NULL_MOVE_REDUCTION_INTERCEPT) / FLOAT_SCALE;
 
-    if (beta < eval - PawnScore) {
+    if (beta < eval - SEARCH_NULL_MOVE_MARGIN) {
       reduction += OnePly;
     }
 
@@ -1150,7 +1153,7 @@ Score Searcher::search(Position& pos, SearchStack* ss, Score alpha, Score beta, 
         nullScore = beta;
       }
 
-      if (depth < 6 * OnePly) {
+      if (depth < SEARCH_NULL_MOVE_NULL_SCORE_DEPTH_THRESHOLD) {
         return nullScore;
       }
 
@@ -1166,7 +1169,7 @@ Score Searcher::search(Position& pos, SearchStack* ss, Score alpha, Score beta, 
     else {
       // fail low
       threatMove = (ss + 1)->currentMove;
-      if (depth < 5 * OnePly
+      if (depth < SEARCH_NULL_FAIL_LOW_SCORE_DEPTH_THRESHOLD
         && (ss - 1)->reduction != Depth0
         && !threatMove.isNone()
         && allows(pos, (ss - 1)->currentMove, threatMove))
@@ -1179,13 +1182,13 @@ Score Searcher::search(Position& pos, SearchStack* ss, Score alpha, Score beta, 
   // step9
   // probcut
   if (!PVNode
-    && 5 * OnePly <= depth
+    && SEARCH_PROBCUT_DEPTH_THRESHOLD <= depth
     && !ss->skipNullMove
     // 確実にバグらせないようにする。
     && abs(beta) < ScoreInfinite - 200)
   {
-    const Score rbeta = beta + 200;
-    const Depth rdepth = depth - OnePly - 3 * OnePly;
+    const Score rbeta = beta + SEARCH_PROBCUT_RBETA_SCORE_DELTA;
+    const Depth rdepth = depth - SEARCH_PROBCUT_RBETA_DEPTH_DELTA;
 
     assert(OnePly <= rdepth);
     assert(!(ss - 1)->currentMove.isNone());
@@ -1212,12 +1215,15 @@ Score Searcher::search(Position& pos, SearchStack* ss, Score alpha, Score beta, 
 iid_start:
   // step10
   // internal iterative deepening
-  if ((PVNode ? 5 * OnePly : 8 * OnePly) <= depth
+  if ((PVNode ? SEARCH_INTERNAL_ITERATIVE_DEEPENING_PV_NODE_DEPTH_THRESHOLD
+    : SEARCH_INTERNAL_ITERATIVE_DEEPENING_NON_PV_NODE_DEPTH_THRESHOLD) <= depth
     && ttMove.isNone()
-    && (PVNode || (!inCheck && beta <= ss->staticEval + static_cast<Score>(256))))
+    && (PVNode || (!inCheck && beta <= ss->staticEval
+      + static_cast<Score>(SEARCH_INTERNAL_ITERATIVE_DEEPENING_SCORE_MARGIN))))
   {
-    //const Depth d = depth - 2 * OnePly - (PVNode ? Depth0 : depth / 4);
-    const Depth d = (PVNode ? depth - 2 * OnePly : depth / 2);
+    const Depth d = (PVNode
+      ? (depth - SEARCH_INTERNAL_ITERATIVE_DEEPENING_PV_NODE_DEPTH_DELTA)
+      : (depth * SEARCH_INTERNAL_ITERATIVE_DEEPENING_NON_PV_DEPTH_SCALE / FLOAT_SCALE));
 
     ss->skipNullMove = true;
     search<PVNode ? PV : NonPV>(pos, ss, alpha, beta, d, true);
@@ -1236,11 +1242,11 @@ split_point_start:
   singularExtensionNode =
     !RootNode
     && !SPNode
-    && 8 * OnePly <= depth
+    && SEARCH_SINGULAR_EXTENSION_DEPTH_THRESHOLD <= depth
     && !ttMove.isNone()
     && excludedMove.isNone()
     && (tte->bound() & BoundLower)
-    && depth - 3 * OnePly <= tte->depth();
+    && depth - SEARCH_SINGULAR_EXTENSION_TTE_DEPTH_THRESHOLD <= tte->depth();
 
   // step11
   // Loop through moves
@@ -1303,7 +1309,8 @@ split_point_start:
       const Score rBeta = ttScore - static_cast<Score>(depth);
       ss->excludedMove = move;
       ss->skipNullMove = true;
-      score = search<NonPV>(pos, ss, rBeta - 1, rBeta, depth / 2, cutNode);
+      score = search<NonPV>(pos, ss, rBeta - 1, rBeta,
+        SEARCH_SINGULAR_EXTENSION_NULL_WINDOW_SEARCH_DEPTH_SCALE * depth / FLOAT_SCALE, cutNode);
       ss->skipNullMove = false;
       ss->excludedMove = Move::moveNone();
 
@@ -1326,6 +1333,7 @@ split_point_start:
     {
       assert(move != ttMove);
       // move count based pruning
+      // FutilityMoveCountsのサイズが16 * OnePlyなのでdepthの閾値は調整しない
       if (depth < 16 * OnePly
         && FutilityMoveCounts[depth] <= moveCount
         && (threatMove.isNone() || !refutes(pos, move, threatMove)))
@@ -1340,7 +1348,7 @@ split_point_start:
       const Depth predictedDepth = newDepth - reduction<PVNode>(depth, moveCount);
       // gain を 2倍にする。
       const Score futilityScore = ss->staticEval + futilityMargin(predictedDepth, moveCount)
-        + 2 * gains.value(move.isDrop(), colorAndPieceTypeToPiece(pos.turn(), move.pieceTypeFromOrDropped()), move.to());
+        + SEARCH_FUTILITY_PRUNING_SCORE_GAIN_SLOPE * gains.value(move.isDrop(), colorAndPieceTypeToPiece(pos.turn(), move.pieceTypeFromOrDropped()), move.to()) / FLOAT_SCALE;
 
       if (futilityScore < beta) {
         bestScore = std::max(bestScore, futilityScore);
@@ -1353,7 +1361,7 @@ split_point_start:
         continue;
       }
 
-      if (predictedDepth < 4 * OnePly
+      if (predictedDepth < SEARCH_FUTILITY_PRUNING_PREDICTED_DEPTH_THRESHOLD
         && pos.seeSign(move) < ScoreZero)
       {
         if (SPNode) {
@@ -1387,7 +1395,7 @@ split_point_start:
 
     // step15
     // LMR
-    if (3 * OnePly <= depth
+    if (SEARCH_LATE_MOVE_REDUCTION_DEPTH_THRESHOLD <= depth
       && !isPVMove
       && !captureOrPawnPromotion
       && move != ttMove
@@ -1625,8 +1633,12 @@ void initSearchTable() {
           // Init reductions array
   for (hd = 1; hd < 64; hd++) {
     for (mc = 1; mc < 64; mc++) {
-      double    pvRed = log(double(hd)) * log(double(mc)) / 3.0;
-      double nonPVRed = 0.33 + log(double(hd)) * log(double(mc)) / 2.25;
+      double pvRed =
+        (SEARCH_FUTILITY_PRUNING_PV_REDUCTION_SLOPE * log(double(hd)) * log(double(mc))
+          + SEARCH_FUTILITY_PRUNING_PV_REDUCTION_INTERCEPT) / FLOAT_SCALE;
+      double nonPVRed =
+        (SEARCH_FUTILITY_PRUNING_NON_PV_REDUCTION_SLOPE * log(double(hd)) * log(double(mc))
+          + SEARCH_FUTILITY_PRUNING_NON_PV_REDUCTION_INTERCEPT) / FLOAT_SCALE;
       Reductions[1][hd][mc] = (int8_t)(pvRed >= 1.0 ? floor(pvRed * int(OnePly)) : 0);
       Reductions[0][hd][mc] = (int8_t)(nonPVRed >= 1.0 ? floor(nonPVRed * int(OnePly)) : 0);
     }
@@ -1634,14 +1646,20 @@ void initSearchTable() {
 
   for (d = 1; d < 16; ++d) {
     for (mc = 0; mc < 64; ++mc) {
-      FutilityMargins[d][mc] = static_cast<Score>(112 * static_cast<int>(log(static_cast<double>(d*d) / 2) / log(2.0) + 1.001)
-        - 8 * mc + 45);
+      FutilityMargins[d][mc] = static_cast<Score>(static_cast<int>((
+        SEARCH_FUTILITY_MARGIN_LOG_D_COEFFICIENT * log(d)
+        - SEARCH_FUTILITY_MARGIN_MOVE_COUNT_COEFFICIENT * mc
+        - SEARCH_FUTILITY_MARGIN_INTERCEPT) / FLOAT_SCALE));
     }
   }
 
   // init futility move counts
   for (d = 0; d < 32; ++d) {
-    FutilityMoveCounts[d] = static_cast<int>(3.001 + 0.3 * pow(static_cast<double>(d), 1.8));
+    FutilityMoveCounts[d] =
+      (SEARCH_FUTILITY_MOVE_COUNTS_SCALE
+        * static_cast<int>(pow(d, SEARCH_FUTILITY_MOVE_COUNTS_POWER / static_cast<double>(FLOAT_SCALE)))
+        + SEARCH_FUTILITY_MOVE_COUNTS_INTERCEPT)
+      / FLOAT_SCALE;
   }
 }
 
