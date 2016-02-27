@@ -78,7 +78,7 @@ const USIOption OptionsMap::INVALID_OPTION;
 void OptionsMap::init(Searcher* s) {
   (*this)[OptionNames::USI_HASH] = USIOption(256, 1, 65536, onHashSize, s);
   (*this)[OptionNames::CLEAR_HASH] = USIOption(onClearHash, s);
-  (*this)[OptionNames::BOOK_FILE] = USIOption("../binbook-2016-02-01.bin");
+  (*this)[OptionNames::BOOK_FILE] = USIOption("../bin/book-2016-02-01.bin");
   (*this)[OptionNames::BEST_BOOK_MOVE] = USIOption(false);
   (*this)[OptionNames::OWNBOOK] = USIOption(true);
   (*this)[OptionNames::MIN_BOOK_PLY] = USIOption(SHRT_MAX, 0, SHRT_MAX);
