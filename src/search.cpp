@@ -1116,7 +1116,7 @@ Score Searcher::search(Position& pos, SearchStack* ss, Score alpha, Score beta, 
   // static null move pruning
   if (!PVNode
     && !ss->skipNullMove
-    && depth < STATIC_NULL_MOVE_PRUNING_DEPTH_THRESHOLD
+    && depth < SEARCH_STATIC_NULL_MOVE_PRUNING_DEPTH_THRESHOLD
     && beta <= eval - FutilityMargins[depth][0]
     && abs(beta) < ScoreMateInMaxPly)
   {

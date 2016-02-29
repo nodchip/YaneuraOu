@@ -23,7 +23,7 @@ space = [
   hp.quniform('SEARCH_FUTILITY_MARGIN_LOG_D_COEFFICIENT', 0, 138096, 1),
   hp.quniform('SEARCH_FUTILITY_MARGIN_MOVE_COUNT_COEFFICIENT', 0, 16384, 1),
   hp.quniform('SEARCH_FUTILITY_MARGIN_INTERCEPT', 0, 136986, 1),
-  hp.quniform('STATIC_NULL_MOVE_PRUNING_DEPTH_THRESHOLD', 2, 16, 1),
+  hp.quniform('SEARCH_STATIC_NULL_MOVE_PRUNING_DEPTH_THRESHOLD', 2, 16, 1),
   hp.quniform('SEARCH_NULL_MOVE_DEPTH_THRESHOLD', 2, 8, 1),
   hp.quniform('SEARCH_NULL_MOVE_REDUCTION_SLOPE', 0, 512, 1),
   hp.quniform('SEARCH_NULL_MOVE_REDUCTION_INTERCEPT', 2, 12, 1),
@@ -58,16 +58,17 @@ MAX_EVALS = 50;
 START_TIME_SEC = time.time()
 
 def function(args):
-  print '-' * 78
+  print('-' * 78)
 
   global COUNTER
-  print args
+  print(args)
 
   if COUNTER:
     current_time_sec = time.time()
     delta = current_time_sec - START_TIME_SEC
     sec_per_one = delta / COUNTER
-    print(COUNTER, '/', MAX_EVALS, datetime.timedelta(seconds=sec_per_one*(MAX_EVALS-COUNTER)))
+    remaining = datetime.timedelta(seconds=sec_per_one*(MAX_EVALS-COUNTER))
+    print(COUNTER, '/', MAX_EVALS, str(remaining))
   COUNTER += 1
 
   popenargs = [
@@ -84,7 +85,7 @@ def function(args):
     'SEARCH_FUTILITY_MARGIN_LOG_D_COEFFICIENT=' + str(int(args[5])),
     'SEARCH_FUTILITY_MARGIN_MOVE_COUNT_COEFFICIENT=' + str(int(args[6])),
     'SEARCH_FUTILITY_MARGIN_INTERCEPT=' + str(int(args[7])),
-    'STATIC_NULL_MOVE_PRUNING_DEPTH_THRESHOLD=' + str(int(args[8])),
+    'SEARCH_STATIC_NULL_MOVE_PRUNING_DEPTH_THRESHOLD=' + str(int(args[8])),
     'SEARCH_NULL_MOVE_DEPTH_THRESHOLD=' + str(int(args[9])),
     'SEARCH_NULL_MOVE_REDUCTION_SLOPE=' + str(int(args[10])),
     'SEARCH_NULL_MOVE_REDUCTION_INTERCEPT=' + str(int(args[11])),
@@ -113,7 +114,7 @@ def function(args):
     'SEARCH_FUTILITY_PRUNING_PREDICTED_DEPTH_THRESHOLD=' + str(int(args[34])),
     'SEARCH_LATE_MOVE_REDUCTION_DEPTH_THRESHOLD=' + str(int(args[35])),
   ]
-  print popenargs
+  print(popenargs)
   subprocess.check_output(popenargs)
 
   popenargs = [
@@ -122,19 +123,19 @@ def function(args):
     'btime',
     '50',
   ]
-  print popenargs
+  print(popenargs)
   output = subprocess.check_output(popenargs)
-  print output
+  print(output)
   win = re.compile('GameResult \\d+ - \\d+ - (\\d+)').search(output).group(1)
-  print win
+  print(win)
 
-  subprocess.check_output(['pkill', 'tanuki-baseline'])
-  subprocess.check_output(['pkill', 'tanuki-modified'])
+  subprocess.call(['pkill', 'tanuki-baseline'])
+  subprocess.call(['pkill', 'tanuki-modified'])
 
   return -float(win)
 
 # shutil.copyfile('../tanuki-/x64/Release/tanuki-.exe', 'tanuki-.exe')
 best = fmin(function, space, algo=tpe.suggest, max_evals=MAX_EVALS)
-print "best estimate parameters"
-for key, value in profile.items():
-  print("{0}={1}".format(key, value))
+print("best estimate parameters", best)
+for key in sorted(best.keys()):
+  print("{0}={1}".format(key, best[key]))
