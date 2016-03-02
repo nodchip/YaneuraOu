@@ -115,4 +115,8 @@
 #define OUTPUT_EVALUATE_HASH_EXPIRATION_RATE
 #endif
 
+#if 1
+#define NYUGYOKU_WIN
+#endif
+
 #endif // #ifndef APERY_IFDEF_HPP

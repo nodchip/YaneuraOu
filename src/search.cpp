@@ -1725,10 +1725,12 @@ void Searcher::think() {
   bool nyugyokuWin = false;
 #if defined LEARN
 #else
+#ifdef NYUGYOKU_WIN
   if (nyugyoku(pos)) {
     nyugyokuWin = true;
     goto finalize;
   }
+#endif
 #endif
   pos.setNodesSearched(0);
 
