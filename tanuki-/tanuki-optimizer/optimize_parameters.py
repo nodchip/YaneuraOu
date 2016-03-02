@@ -138,4 +138,4 @@ def function(args):
 best = fmin(function, space, algo=tpe.suggest, max_evals=MAX_EVALS)
 print("best estimate parameters", best)
 for key in sorted(best.keys()):
-  print("{0}={1}".format(key, best[key]))
+  print("{0}={1}".format(key, str(int(best[key]))))
