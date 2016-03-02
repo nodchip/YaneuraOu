@@ -272,7 +272,7 @@ Move usiToMoveBody(const Position& pos, const std::string& moveStr) {
   }
 
   if (pos.moveIsPseudoLegal(move, true)
-    && pos.pseudoLegalMoveIsLegal<false, false>(move, pos.pinnedBB()))
+    && pos.pseudoLegalMoveIsLegal<false, false, true>(move, pos.pinnedBB()))
   {
     return move;
   }
@@ -345,7 +345,7 @@ Move csaToMoveBody(const Position& pos, const std::string& moveStr) {
   }
 
   if (pos.moveIsPseudoLegal(move, true)
-    && pos.pseudoLegalMoveIsLegal<false, false>(move, pos.pinnedBB()))
+    && pos.pseudoLegalMoveIsLegal<false, false, true>(move, pos.pinnedBB()))
   {
     return move;
   }

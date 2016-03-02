@@ -700,7 +700,7 @@ namespace generate_moves
 
       // 玉の移動による自殺手と、pinされている駒の移動による自殺手を削除
       while (curr != moveStackList) {
-        if (!pos.pseudoLegalMoveIsLegal<false, false>(curr->move, pinned)) {
+        if (!pos.pseudoLegalMoveIsLegal<false, false, false>(curr->move, pinned)) {
           curr->move = (--moveStackList)->move;
         }
         else {
@@ -724,7 +724,7 @@ namespace generate_moves
 
       // 玉の移動による自殺手と、pinされている駒の移動による自殺手を削除
       while (curr != moveStackList) {
-        if (!pos.pseudoLegalMoveIsLegal<false, false>(curr->move, pinned)) {
+        if (!pos.pseudoLegalMoveIsLegal<false, false, true>(curr->move, pinned)) {
           curr->move = (--moveStackList)->move;
         }
         else {

@@ -204,7 +204,7 @@ public:
   // ・連続王手の千日手の手を指す
   // これらの反則手を含めた手の事と定義する。
   // よって、打ち歩詰めや二歩の手は pseudoLegal では無い。
-  template <bool MUSTNOTDROP, bool FROMMUSTNOTBEKING>
+  template <bool MUSTNOTDROP, bool FROMMUSTNOTBEKING, bool ALL>
   bool pseudoLegalMoveIsLegal(const Move move, const Bitboard& pinned) const;
   bool pseudoLegalMoveIsEvasion(const Move move, const Bitboard& pinned) const;
   // checkPawnDrop : 二歩と打ち歩詰めも調べるなら true

@@ -78,7 +78,7 @@ Bitboard Position::attacksFrom(const PieceType pt, const Color c, const Square s
 // 確実に玉の移動で無いときは、FROMMUSTNOTKING == true とする。英語として正しい？
 // 遠隔駒で王手されているとき、その駒の利きがある場所に逃げる手を検出出来ない場合があるので、
 // そのような手を指し手生成してはいけない。
-template <bool MUSTNOTDROP, bool FROMMUSTNOTKING>
+template <bool MUSTNOTDROP, bool FROMMUSTNOTKING, bool ALL>
 bool Position::pseudoLegalMoveIsLegal(const Move move, const Bitboard& pinned) const {
   // 駒打ちは、打ち歩詰めや二歩は指し手生成時や、killerをMovePicker::nextMove() 内で排除しているので、常に合法手
   // (連続王手の千日手は省いていないけれど。)
@@ -89,6 +89,61 @@ bool Position::pseudoLegalMoveIsLegal(const Move move, const Bitboard& pinned) c
 
   const Color us = turn();
   const Square from = move.from();
+  const Square to = move.to();
+  PieceType pt = move.pieceTypeFrom();
+  Rank fromRank = makeRank(from);
+  Rank toRank = makeRank(to);
+
+  // Counter move等の影響で不成の不正な手を打つバグへの対処
+  // https://github.com/yaneurao/YaneuraOu/blob/master/source/position.cpp
+  if (!move.isPromotion()) {
+    // --- 成らない指し手
+
+    // 駒打ちのところに書いた理由により、不成で進めない升への指し手のチェックも不要。
+    // 間違い　→　駒種をmoveに含めていないのでこのチェック必要だわ。
+    // 52から51銀のような指し手がkillerやcountermoveに登録されていたとして、52に歩があると
+    // 51歩不成という指し手を生成してしまう…。
+    // あと、歩や大駒が敵陣において成らない指し手も不要なのでは..。
+
+    if (ALL)
+    {
+      // 歩と香に関しては1段目への不成は不可。桂は、桂飛びが出来る駒は桂しかないので
+      // 移動元と移動先がこれであるかぎり、それは桂の指し手生成によって生成されたものだから
+      // これが非合法手であることはない。
+
+      if (pt == Pawn || pt == Lance) {
+        if ((us == Black && toRank == Rank9) || (us == White && toRank == Rank1)) {
+          return false;
+        }
+      }
+    }
+    else {
+      // 歩の不成と香の2段目への不成を禁止。
+      // 大駒の不成を禁止
+      switch (pt)
+      {
+      case Pawn:
+        if ((us == Black && toRank <= Rank7) || (us == White && toRank >= Rank3)) {
+          return false;
+        }
+        break;
+
+      case Lance:
+        if ((us == Black && toRank <= Rank8) || (us == White && toRank >= Rank2)) {
+          return false;
+        }
+        break;
+
+      case Bishop:
+      case Rook:
+        if ((us == Black && (fromRank <= Rank7 || toRank <= Rank7)) ||
+          (us == White && (fromRank >= Rank3 || toRank >= Rank3))) {
+          return false;
+        }
+        break;
+      }
+    }
+  }
 
   if (!FROMMUSTNOTKING && pieceToPieceType(piece(from)) == King) {
     const Color them = oppositeColor(us);
@@ -99,9 +154,14 @@ bool Position::pseudoLegalMoveIsLegal(const Move move, const Bitboard& pinned) c
   return !isPinnedIllegal(from, move.to(), kingSquare(us), pinned);
 }
 
-template bool Position::pseudoLegalMoveIsLegal<false, false>(const Move move, const Bitboard& pinned) const;
-template bool Position::pseudoLegalMoveIsLegal<false, true >(const Move move, const Bitboard& pinned) const;
-template bool Position::pseudoLegalMoveIsLegal<true, false>(const Move move, const Bitboard& pinned) const;
+template bool Position::pseudoLegalMoveIsLegal<false, false, false>(const Move move, const Bitboard& pinned) const;
+template bool Position::pseudoLegalMoveIsLegal<false, false, true>(const Move move, const Bitboard& pinned) const;
+template bool Position::pseudoLegalMoveIsLegal<false, true, false>(const Move move, const Bitboard& pinned) const;
+template bool Position::pseudoLegalMoveIsLegal<false, true, true>(const Move move, const Bitboard& pinned) const;
+template bool Position::pseudoLegalMoveIsLegal<true, false, false>(const Move move, const Bitboard& pinned) const;
+template bool Position::pseudoLegalMoveIsLegal<true, false, true>(const Move move, const Bitboard& pinned) const;
+template bool Position::pseudoLegalMoveIsLegal<true, true, false>(const Move move, const Bitboard& pinned) const;
+template bool Position::pseudoLegalMoveIsLegal<true, true, true>(const Move move, const Bitboard& pinned) const;
 
 bool Position::pseudoLegalMoveIsEvasion(const Move move, const Bitboard& pinned) const {
   assert(isOK());
@@ -111,7 +171,7 @@ bool Position::pseudoLegalMoveIsEvasion(const Move move, const Bitboard& pinned)
     // 遠隔駒で王手されたとき、王手している遠隔駒の利きには移動しないように指し手を生成している。
     // その為、移動先に他の駒の利きが無いか調べるだけで良い。
     const bool canMove = !attackersToIsNot0(oppositeColor(turn()), move.to());
-    assert(canMove == (pseudoLegalMoveIsLegal<false, false>(move, pinned)));
+    assert(canMove == (pseudoLegalMoveIsLegal<false, false, false>(move, pinned)));
     return canMove;
   }
 
@@ -128,7 +188,7 @@ bool Position::pseudoLegalMoveIsEvasion(const Move move, const Bitboard& pinned)
   const Square to = move.to();
   // 移動、又は打った駒が、王手をさえぎるか、王手している駒を取る必要がある。
   target = betweenBB(checkSq, kingSquare(us)) | checkersBB();
-  return target.isSet(to) && pseudoLegalMoveIsLegal<false, true>(move, pinned);
+  return target.isSet(to) && pseudoLegalMoveIsLegal<false, true, false>(move, pinned);
 }
 
 // checkPawnDrop : 二歩と打ち歩詰めも調べるなら true

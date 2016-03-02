@@ -481,7 +481,7 @@ Score Searcher::qsearch(Position& pos, SearchStack* ss, Score alpha, Score beta,
       continue;
     }
 
-    if (!pos.pseudoLegalMoveIsLegal<false, false>(move, ci.pinned)) {
+    if (!pos.pseudoLegalMoveIsLegal<false, false, false>(move, ci.pinned)) {
       continue;
     }
 
@@ -1199,7 +1199,7 @@ Score Searcher::search(Position& pos, SearchStack* ss, Score alpha, Score beta, 
     MovePicker mp(pos, ttMove, history, move.cap());
     const CheckInfo ci(pos);
     while (!(move = mp.nextMove<false>()).isNone()) {
-      if (pos.pseudoLegalMoveIsLegal<false, false>(move, ci.pinned)) {
+      if (pos.pseudoLegalMoveIsLegal<false, false, false>(move, ci.pinned)) {
         ss->currentMove = move;
         pos.doMove(move, st, ci, pos.moveGivesCheck(move, ci));
         (ss + 1)->staticEvalRaw.p[0][0] = ScoreNotEvaluated;
@@ -1264,7 +1264,7 @@ split_point_start:
     }
 
     if (SPNode) {
-      if (!pos.pseudoLegalMoveIsLegal<false, false>(move, ci.pinned)) {
+      if (!pos.pseudoLegalMoveIsLegal<false, false, false>(move, ci.pinned)) {
         continue;
       }
       moveCount = ++splitPoint->moveCount;
@@ -1301,7 +1301,7 @@ split_point_start:
     if (singularExtensionNode
       && extension == Depth0
       && move == ttMove
-      && pos.pseudoLegalMoveIsLegal<false, false>(move, ci.pinned)
+      && pos.pseudoLegalMoveIsLegal<false, false, false>(move, ci.pinned)
       && abs(ttScore) < ScoreKnownWin)
     {
       assert(ttScore != ScoreNone);
@@ -1372,7 +1372,7 @@ split_point_start:
     }
 
     // RootNode, SPNode はすでに合法手であることを確認済み。
-    if (!RootNode && !SPNode && !pos.pseudoLegalMoveIsLegal<false, false>(move, ci.pinned)) {
+    if (!RootNode && !SPNode && !pos.pseudoLegalMoveIsLegal<false, false, false>(move, ci.pinned)) {
       --moveCount;
       continue;
     }
@@ -1589,7 +1589,7 @@ void RootMove::extractPvFromTT(Position& pos) {
   } while (ttHit
     // このチェックは少し無駄。駒打ちのときはmove16toMove() 呼ばなくて良い。
     && pos.moveIsPseudoLegal(m = move16toMove(tte->move(), pos))
-    && pos.pseudoLegalMoveIsLegal<false, false>(m, pos.pinnedBB())
+    && pos.pseudoLegalMoveIsLegal<false, false, true>(m, pos.pinnedBB())
     && ply < MaxPly
     && (!pos.isDraw(20) || ply < 6));
 
