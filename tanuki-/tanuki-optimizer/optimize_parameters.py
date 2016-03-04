@@ -1,11 +1,20 @@
 #!/usr/bin/python
 # coding:utf-8
-# http://chiranoura.nobody.jp/articles/2014-03-04_01_how_to_install_pip_and_setuptools/
-# http://chiranoura.nobody.jp/articles/2015-06-30_01_how_to_install_scipy/
 #
-# python-setuptools python-numpy lapack liblapack-devel liblapack0 bc fftw3 libfftw3-devel libfftw3_3 libgmp10 libgmpxx4 libmpc3 libmpfr4 python-numpy gcc-fortran
-# easy_install-2.7 https://pypi.python.org/packages/source/p/pip/pip-1.4.1.tar.gz
-# pip install hyperopt bson pymongo networkx scipy==0.15.1
+# Preparation
+# http://qiita.com/mojaie/items/995661f7467ffdb40331
+#
+# 1. Install the following softwares
+# - Python 2.7.*
+# -- http://www.python.org
+# - numpy-*.*.*-win32-superpack-python2.7.exe
+# -- http://sourceforge.net/projects/numpy
+# - scipy-*.*.*-win32-superpack-python2.7.exe
+# -- http://sourceforge.net/projects/scipy
+#
+# 2. Execute the following commands.
+# - python -m pip install --upgrade pip
+# - pip install hyperopt bson pymongo networkx
 from hyperopt import fmin, tpe, hp, rand
 from math import log
 import datetime
