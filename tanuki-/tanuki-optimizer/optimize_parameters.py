@@ -63,7 +63,7 @@ space = [
 ]
 
 COUNTER = 0;
-MAX_EVALS = 50;
+MAX_EVALS = 300;
 START_TIME_SEC = time.time()
 
 def function(args):
@@ -124,7 +124,12 @@ def function(args):
     'SEARCH_STATIC_NULL_MOVE_PRUNING_DEPTH_THRESHOLD=' + str(int(args[35])),
   ]
   print(popenargs)
-  subprocess.check_output(popenargs)
+  while True:
+    try:
+      subprocess.check_output(popenargs)
+      break
+    except subprocess.CalledProcessError:
+      continue
 
   popenargs = [
     './YaneuraOu.exe',
@@ -135,13 +140,17 @@ def function(args):
   print(popenargs)
   output = subprocess.check_output(popenargs)
   print(output)
-  win = re.compile('GameResult \\d+ - \\d+ - (\\d+)').search(output).group(1)
-  print(win)
+  matched = re.compile('GameResult (\\d+) - (\\d+) - (\\d+)').search(output)
+  lose = float(matched.group(1))
+  draw = float(matched.group(2))
+  win = float(matched.group(3))
+  ratio = win / (lose + draw + win)
+  print ratio
 
   subprocess.call(['pkill', 'tanuki-baseline'])
   subprocess.call(['pkill', 'tanuki-modified'])
 
-  return -float(win)
+  return -ratio
 
 # shutil.copyfile('../tanuki-/x64/Release/tanuki-.exe', 'tanuki-.exe')
 best = fmin(function, space, algo=tpe.suggest, max_evals=MAX_EVALS)
