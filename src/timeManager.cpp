@@ -104,16 +104,16 @@ TimeManager::TimeManager(const LimitsType& limits, Ply currentPly, Color us, Sea
 
 void TimeManager::update()
 {
-  int emergencyMoveHorizon = searcher_->options[OptionNames::EMERGENCY_MOVE_HORIZON];
-  int emergencyBaseTime = searcher_->options[OptionNames::EMERGENCY_BASE_TIME];
-  int emergencyMoveTime = searcher_->options[OptionNames::EMERGENCY_MOVE_TIME];
-  int minThinkingTime = searcher_->options[OptionNames::MINIMUM_THINKING_TIME];
-  int slowMover = searcher_->options[OptionNames::SLOW_MOVER];
-  int byoyomiMargin = searcher_->options[OptionNames::BYOYOMI_MARGIN];
+  int emergencyMoveHorizon = USI::Options[OptionNames::EMERGENCY_MOVE_HORIZON];
+  int emergencyBaseTime = USI::Options[OptionNames::EMERGENCY_BASE_TIME];
+  int emergencyMoveTime = USI::Options[OptionNames::EMERGENCY_MOVE_TIME];
+  int minThinkingTime = USI::Options[OptionNames::MINIMUM_THINKING_TIME];
+  int slowMover = USI::Options[OptionNames::SLOW_MOVER];
+  int byoyomiMargin = USI::Options[OptionNames::BYOYOMI_MARGIN];
   int byoyomi = limits_.byoyomi;
   int byoyomiWithMargin = std::max(0, limits_.byoyomi - byoyomiMargin);
   int ponderTime = limits_.ponderTime;
-  int ponderTimeMargin = searcher_->options[OptionNames::PONDER_TIME_MARGIN];
+  int ponderTimeMargin = USI::Options[OptionNames::PONDER_TIME_MARGIN];
   int ponderTimeWithMargin = std::max(0, ponderTime - ponderTimeMargin);
   // 将棋所上で双方が秒読みに入った時に ponderTime > byoyomi となる場合があるので
   // 秒読み時間以下に設定する
@@ -144,7 +144,7 @@ void TimeManager::update()
     hardTimeLimitMs = std::min(hardTimeLimitMs, t2);
   }
 
-  if (searcher_->options[OptionNames::USI_PONDER]) {
+  if (USI::Options[OptionNames::USI_PONDER]) {
     softTimeLimitMs += softTimeLimitMs / 4;
   }
 

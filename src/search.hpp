@@ -147,7 +147,6 @@ struct Searcher {
 #endif
   STATIC Position rootPosition;
   STATIC ThreadPool threads;
-  STATIC OptionsMap options;
   static bool outputInfo;
   STATIC Book book;
   STATIC int broadcastedPvDepth;

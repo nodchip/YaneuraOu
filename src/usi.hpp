@@ -106,4 +106,9 @@ void go(const Position& pos, const Ply depth, const Move move);
 Move csaToMove(const Position& pos, const std::string& moveStr);
 Move usiToMove(const Position& pos, const std::string& moveStr);
 
+namespace USI
+{
+  extern OptionsMap Options;
+}
+
 #endif // #ifndef APERY_USI_HPP

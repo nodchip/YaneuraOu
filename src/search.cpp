@@ -15,7 +15,7 @@ FORCE_INLINE void ThreadPool::wakeUp(Searcher* s) {
   for (size_t i = 0; i < size(); ++i) {
     (*this)[i]->maxPly = 0;
   }
-  sleepWhileIdle_ = s->options[OptionNames::USE_SLEEPING_THREADS] != 0;
+  sleepWhileIdle_ = USI::Options[OptionNames::USE_SLEEPING_THREADS] != 0;
 }
 // 一箇所でしか呼ばないので、FORCE_INLINE
 FORCE_INLINE void ThreadPool::sleep() {
@@ -45,7 +45,6 @@ BishopInDangerFlag Searcher::bishopInDangerFlag;
 #endif
 Position Searcher::rootPosition(nullptr);
 ThreadPool Searcher::threads;
-OptionsMap Searcher::options;
 Searcher* Searcher::thisptr;
 Book Searcher::book;
 int Searcher::broadcastedPvDepth;
@@ -59,9 +58,9 @@ void Searcher::init() {
 #else
   thisptr = this;
 #endif
-  options.init(thisptr);
+  USI::Options.init(thisptr);
   threads.init(thisptr);
-  tt.resize(options[OptionNames::USI_HASH]);
+  tt.resize(USI::Options[OptionNames::USI_HASH]);
 }
 
 namespace {
@@ -625,10 +624,10 @@ void Searcher::idLoop(Position& pos) {
   history.clear();
   gains.clear();
 
-  pvSize = options[OptionNames::MULTIPV];
-  Skill skill(options[OptionNames::SKILL_LEVEL], options[OptionNames::MAX_RANDOM_SCORE_DIFF]);
+  pvSize = USI::Options[OptionNames::MULTIPV];
+  Skill skill(USI::Options[OptionNames::SKILL_LEVEL], USI::Options[OptionNames::MAX_RANDOM_SCORE_DIFF]);
 
-  if (options[OptionNames::MAX_RANDOM_SCORE_DIFF_PLY] < pos.gamePly()) {
+  if (USI::Options[OptionNames::MAX_RANDOM_SCORE_DIFF_PLY] < pos.gamePly()) {
     skill.max_random_score_diff = ScoreZero;
     pvSize = 1;
     assert(!skill.enabled()); // level による設定が出来るようになるまでは、これで良い。
@@ -1719,7 +1718,7 @@ void Searcher::think() {
   static Book book;
   Position& pos = rootPosition;
   timeManager.reset(new TimeManager(limits, pos.gamePly(), pos.turn(), thisptr));
-  std::uniform_int_distribution<int> dist(options[OptionNames::MIN_BOOK_PLY], options[OptionNames::MAX_BOOK_PLY]);
+  std::uniform_int_distribution<int> dist(USI::Options[OptionNames::MIN_BOOK_PLY], USI::Options[OptionNames::MAX_BOOK_PLY]);
   const Ply book_ply = dist(g_randomTimeSeed);
 
   bool nyugyokuWin = false;
@@ -1737,15 +1736,15 @@ void Searcher::think() {
 #if defined LEARN
   threads[0]->searching = true;
 #else
-  tt.resize(options[OptionNames::USI_HASH]); // operator int() 呼び出し。
+  tt.resize(USI::Options[OptionNames::USI_HASH]); // operator int() 呼び出し。
   //if (outputInfo) {
   //  SYNCCOUT << "info string book_ply " << book_ply << SYNCENDL;
   //}
   // 定跡データベース
-  if (options[OptionNames::OWNBOOK] && pos.gamePly() <= book_ply) {
+  if (USI::Options[OptionNames::OWNBOOK] && pos.gamePly() <= book_ply) {
     int numberOfRootMoves = rootMoves.size();
     std::vector<std::pair<Move, int> > movesInBook =
-      book.enumerateMoves(pos, options[OptionNames::BOOK_FILE]);
+      book.enumerateMoves(pos, USI::Options[OptionNames::BOOK_FILE]);
 
     // 合法手以外を取り除く
     std::vector<RootMove> rootMovesInBook;
@@ -1768,7 +1767,7 @@ void Searcher::think() {
       if (limits.time[pos.turn()] != 0) {
         limits.time[Black] = 0;
         limits.time[White] = 0;
-        limits.byoyomi = options[OptionNames::BOOK_THINKING_TIME];
+        limits.byoyomi = USI::Options[OptionNames::BOOK_THINKING_TIME];
         timeManager->update();
       }
 
@@ -1827,7 +1826,7 @@ finalize:
     pos.thisThread()->waitFor(signals.stop);
   }
 
-  if (outputInfo && options[OptionNames::OUTPUT_BESTMOVE]) {
+  if (outputInfo && USI::Options[OptionNames::OUTPUT_BESTMOVE]) {
     if (nyugyokuWin) {
       SYNCCOUT << "bestmove win" << SYNCENDL;
     }

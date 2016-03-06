@@ -83,8 +83,8 @@ void ThreadPool::exit() {
 }
 
 void ThreadPool::readUSIOptions(Searcher* s) {
-  maxThreadsPerSplitPoint_ = s->options[OptionNames::MAX_THREADS_PER_SPLIT_POINT];
-  const size_t requested = s->options[OptionNames::THREADS];
+  maxThreadsPerSplitPoint_ = USI::Options[OptionNames::MAX_THREADS_PER_SPLIT_POINT];
+  const size_t requested = USI::Options[OptionNames::THREADS];
   minimumSplitDepth_ = (requested < 6 ? 4 : (requested < 8 ? 5 : 7)) * OnePly;
 
   assert(0 < requested);

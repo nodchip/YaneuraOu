@@ -16,6 +16,8 @@
 #include "csa.hpp"
 #endif
 
+OptionsMap USI::Options;
+
 namespace {
   void onThreads(Searcher* s, const USIOption&) { s->threads.readUSIOptions(s); }
   void onHashSize(Searcher* s, const USIOption& opt) { s->tt.resize(opt); }
@@ -421,11 +423,11 @@ void Searcher::setOption(std::istringstream& ssCmd) {
     value += " " + token;
   }
 
-  if (!options.isLegalOption(name)) {
+  if (!USI::Options.isLegalOption(name)) {
     std::cout << "No such option: " << name << std::endl;
   }
   else {
-    options[name] = value;
+    USI::Options[name] = value;
   }
 }
 
@@ -487,7 +489,7 @@ void Searcher::doUSICommandLoop(int argc, char* argv[]) {
     }
     else if (token == "usinewgame") {
       tt.clear();
-      Searcher::book.open(((std::string)options[OptionNames::BOOK_FILE]).c_str());
+      Searcher::book.open(((std::string)USI::Options[OptionNames::BOOK_FILE]).c_str());
 #if defined INANIWA_SHIFT
       inaniwaFlag = NotInaniwa;
 #endif
@@ -499,7 +501,7 @@ void Searcher::doUSICommandLoop(int argc, char* argv[]) {
     else if (token == "usi") {
       SYNCCOUT << "id name " << MyName
         << "\nid author nodchip"
-        << "\n" << options
+        << "\n" << USI::Options
         << "\nusiok" << SYNCENDL;
     }
     else if (token == "go") {
@@ -533,7 +535,7 @@ void Searcher::doUSICommandLoop(int argc, char* argv[]) {
 #else
       learner->learn(pos, ssCmd);
 #endif
-  }
+    }
 #endif
 #if !defined MINIMUL
     // 以下、デバッグ用
@@ -701,10 +703,10 @@ void Searcher::doUSICommandLoop(int argc, char* argv[]) {
 #endif
 #endif
     else { SYNCCOUT << "unknown command: " << cmd << SYNCENDL; }
-} while (token != "quit" && argc == 1);
+  } while (token != "quit" && argc == 1);
 
-if (options[OptionNames::WRITE_SYNTHESIZED_EVAL])
-Evaluater::writeSynthesized(options[OptionNames::EVAL_DIR]);
+  if (USI::Options[OptionNames::WRITE_SYNTHESIZED_EVAL])
+    Evaluater::writeSynthesized(USI::Options[OptionNames::EVAL_DIR]);
 
-threads.waitForThinkFinished();
+  threads.waitForThinkFinished();
 }

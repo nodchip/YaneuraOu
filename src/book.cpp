@@ -81,7 +81,7 @@ std::tuple<Move, Score> Book::probe(const Position& pos, const std::string& fNam
   u32 sum = 0;
   Move move = Move::moveNone();
   const BookKey key = bookKey(pos);
-  const Score min_book_score = static_cast<Score>(static_cast<int>(pos.searcher()->options[OptionNames::MIN_BOOK_SCORE]));
+  const Score min_book_score = static_cast<Score>(static_cast<int>(USI::Options[OptionNames::MIN_BOOK_SCORE]));
   Score score = ScoreZero;
 
   if (!open(fName.c_str())) {
@@ -157,7 +157,7 @@ std::vector<std::pair<Move, int> > Book::enumerateMoves(const Position& pos, con
       }
     }
 
-    if (pos.searcher()->options[OptionNames::MIN_BOOK_SCORE]) {
+    if (USI::Options[OptionNames::MIN_BOOK_SCORE]) {
       if (moves.empty()) {
         moves.push_back(std::make_pair(move, it->second.score));
       }
