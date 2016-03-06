@@ -198,12 +198,11 @@ void makeBook(Position& pos, std::istringstream& ssCmd) {
     "name Max_Random_Score_Diff value 0",
     "name USI_Hash value 32",
     "name Use_Sleeping_Threads value true",
+    "name Output_Info value false",
   };
   for (auto& option : options) {
     pos.searcher()->setOption(option);
   }
-
-  Searcher::outputInfo = true;
 
   std::string fileName;
   ssCmd >> fileName;

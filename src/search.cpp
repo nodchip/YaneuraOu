@@ -51,7 +51,6 @@ int Searcher::broadcastedPvDepth;
 std::string Searcher::broadcastedPvInfo;
 std::atomic<int> Searcher::mainThreadCurrentSearchDepth;
 #endif
-bool Searcher::outputInfo = true;
 
 void Searcher::init() {
 #if defined USE_GLOBAL
@@ -734,7 +733,7 @@ void Searcher::idLoop(Position& pos) {
         if (lastTimeToOutputInfoMs + THROTTLE_TO_OUTPUT_INFO_MS < searchTimer.elapsed() ||
           (OUTPUT_COMPLETE_SCORE_FROM_MS < searchTimer.elapsed() &&
             (alpha < bestScore && bestScore < beta))) {
-          if (outputInfo) {
+          if (USI::Options[OptionNames::OUTPUT_INFO]) {
             SYNCCOUT << pvInfoToUSI(pos, depth, alpha, beta) << SYNCENDL;
           }
           lastTimeToOutputInfoMs = searchTimer.elapsed();
@@ -840,7 +839,7 @@ void Searcher::idLoop(Position& pos) {
   }
   skill.swapIfEnabled(thisptr);
 
-  if (outputInfo) {
+  if (USI::Options[OptionNames::OUTPUT_INFO]) {
     SYNCCOUT << pvInfoToUSI(pos, depth, alpha, beta) << SYNCENDL;
   }
 
@@ -1771,7 +1770,9 @@ void Searcher::think() {
         timeManager->update();
       }
 
-      SYNCCOUT << "info string Reduced root moves " << numberOfRootMoves << " -> " << rootMovesInBook.size() << SYNCENDL;
+      if (USI::Options[OptionNames::OUTPUT_INFO]) {
+        SYNCCOUT << "info string Reduced root moves " << numberOfRootMoves << " -> " << rootMovesInBook.size() << SYNCENDL;
+      }
     }
   }
 
@@ -1815,7 +1816,7 @@ void Searcher::think() {
 
 finalize:
 
-  if (outputInfo) {
+  if (USI::Options[OptionNames::OUTPUT_INFO]) {
     SYNCCOUT << "info nodes " << pos.nodesSearched()
       << " time " << searchTimer.elapsed() << SYNCENDL;
   }
@@ -1826,18 +1827,16 @@ finalize:
     pos.thisThread()->waitFor(signals.stop);
   }
 
-  if (outputInfo && USI::Options[OptionNames::OUTPUT_BESTMOVE]) {
-    if (nyugyokuWin) {
-      SYNCCOUT << "bestmove win" << SYNCENDL;
-    }
-    else if (rootMoves[0].pv_[0].isNone()) {
-      SYNCCOUT << "bestmove resign" << SYNCENDL;
-    }
-    else {
-      SYNCCOUT << "bestmove " << rootMoves[0].pv_[0].toUSI()
-        << " ponder " << rootMoves[0].pv_[1].toUSI()
-        << SYNCENDL;
-    }
+  if (nyugyokuWin) {
+    SYNCCOUT << "bestmove win" << SYNCENDL;
+  }
+  else if (rootMoves[0].pv_[0].isNone()) {
+    SYNCCOUT << "bestmove resign" << SYNCENDL;
+  }
+  else {
+    SYNCCOUT << "bestmove " << rootMoves[0].pv_[0].toUSI()
+      << " ponder " << rootMoves[0].pv_[1].toUSI()
+      << SYNCENDL;
   }
 #endif
 }

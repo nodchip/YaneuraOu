@@ -147,7 +147,6 @@ struct Searcher {
 #endif
   STATIC Position rootPosition;
   STATIC ThreadPool threads;
-  static bool outputInfo;
   STATIC Book book;
   STATIC int broadcastedPvDepth;
   STATIC std::string broadcastedPvInfo;

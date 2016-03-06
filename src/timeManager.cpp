@@ -195,7 +195,7 @@ void TimeManager::update()
     hardTimeLimitMs = minThinkingTime;
   }
 
-  if (Searcher::outputInfo) {
+  if (USI::Options[OptionNames::OUTPUT_INFO]) {
     char buffer[1024];
     sprintf(buffer, "info string soft_time_limit_ms=%d hard_time_limit_ms=%d btime=%d wtime=%d byoyomi=%d ponderTime=%d",
       softTimeLimitMs, hardTimeLimitMs, limits_.time[Black].load(), limits_.time[White].load(), byoyomi, ponderTime);

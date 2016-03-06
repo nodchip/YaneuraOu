@@ -16,7 +16,7 @@ setoption name Min_Book_Ply value 32767
 setoption name Min_Book_Score value -180
 setoption name Minimum_Thinking_Time value 100
 setoption name MultiPV value 1
-setoption name Output_Bestmove value true
+setoption name Output_Info value false
 setoption name OwnBook value true
 setoption name Ponder_Time_Margin value 500
 setoption name Skill_Level value 20
