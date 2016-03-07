@@ -155,7 +155,9 @@ def function(args):
   lose = float(matched.group(1))
   draw = float(matched.group(2))
   win = float(matched.group(3))
-  ratio = win / (lose + draw + win)
+  ratio = 0.0
+  if lose + draw + win > 0.1:
+   ratio = win / (lose + draw + win)
   print ratio
 
   subprocess.call(['pkill', 'tanuki-baseline'])
