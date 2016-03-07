@@ -63,7 +63,7 @@ space = [
 ]
 
 COUNTER = 0;
-MAX_EVALS = 300;
+MAX_EVALS = 100;
 START_TIME_SEC = time.time()
 
 def function(args):
@@ -82,8 +82,19 @@ def function(args):
 
   popenargs = [
     'make',
-    '-j4',
     'clean',
+  ]
+  print(popenargs)
+  while True:
+    try:
+      subprocess.check_call(popenargs)
+      break
+    except subprocess.CalledProcessError:
+      continue
+
+  popenargs = [
+    'make',
+    '-j4',
     'native',
     'TARGET_PREFIX=tanuki-modified',
     'QSEARCH_FUTILITY_MARGIN=' + str(int(args[0])),
@@ -126,7 +137,7 @@ def function(args):
   print(popenargs)
   while True:
     try:
-      subprocess.check_output(popenargs)
+      subprocess.check_call(popenargs)
       break
     except subprocess.CalledProcessError:
       continue
