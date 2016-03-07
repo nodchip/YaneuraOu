@@ -87,7 +87,9 @@ def function(args):
   print(popenargs)
   while True:
     try:
-      subprocess.check_call(popenargs)
+      with open('make-clean.txt', 'w') as file:
+        output = subprocess.check_output(popenargs)
+        file.write(output)
       break
     except subprocess.CalledProcessError:
       continue
@@ -134,10 +136,12 @@ def function(args):
     'SEARCH_SINGULAR_EXTENSION_TTE_DEPTH_THRESHOLD=' + str(int(args[34])),
     'SEARCH_STATIC_NULL_MOVE_PRUNING_DEPTH_THRESHOLD=' + str(int(args[35])),
   ]
-  print(popenargs)
+  print('Executing: make native ...')
   while True:
     try:
-      subprocess.check_call(popenargs)
+      with open('make-native.txt', 'w') as file:
+        output = subprocess.check_output(popenargs)
+        file.write(output)
       break
     except subprocess.CalledProcessError:
       continue
