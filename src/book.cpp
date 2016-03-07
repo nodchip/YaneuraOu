@@ -250,7 +250,7 @@ void makeBook(Position& pos, std::istringstream& ssCmd) {
       // 先手、後手の内、片方だけを記録する。
       BookKey key = Book::bookKey(pos);
       if (bookMap.count(std::make_pair(key, move.proFromAndTo()))) {
-        if (++bookMap[std::make_pair(key, move.proFromAndTo())].count < 0) {
+        if (++bookMap[std::make_pair(key, move.proFromAndTo())].count == 0) {
           // 数えられる数の上限を超えたので元に戻す。
           --bookMap[std::make_pair(key, move.proFromAndTo())].count;
         }

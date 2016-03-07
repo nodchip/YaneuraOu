@@ -214,7 +214,7 @@ void benchmarkGenerateMoves(Position& pos) {
     //pos.print();
 
     MoveStack legalMoves[1024];
-    for (int i = 0; i < sizeof(legalMoves) / sizeof(MoveStack); ++i) legalMoves[i].move = moveNone();
+    for (int i = 0; i < static_cast<int>(sizeof(legalMoves) / sizeof(MoveStack)); ++i) legalMoves[i].move = moveNone();
     MoveStack* pms = &legalMoves[0];
     const u64 num = 10000000;
     Time t = Time::currentTime();

@@ -45,7 +45,7 @@ bool csa::readCsa1(
       return false;
     }
 
-    if (line.size() != 6 * gameRecord.numberOfPlays) {
+    if (static_cast<int>(line.size()) != 6 * gameRecord.numberOfPlays) {
       std::cout
         << "Number of moves is not expected: gameRecordIndex=" << gameRecordIndex
         << " expected=" << 6 * gameRecord.numberOfPlays
