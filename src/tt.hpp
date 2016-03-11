@@ -2,6 +2,7 @@
 #define APERY_TT_HPP
 
 #include "move.hpp"
+#include "parameters.hpp"
 #include "score.hpp"
 
 enum Depth {
@@ -10,14 +11,14 @@ enum Depth {
   Depth1 = 1,
   DepthQChecks = -1 * OnePly,
   DepthQNoChecks = -2 * OnePly,
-  DepthQRecaptures = -8 * OnePly,
+  DepthQRecaptures = -MOVE_PICKER_QSEARCH_RECAPTURES_DEPTH * OnePly,
   DepthNone = -127 * OnePly
 };
 OverloadEnumOperators(Depth);
 
-/// TTEntry struct is the 10 bytes transposition table entry, defined as below:
+/// TTEntry struct is the 16 bytes transposition table entry, defined as below:
 ///
-/// key        16 bit
+/// key        64 bit
 /// move       16 bit
 /// score      16 bit
 /// eval score 16 bit
@@ -41,7 +42,7 @@ struct TTEntry {
 
     // Don't overwrite more valuable entries
     if (k.p[1] != key64
-      || d > depth8 - 2
+      || d > depth8 - TTENTRY_DEPTH_MARGIN
       /* || g != (genBound8 & 0xFC) // Matching non-zero keys are already refreshed by probe() */
       || b == BoundExact)
     {
@@ -76,13 +77,13 @@ static_assert(sizeof(TTEntry) == 16, "Size of TTEntry is not 16");
 class TranspositionTable {
 
   static constexpr int CacheLineSize = 64;
-  static constexpr int ClusterSize = 4;
+  static constexpr int ClusterSize = 1 << TTCLUSTER_SIZE_SHIFT;
 
   struct Cluster {
     TTEntry entry[ClusterSize];
   };
 
-  static_assert(CacheLineSize % sizeof(Cluster) == 0, "Cluster size incorrect");
+  static_assert((CacheLineSize * 4) % sizeof(Cluster) == 0, "Cluster size incorrect");
 
 public:
   ~TranspositionTable();
