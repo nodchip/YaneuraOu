@@ -68,6 +68,8 @@ namespace {
   static constexpr int THROTTLE_TO_OUTPUT_INFO_MS = 200;
   // Fail-low/highでない評価値を必ず出力する経過時間
   static constexpr int OUTPUT_COMPLETE_SCORE_FROM_MS = -10;
+  static constexpr Score INITIAL_ASPIRATION_WINDOW_WIDTH = (Score)16;
+  static constexpr Score SECOND_ASPIRATION_WINDOW_WIDTH = (Score)64;
   // true にすると、シングルスレッドで動作する。デバッグ用。
   constexpr bool FakeSplit = false;
 
@@ -692,7 +694,7 @@ void Searcher::idLoop(Position& pos) {
       // aspiration search
       // alpha, beta をある程度絞ることで、探索効率を上げる。
       if (5 <= depth && abs(rootMoves[pvIdx].prevScore_) < ScoreKnownWin) {
-        delta = static_cast<Score>(ID_LOOP_INITIAL_SEARCH_WINDOW_DELTA);
+        delta = INITIAL_ASPIRATION_WINDOW_WIDTH;
         alpha = rootMoves[pvIdx].prevScore_ - delta;
         beta = rootMoves[pvIdx].prevScore_ + delta;
       }
@@ -749,6 +751,10 @@ void Searcher::idLoop(Position& pos) {
           break;
         }
 
+        if (delta == INITIAL_ASPIRATION_WINDOW_WIDTH) {
+          delta = SECOND_ASPIRATION_WINDOW_WIDTH;
+        }
+
         // fail high/low のとき、aspiration window を広げる。
         if (ScoreKnownWin <= abs(bestScore)) {
           // 勝ち(負け)だと判定したら、最大の幅で探索を試してみる。
@@ -756,21 +762,17 @@ void Searcher::idLoop(Position& pos) {
           beta = ScoreInfinite;
         }
         else if (beta <= bestScore) {
-          alpha = (alpha * ID_LOOP_FAIL_HIGH_ALPHA_RATIO
-            + beta * (FLOAT_SCALE - ID_LOOP_FAIL_HIGH_ALPHA_RATIO))
-            / FLOAT_SCALE;
+          alpha = (alpha + beta) / 2;
           beta = std::min(bestScore + delta, ScoreInfinite);
-          delta += delta * ID_LOOP_FAIL_HIGH_DELTA_RATIO / FLOAT_SCALE;
+          delta += delta / 2;
         }
         else {
           signals.failedLowAtRoot = true;
           signals.stopOnPonderHit = false;
 
-          beta = (alpha * ID_LOOP_FAIL_LOW_BETA_RATIO
-            + beta * (FLOAT_SCALE - ID_LOOP_FAIL_LOW_BETA_RATIO))
-            / FLOAT_SCALE;
+          beta = (alpha + beta) / 2;
           alpha = std::max(bestScore - delta, -ScoreInfinite);
-          delta += delta * ID_LOOP_FAIL_LOW_DELTA_RATIO / FLOAT_SCALE;
+          delta += delta / 2;
         }
 
         assert(-ScoreInfinite <= alpha && beta <= ScoreInfinite);

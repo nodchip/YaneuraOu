@@ -60,14 +60,6 @@ space = [
   hp.quniform('SEARCH_SINGULAR_EXTENSION_NULL_WINDOW_SEARCH_DEPTH_SCALE', 0, 1024, 1),
   hp.quniform('SEARCH_SINGULAR_EXTENSION_TTE_DEPTH_THRESHOLD', 2, 12, 1),
   hp.quniform('SEARCH_STATIC_NULL_MOVE_PRUNING_DEPTH_THRESHOLD', 2, 16, 1),
-  hp.quniform('ID_LOOP_INITIAL_SEARCH_WINDOW_DELTA', 8, 128, 1),
-  hp.quniform('ID_LOOP_FAIL_HIGH_ALPHA_RATIO', 0, 1024, 1),
-  hp.quniform('ID_LOOP_FAIL_HIGH_DELTA_RATIO', 0, 1024, 1),
-  hp.quniform('ID_LOOP_FAIL_LOW_BETA_RATIO', 0, 1024, 1),
-  hp.quniform('ID_LOOP_FAIL_LOW_DELTA_RATIO', 0, 1024, 1),
-  hp.quniform('MOVE_PICKER_QSEARCH_RECAPTURES_DEPTH', 2, 32, 1),
-  hp.quniform('TTENTRY_DEPTH_MARGIN', 0, 4, 1),
-  hp.quniform('TTCLUSTER_SIZE_SHIFT', 0, 4, 1),
 ]
 
 COUNTER = 0;
@@ -143,14 +135,6 @@ def function(args):
     'SEARCH_SINGULAR_EXTENSION_NULL_WINDOW_SEARCH_DEPTH_SCALE=' + str(int(args[33])),
     'SEARCH_SINGULAR_EXTENSION_TTE_DEPTH_THRESHOLD=' + str(int(args[34])),
     'SEARCH_STATIC_NULL_MOVE_PRUNING_DEPTH_THRESHOLD=' + str(int(args[35])),
-    'ID_LOOP_INITIAL_SEARCH_WINDOW_DELTA=' + str(int(args[36])),
-    'ID_LOOP_FAIL_HIGH_ALPHA_RATIO=' + str(int(args[37])),
-    'ID_LOOP_FAIL_HIGH_DELTA_RATIO=' + str(int(args[38])),
-    'ID_LOOP_FAIL_LOW_BETA_RATIO=' + str(int(args[39])),
-    'ID_LOOP_FAIL_LOW_DELTA_RATIO=' + str(int(args[40])),
-    'MOVE_PICKER_QSEARCH_RECAPTURES_DEPTH=' + str(int(args[41])),
-    'TTENTRY_DEPTH_MARGIN=' + str(int(args[42])),
-    'TTCLUSTER_SIZE_SHIFT=' + str(int(args[43])),
   ]
   print('Executing: make native ...')
   while True:
