@@ -146,14 +146,14 @@ def function(args):
     except subprocess.CalledProcessError:
       continue
 
-  popenargs = [
-    './YaneuraOu.exe',
-    'go',
-    'btime',
-    '50',
-  ]
+  popenargs = ['./YaneuraOu.exe',]
   print(popenargs)
-  output = subprocess.check_output(popenargs)
+  output = None
+  try:
+    with open('yaneuraou-config.txt', 'r') as file:
+      output = subprocess.check_output(popenargs, stdin=file)
+  except subprocess.CalledProcessError:
+    pass
   print(output)
   matched = re.compile('GameResult (\\d+) - (\\d+) - (\\d+)').search(output)
   lose = float(matched.group(1))
