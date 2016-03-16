@@ -1221,7 +1221,7 @@ iid_start:
   {
     const Depth d = (PVNode
       ? (depth - SEARCH_INTERNAL_ITERATIVE_DEEPENING_PV_NODE_DEPTH_DELTA)
-      : (depth * SEARCH_INTERNAL_ITERATIVE_DEEPENING_NON_PV_DEPTH_SCALE / FLOAT_SCALE));
+      : (std::min(depth * SEARCH_INTERNAL_ITERATIVE_DEEPENING_NON_PV_DEPTH_SCALE / FLOAT_SCALE, depth - 1)));
 
     ss->skipNullMove = true;
     search<PVNode ? PV : NonPV>(pos, ss, alpha, beta, d, true);
