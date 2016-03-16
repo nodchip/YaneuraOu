@@ -1308,7 +1308,7 @@ split_point_start:
       ss->excludedMove = move;
       ss->skipNullMove = true;
       score = search<NonPV>(pos, ss, rBeta - 1, rBeta,
-        SEARCH_SINGULAR_EXTENSION_NULL_WINDOW_SEARCH_DEPTH_SCALE * depth / FLOAT_SCALE, cutNode);
+        std::min(SEARCH_SINGULAR_EXTENSION_NULL_WINDOW_SEARCH_DEPTH_SCALE * depth / FLOAT_SCALE, depth - 1), cutNode);
       ss->skipNullMove = false;
       ss->excludedMove = Move::moveNone();
 
