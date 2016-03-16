@@ -1,7 +1,7 @@
 tanuki-modified.exe
 go btime 0 wtime 0 byoyomi 100
 setoption name Best_Book_Move value false
-setoption name Book_File type value ../bin/book-2016-02-01.bin
+setoption name Book_File value ../bin/book-2016-02-01.bin
 setoption name Book_Thinking_Time value 100
 setoption name Byoyomi_Margin value 500
 setoption name Emergency_Base_Time value 200
