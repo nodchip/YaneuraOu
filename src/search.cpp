@@ -1047,6 +1047,7 @@ Score Searcher::search(Position& pos, SearchStack* ss, Score alpha, Score beta, 
       ss->killers[1] = ss->killers[0];
       ss->killers[0] = ttMove;
     }
+    assert(-ScoreInfinite < ttScore && ttScore < ScoreInfinite);
     return ttScore;
   }
 
@@ -1059,6 +1060,7 @@ Score Searcher::search(Position& pos, SearchStack* ss, Score alpha, Score beta, 
       tte->save(posKey, scoreToTT(bestScore, ss->ply), BoundExact, depth,
         move, ss->staticEval, tt.generation());
       bestMove = move;
+      assert(-ScoreInfinite < bestScore && bestScore < ScoreInfinite);
       return bestScore;
     }
   }
@@ -1106,6 +1108,7 @@ Score Searcher::search(Position& pos, SearchStack* ss, Score alpha, Score beta, 
     const Score rbeta = beta - razorMargin(depth);
     const Score s = qsearch<NonPV, false>(pos, ss, rbeta - 1, rbeta, Depth0);
     if (s < rbeta) {
+      assert(-ScoreInfinite < s && s < ScoreInfinite);
       return s;
     }
   }
@@ -1118,7 +1121,11 @@ Score Searcher::search(Position& pos, SearchStack* ss, Score alpha, Score beta, 
     && beta <= eval - FutilityMargins[depth][0]
     && abs(beta) < ScoreMateInMaxPly)
   {
-    return eval - FutilityMargins[depth][0];
+    score = eval - FutilityMargins[depth][0];
+    score = std::max(score, -ScoreInfinite + 1);
+    score = std::min(score, ScoreInfinite - 1);
+    assert(-ScoreInfinite < score && score < ScoreInfinite);
+    return score;
   }
 
   // step8
@@ -1152,6 +1159,7 @@ Score Searcher::search(Position& pos, SearchStack* ss, Score alpha, Score beta, 
       }
 
       if (depth < SEARCH_NULL_MOVE_NULL_SCORE_DEPTH_THRESHOLD) {
+        assert(-ScoreInfinite < nullScore && nullScore < ScoreInfinite);
         return nullScore;
       }
 
@@ -1161,6 +1169,7 @@ Score Searcher::search(Position& pos, SearchStack* ss, Score alpha, Score beta, 
       ss->skipNullMove = false;
 
       if (beta <= s) {
+        assert(-ScoreInfinite < nullScore && nullScore < ScoreInfinite);
         return nullScore;
       }
     }
@@ -1172,6 +1181,7 @@ Score Searcher::search(Position& pos, SearchStack* ss, Score alpha, Score beta, 
         && !threatMove.isNone()
         && allows(pos, (ss - 1)->currentMove, threatMove))
       {
+        assert(-ScoreInfinite < beta - 1 && beta - 1 < ScoreInfinite);
         return beta - 1;
       }
     }
@@ -1186,7 +1196,9 @@ Score Searcher::search(Position& pos, SearchStack* ss, Score alpha, Score beta, 
     && abs(beta) < ScoreInfinite - 200)
   {
     const Score rbeta = beta + SEARCH_PROBCUT_RBETA_SCORE_DELTA;
-    const Depth rdepth = depth - SEARCH_PROBCUT_RBETA_DEPTH_DELTA;
+    const Depth rdepth = (depth < OnePly + SEARCH_PROBCUT_RBETA_DEPTH_DELTA)
+      ? OnePly
+      : depth - SEARCH_PROBCUT_RBETA_DEPTH_DELTA;
 
     assert(OnePly <= rdepth);
     assert(!(ss - 1)->currentMove.isNone());
@@ -1204,6 +1216,7 @@ Score Searcher::search(Position& pos, SearchStack* ss, Score alpha, Score beta, 
         score = -search<NonPV>(pos, ss + 1, -rbeta, -rbeta + 1, rdepth, !cutNode);
         pos.undoMove(move);
         if (rbeta <= score) {
+          assert(-ScoreInfinite < score && score < ScoreInfinite);
           return score;
         }
       }
@@ -1452,10 +1465,12 @@ split_point_start:
     }
 
     if (signals.stop || thisThread->cutoffOccurred()) {
+      assert(-ScoreInfinite < score && score < ScoreInfinite);
       return score;
     }
 
     if (signals.skipMainThreadCurrentDepth) {
+      assert(-ScoreInfinite < score && score < ScoreInfinite);
       return score;
     }
 
@@ -1519,6 +1534,7 @@ split_point_start:
   }
 
   if (SPNode) {
+    assert(-ScoreInfinite < bestScore && bestScore < ScoreInfinite);
     return bestScore;
   }
 
