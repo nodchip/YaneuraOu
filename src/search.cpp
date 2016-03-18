@@ -1233,7 +1233,7 @@ iid_start:
       + static_cast<Score>(SEARCH_INTERNAL_ITERATIVE_DEEPENING_SCORE_MARGIN))))
   {
     const Depth d = (PVNode
-      ? (depth - SEARCH_INTERNAL_ITERATIVE_DEEPENING_PV_NODE_DEPTH_DELTA)
+      ? (std::max(Depth1, depth - SEARCH_INTERNAL_ITERATIVE_DEEPENING_PV_NODE_DEPTH_DELTA))
       : (std::min(depth * SEARCH_INTERNAL_ITERATIVE_DEEPENING_NON_PV_DEPTH_SCALE / FLOAT_SCALE, depth - 1)));
 
     ss->skipNullMove = true;
