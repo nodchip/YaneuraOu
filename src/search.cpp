@@ -1320,8 +1320,10 @@ split_point_start:
       const Score rBeta = ttScore - static_cast<Score>(depth);
       ss->excludedMove = move;
       ss->skipNullMove = true;
-      score = search<NonPV>(pos, ss, rBeta - 1, rBeta,
-        std::min(SEARCH_SINGULAR_EXTENSION_NULL_WINDOW_SEARCH_DEPTH_SCALE * depth / FLOAT_SCALE, depth - 1), cutNode);
+      Depth nextDepth = SEARCH_SINGULAR_EXTENSION_NULL_WINDOW_SEARCH_DEPTH_SCALE * depth / FLOAT_SCALE;
+      nextDepth = std::min(nextDepth, depth - 1);
+      nextDepth = std::max(nextDepth, Depth1);
+      score = search<NonPV>(pos, ss, rBeta - 1, rBeta, nextDepth, cutNode);
       ss->skipNullMove = false;
       ss->excludedMove = Move::moveNone();
 
