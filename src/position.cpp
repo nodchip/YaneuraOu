@@ -1577,21 +1577,21 @@ void Position::initZobrist() {
 }
 
 void Position::print() const {
-  std::cout << "'  9  8  7  6  5  4  3  2  1" << std::endl;
+  std::cerr << "'  9  8  7  6  5  4  3  2  1" << std::endl;
   int i = 0;
   for (Rank r = Rank9; r < RankNum; ++r) {
     ++i;
-    std::cout << "P" << i;
+    std::cerr << "P" << i;
     for (File f = FileA; FileI <= f; --f) {
-      std::cout << pieceToCharCSA(piece(makeSquare(f, r)));
+      std::cerr << pieceToCharCSA(piece(makeSquare(f, r)));
     }
-    std::cout << std::endl;
+    std::cerr << std::endl;
   }
   printHand(Black);
   printHand(White);
-  std::cout << (turn() == Black ? "+" : "-") << std::endl;
-  std::cout << std::endl;
-  std::cout << "key = " << getKey() << std::endl;
+  std::cerr << (turn() == Black ? "+" : "-") << std::endl;
+  std::cerr << std::endl;
+  std::cerr << "key = " << getKey() << std::endl;
 }
 
 #if !defined NDEBUG

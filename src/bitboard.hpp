@@ -197,26 +197,26 @@ public:
 
   // for debug
   void printBoard() const {
-    std::cout << "   A  B  C  D  E  F  G  H  I\n";
+    std::cerr << "   A  B  C  D  E  F  G  H  I\n";
     for (Rank r = Rank9; r < RankNum; ++r) {
-      std::cout << (9 - r);
+      std::cerr << (9 - r);
       for (File f = FileA; FileI <= f; --f) {
-        std::cout << (this->isSet(makeSquare(f, r)) ? "  X" : "  .");
+        std::cerr << (this->isSet(makeSquare(f, r)) ? "  X" : "  .");
       }
-      std::cout << "\n";
+      std::cerr << "\n";
     }
 
-    std::cout << std::endl;
+    std::cerr << std::endl;
   }
 
   void printTable(const int part) const {
     for (Rank r = Rank9; r < RankNum; ++r) {
       for (File f = FileC; FileI <= f; --f) {
-        std::cout << (UINT64_C(1) & (this->p(part) >> makeSquare(f, r)));
+        std::cerr << (UINT64_C(1) & (this->p(part) >> makeSquare(f, r)));
       }
-      std::cout << std::endl;
+      std::cerr << std::endl;
     }
-    std::cout << std::endl;
+    std::cerr << std::endl;
   }
 
   // 指定した位置が Bitboard のどちらの u64 変数の要素か
@@ -445,25 +445,24 @@ inline Bitboard squareRankMask(const Square sq) {
   return rankMask(r);
 }
 
-const Bitboard InFrontOfRank9Black = allZeroBB();
-const Bitboard InFrontOfRank8Black = rankMask<Rank9>();
-const Bitboard InFrontOfRank7Black = InFrontOfRank8Black | rankMask<Rank8>();
-const Bitboard InFrontOfRank6Black = InFrontOfRank7Black | rankMask<Rank7>();
-const Bitboard InFrontOfRank5Black = InFrontOfRank6Black | rankMask<Rank6>();
-const Bitboard InFrontOfRank4Black = InFrontOfRank5Black | rankMask<Rank5>();
-const Bitboard InFrontOfRank3Black = InFrontOfRank4Black | rankMask<Rank4>();
-const Bitboard InFrontOfRank2Black = InFrontOfRank3Black | rankMask<Rank3>();
-const Bitboard InFrontOfRank1Black = InFrontOfRank2Black | rankMask<Rank2>();
-
-const Bitboard InFrontOfRank1White = allZeroBB();
-const Bitboard InFrontOfRank2White = rankMask<Rank1>();
-const Bitboard InFrontOfRank3White = InFrontOfRank2White | rankMask<Rank2>();
-const Bitboard InFrontOfRank4White = InFrontOfRank3White | rankMask<Rank3>();
-const Bitboard InFrontOfRank5White = InFrontOfRank4White | rankMask<Rank4>();
-const Bitboard InFrontOfRank6White = InFrontOfRank5White | rankMask<Rank5>();
-const Bitboard InFrontOfRank7White = InFrontOfRank6White | rankMask<Rank6>();
-const Bitboard InFrontOfRank8White = InFrontOfRank7White | rankMask<Rank7>();
-const Bitboard InFrontOfRank9White = InFrontOfRank8White | rankMask<Rank8>();
+const Bitboard InFrontOfRank9Black(UINT64_C(0x0000000000000000), UINT64_C(0x0000000000000000));
+const Bitboard InFrontOfRank8Black(UINT64_C(0x0040201008040201), UINT64_C(0x0000000000000201));
+const Bitboard InFrontOfRank7Black(UINT64_C(0x00c06030180c0603), UINT64_C(0x0000000000000603));
+const Bitboard InFrontOfRank6Black(UINT64_C(0x01c0e070381c0e07), UINT64_C(0x0000000000000e07));
+const Bitboard InFrontOfRank5Black(UINT64_C(0x03c1e0f0783c1e0f), UINT64_C(0x0000000000001e0f));
+const Bitboard InFrontOfRank4Black(UINT64_C(0x07c3e1f0f87c3e1f), UINT64_C(0x0000000000003e1f));
+const Bitboard InFrontOfRank3Black(UINT64_C(0x0fc7e3f1f8fc7e3f), UINT64_C(0x0000000000007e3f));
+const Bitboard InFrontOfRank2Black(UINT64_C(0x1fcfe7f3f9fcfe7f), UINT64_C(0x000000000000fe7f));
+const Bitboard InFrontOfRank1Black(UINT64_C(0x3fdfeff7fbfdfeff), UINT64_C(0x000000000001feff));
+const Bitboard InFrontOfRank9White(UINT64_C(0x7fbfdfeff7fbfdfe), UINT64_C(0x000000000003fdfe));
+const Bitboard InFrontOfRank8White(UINT64_C(0x7f3f9fcfe7f3f9fc), UINT64_C(0x000000000003f9fc));
+const Bitboard InFrontOfRank7White(UINT64_C(0x7e3f1f8fc7e3f1f8), UINT64_C(0x000000000003f1f8));
+const Bitboard InFrontOfRank6White(UINT64_C(0x7c3e1f0f87c3e1f0), UINT64_C(0x000000000003e1f0));
+const Bitboard InFrontOfRank5White(UINT64_C(0x783c1e0f0783c1e0), UINT64_C(0x000000000003c1e0));
+const Bitboard InFrontOfRank4White(UINT64_C(0x70381c0e070381c0), UINT64_C(0x00000000000381c0));
+const Bitboard InFrontOfRank3White(UINT64_C(0x6030180c06030180), UINT64_C(0x0000000000030180));
+const Bitboard InFrontOfRank2White(UINT64_C(0x4020100804020100), UINT64_C(0x0000000000020100));
+const Bitboard InFrontOfRank1White(UINT64_C(0x0000000000000000), UINT64_C(0x0000000000000000));
 
 inline Bitboard inFrontMask(const Color c, const Rank r) { return InFrontMask[c][r]; }
 template <Color C, Rank R> inline Bitboard inFrontMask() {
