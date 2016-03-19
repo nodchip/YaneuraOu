@@ -1047,7 +1047,14 @@ Score Searcher::search(Position& pos, SearchStack* ss, Score alpha, Score beta, 
       ss->killers[1] = ss->killers[0];
       ss->killers[0] = ttMove;
     }
-    assert(-ScoreInfinite < ttScore && ttScore < ScoreInfinite);
+    if (!(-ScoreInfinite < ttScore && ttScore < ScoreInfinite)) {
+      pos.print();
+      std::cerr << __FILE__ << " " << __FUNCTION__ << " " << __LINE__
+        << " ttScore=" << ttScore
+        << std::endl;
+      assert(false);
+    }
+    //assert(-ScoreInfinite < ttScore && ttScore < ScoreInfinite);
     return ttScore;
   }
 
@@ -1057,7 +1064,9 @@ Score Searcher::search(Position& pos, SearchStack* ss, Score alpha, Score beta, 
   {
     if (!(move = pos.mateMoveIn1Ply()).isNone()) {
       ss->staticEval = bestScore = mateIn(ss->ply);
-      tte->save(posKey, scoreToTT(bestScore, ss->ply), BoundExact, depth,
+      Score newTtScore = scoreToTT(bestScore, ss->ply);
+      assert(-ScoreInfinite < newTtScore && newTtScore < ScoreInfinite);
+      tte->save(posKey, newTtScore, BoundExact, depth,
         move, ss->staticEval, tt.generation());
       bestMove = move;
       assert(-ScoreInfinite < bestScore && bestScore < ScoreInfinite);
@@ -1552,7 +1561,9 @@ split_point_start:
 
   if (beta <= bestScore) {
     // failed high
-    tte->save(posKey, scoreToTT(bestScore, ss->ply), BoundLower, depth,
+    Score newTtScore = scoreToTT(bestScore, ss->ply);
+    assert(-ScoreInfinite < newTtScore && newTtScore < ScoreInfinite);
+    tte->save(posKey, newTtScore, BoundLower, depth,
       bestMove, ss->staticEval, tt.generation());
 
     if (!bestMove.isCaptureOrPawnPromotion() && !inCheck) {
@@ -1574,7 +1585,18 @@ split_point_start:
   }
   else {
     // failed low or PV search
-    tte->save(posKey, scoreToTT(bestScore, ss->ply),
+    Score newTtSearch = scoreToTT(bestScore, ss->ply);
+    if (!(-ScoreInfinite < newTtSearch && newTtSearch < ScoreInfinite)) {
+      pos.print();
+      std::cerr << __FILE__ << " " << __FUNCTION__ << " " << __LINE__
+        << " newTtSearch=" << newTtSearch
+        << " bestScore=" << bestScore
+        << " ss->ply=" << ss->ply
+        << std::endl;
+      assert(false);
+    }
+    //assert((-ScoreInfinite < newTtSearch && newTtSearch < ScoreInfinite));
+    tte->save(posKey, newTtSearch,
       ((PVNode && !bestMove.isNone()) ? BoundExact : BoundUpper),
       depth, bestMove, ss->staticEval, tt.generation());
   }
@@ -1745,7 +1767,7 @@ void Searcher::think() {
   if (nyugyoku(pos)) {
     nyugyokuWin = true;
     goto finalize;
-  }
+}
 #endif
 #endif
   pos.setNodesSearched(0);

@@ -1716,7 +1716,7 @@ bool Position::isOK() const {
   {
     int i;
     if ((i = debugSetEvalList()) != 0) {
-      std::cout << "debugSetEvalList() error = " << i << std::endl;
+      std::cerr << "debugSetEvalList() error = " << i << std::endl;
       goto incorrect_position;
     }
   }
@@ -1725,9 +1725,9 @@ bool Position::isOK() const {
   return true;
 
 incorrect_position:
-  std::cout << "Error! failedStep = " << failedStep << std::endl;
-  std::cout << "prevKey = " << prevKey << std::endl;
-  std::cout << "currKey = " << getKey() << std::endl;
+  std::cerr << "Error! failedStep = " << failedStep << std::endl;
+  std::cerr << "prevKey = " << prevKey << std::endl;
+  std::cerr << "currKey = " << getKey() << std::endl;
   print();
   return false;
 }
@@ -1826,11 +1826,11 @@ namespace {
   void printHandPiece(const Position& pos, const HandPiece hp, const Color c, const std::string& str) {
     if (pos.hand(c).numOf(hp)) {
       const char* sign = (c == Black ? "+" : "-");
-      std::cout << "P" << sign;
+      std::cerr << "P" << sign;
       for (u32 i = 0; i < pos.hand(c).numOf(hp); ++i) {
-        std::cout << "00" << str;
+        std::cerr << "00" << str;
       }
-      std::cout << std::endl;
+      std::cerr << std::endl;
     }
   }
 }
@@ -1943,7 +1943,7 @@ void Position::set(const std::string& sfen, Thread* th) {
 
   return;
 INCORRECT:
-  std::cout << "incorrect SFEN string : " << sfen << std::endl;
+  std::cerr << "incorrect SFEN string : " << sfen << std::endl;
 }
 
 bool Position::moveGivesCheck(const Move move) const {
