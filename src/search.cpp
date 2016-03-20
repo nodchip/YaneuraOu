@@ -917,6 +917,7 @@ void Searcher::idLoop(Position& pos) {
         (ss + 1)->staticEvalRaw.p[0][0] = ScoreNotEvaluated;
         (ss + 1)->excludedMove = rootMoves[0].pv_[0];
         (ss + 1)->skipNullMove = true;
+        assert(Depth0 < (depth - 3) * OnePly);
         const Score s = search<NonPV>(pos, ss + 1, rBeta - 1, rBeta, (depth - 3) * OnePly, true);
         (ss + 1)->skipNullMove = false;
         (ss + 1)->excludedMove = Move::moveNone();
@@ -1264,9 +1265,14 @@ Score Searcher::search(Position& pos, SearchStack* ss, Score alpha, Score beta, 
     pos.doNullMove<true>(st);
     (ss + 1)->staticEvalRaw = (ss)->staticEvalRaw; // 評価値の差分評価の為。
     (ss + 1)->skipNullMove = true;
-    Score nullScore = (depth - reduction < OnePly ?
-      -qsearch<NonPV, false>(pos, ss + 1, -beta, -alpha, Depth0)
-      : -search<NonPV>(pos, ss + 1, -beta, -alpha, depth - reduction, !cutNode));
+    Score nullScore;
+    if (depth - reduction < OnePly) {
+      nullScore = -qsearch<NonPV, false>(pos, ss + 1, -beta, -alpha, Depth0);
+    }
+    else {
+      assert(Depth0 < depth - reduction);
+      nullScore = -search<NonPV>(pos, ss + 1, -beta, -alpha, depth - reduction, !cutNode);
+    }
     (ss + 1)->skipNullMove = false;
     pos.doNullMove<false>(st);
 
@@ -1330,6 +1336,7 @@ Score Searcher::search(Position& pos, SearchStack* ss, Score alpha, Score beta, 
         ss->currentMove = move;
         pos.doMove(move, st, ci, pos.moveGivesCheck(move, ci));
         (ss + 1)->staticEvalRaw.p[0][0] = ScoreNotEvaluated;
+        assert(Depth0 < rdepth);
         score = -search<NonPV>(pos, ss + 1, -rbeta, -rbeta + 1, rdepth, !cutNode);
         pos.undoMove(move);
         if (rbeta <= score) {
@@ -1354,6 +1361,7 @@ iid_start:
       : (std::min(depth * SEARCH_INTERNAL_ITERATIVE_DEEPENING_NON_PV_DEPTH_SCALE / FLOAT_SCALE, depth - 1)));
 
     ss->skipNullMove = true;
+    assert(Depth0 < d);
     search<PVNode ? PV : NonPV>(pos, ss, alpha, beta, d, true);
     ss->skipNullMove = false;
 
@@ -1440,6 +1448,7 @@ split_point_start:
       Depth nextDepth = SEARCH_SINGULAR_EXTENSION_NULL_WINDOW_SEARCH_DEPTH_SCALE * depth / FLOAT_SCALE;
       nextDepth = std::min(nextDepth, depth - 1);
       nextDepth = std::max(nextDepth, Depth1);
+      assert(Depth0 < nextDepth);
       score = search<NonPV>(pos, ss, rBeta - 1, rBeta, nextDepth, cutNode);
       ss->skipNullMove = false;
       ss->excludedMove = Move::moveNone();
@@ -1541,6 +1550,7 @@ split_point_start:
         alpha = splitPoint->alpha;
       }
       // PVS
+      assert(Depth0 < d);
       score = -search<NonPV>(pos, ss + 1, -(alpha + 1), -alpha, d, true);
 
       doFullDepthSearch = (alpha < score && ss->reduction != Depth0);
@@ -1557,18 +1567,34 @@ split_point_start:
       if (SPNode) {
         alpha = splitPoint->alpha;
       }
-      score = (newDepth < OnePly ?
-        (givesCheck ? -qsearch<NonPV, true>(pos, ss + 1, -(alpha + 1), -alpha, Depth0)
-          : -qsearch<NonPV, false>(pos, ss + 1, -(alpha + 1), -alpha, Depth0))
-        : -search<NonPV>(pos, ss + 1, -(alpha + 1), -alpha, newDepth, !cutNode));
+      if (newDepth < OnePly) {
+        if (givesCheck) {
+          score = -qsearch<NonPV, true>(pos, ss + 1, -(alpha + 1), -alpha, Depth0);
+        }
+        else {
+          score = -qsearch<NonPV, false>(pos, ss + 1, -(alpha + 1), -alpha, Depth0);
+        }
+      }
+      else {
+        assert(Depth0 < newDepth);
+        score = -search<NonPV>(pos, ss + 1, -(alpha + 1), -alpha, newDepth, !cutNode);
+      }
     }
 
     // 通常の探索
     if (PVNode && (isPVMove || (alpha < score && (RootNode || score < beta)))) {
-      score = (newDepth < OnePly ?
-        (givesCheck ? -qsearch<PV, true>(pos, ss + 1, -beta, -alpha, Depth0)
-          : -qsearch<PV, false>(pos, ss + 1, -beta, -alpha, Depth0))
-        : -search<PV>(pos, ss + 1, -beta, -alpha, newDepth, false));
+      if (newDepth < OnePly) {
+        if (givesCheck) {
+          score = -qsearch<PV, true>(pos, ss + 1, -beta, -alpha, Depth0);
+        }
+        else {
+          score = -qsearch<PV, false>(pos, ss + 1, -beta, -alpha, Depth0);
+        }
+      }
+      else {
+        assert(Depth0 < newDepth);
+        score = -search<PV>(pos, ss + 1, -beta, -alpha, newDepth, false);
+      }
     }
 
     // step17
@@ -2075,9 +2101,21 @@ void Thread::idleLoop() {
       activePosition = &pos;
 
       switch (sp->nodeType) {
-      case Root: searcher->search<SplitPointRoot >(pos, ss + 1, sp->alpha, sp->beta, sp->depth, sp->cutNode); break;
-      case PV: searcher->search<SplitPointPV   >(pos, ss + 1, sp->alpha, sp->beta, sp->depth, sp->cutNode); break;
-      case NonPV: searcher->search<SplitPointNonPV>(pos, ss + 1, sp->alpha, sp->beta, sp->depth, sp->cutNode); break;
+      case Root: {
+        assert(Depth0 < sp->depth);
+        searcher->search<SplitPointRoot >(pos, ss + 1, sp->alpha, sp->beta, sp->depth, sp->cutNode);
+        break;
+      }
+      case PV: {
+        assert(Depth0 < sp->depth);
+        searcher->search<SplitPointPV   >(pos, ss + 1, sp->alpha, sp->beta, sp->depth, sp->cutNode);
+        break;
+      }
+      case NonPV: {
+        assert(Depth0 < sp->depth);
+        searcher->search<SplitPointNonPV>(pos, ss + 1, sp->alpha, sp->beta, sp->depth, sp->cutNode);
+        break;
+      }
       default: UNREACHABLE;
       }
 
