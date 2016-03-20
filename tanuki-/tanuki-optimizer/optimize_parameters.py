@@ -69,6 +69,8 @@ START_TIME_SEC = time.time()
 def function(args):
   print('-' * 78)
 
+  print(datetime.datetime.today().strftime("%Y-%m-%d %H:%M:%S"))
+
   global COUNTER
   print(args)
 
