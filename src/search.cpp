@@ -1356,9 +1356,11 @@ iid_start:
     && (PVNode || (!inCheck && beta <= ss->staticEval
       + static_cast<Score>(SEARCH_INTERNAL_ITERATIVE_DEEPENING_SCORE_MARGIN))))
   {
-    const Depth d = (PVNode
-      ? (std::max(Depth1, depth - SEARCH_INTERNAL_ITERATIVE_DEEPENING_PV_NODE_DEPTH_DELTA))
-      : (std::min(depth * SEARCH_INTERNAL_ITERATIVE_DEEPENING_NON_PV_DEPTH_SCALE / FLOAT_SCALE, depth - 1)));
+    Depth d = PVNode
+      ? (depth - SEARCH_INTERNAL_ITERATIVE_DEEPENING_PV_NODE_DEPTH_DELTA)
+      : (depth * SEARCH_INTERNAL_ITERATIVE_DEEPENING_NON_PV_DEPTH_SCALE / FLOAT_SCALE);
+    d = std::min(d, depth - Depth1);
+    d = std::max(d, Depth1);
 
     ss->skipNullMove = true;
     assert(Depth0 < d);
