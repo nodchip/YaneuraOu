@@ -173,19 +173,77 @@ namespace {
     return false;
   }
 
+  // search()内のscoreを置換表内のスコアに変換する
+  // 置換表内のスコアはおそらく詰みはScoreMate0Ply、
+  // 詰まされている場合は-ScoreMate0Ply、
+  // 優等局面はScoreSuperior0Ply、
+  // 劣等局面はScoreInferior0Ply、
+  // ScoreNoneと範囲内の値はそのまま格納されている。
+  // TODO(nodchip): 要検証
   Score scoreToTT(const Score s, const Ply ply) {
-    assert(s != ScoreNone);
+    if (s == ScoreNone) {
+      return ScoreNone;
+    }
+    else if (isMate(s)) {
+      // 詰み
+      return ScoreMate0Ply;
+    }
+    else if (isMated(s)) {
+      // 詰まされている
+      return ScoreMated0Ply;
+    }
+    else if (isSuperior(s)) {
+      // 優等局面
+      return ScoreSuperior0Ply;
+    }
+    else if (isInferior(s)) {
+      // 劣等局面
+      return ScoreInferior0Ply;
+    }
+    else if (abs(s) < ScoreSuperiorMaxPly) {
+      return s;
+    }
 
-    return (ScoreMateInMaxPly <= s ? s + static_cast<Score>(ply)
-      : s <= ScoreMatedInMaxPly ? s - static_cast<Score>(ply)
-      : s);
+    std::cerr << __FILE__ << " " << __FUNCTION__ << " " << __LINE__
+      << " s=" << s
+      << " ply=" << ply
+      << std::endl;
+    assert(false);
+    return ScoreNone;
   }
 
   Score scoreFromTT(const Score s, const Ply ply) {
-    return (s == ScoreNone ? ScoreNone
-      : ScoreMateInMaxPly <= s ? s - static_cast<Score>(ply)
-      : s <= ScoreMatedInMaxPly ? s + static_cast<Score>(ply)
-      : s);
+    assert(0 <= ply);
+
+    if (s == ScoreNone) {
+      return ScoreNone;
+    }
+    else if (s == ScoreMate0Ply) {
+      // 詰み
+      return mateIn(ply);
+    }
+    else if (s == ScoreMated0Ply) {
+      // 詰まされている
+      return matedIn(ply);
+    }
+    else if (s == ScoreSuperior0Ply) {
+      // 優等局面
+      return superiorIn(ply);
+    }
+    else if (s == ScoreInferior0Ply) {
+      // 劣等局面
+      return inferiorIn(ply);
+    }
+    else if (abs(s) < ScoreSuperiorMaxPly) {
+      return s;
+    }
+
+    std::cerr << __FILE__ << " " << __FUNCTION__ << " " << __LINE__
+      << " s=" << s
+      << " ply=" << ply
+      << std::endl;
+    assert(false);
+    return ScoreNone;
   }
 
   // fitst move によって、first move の相手側の second move を違法手にするか。
@@ -252,17 +310,32 @@ namespace {
   std::string scoreToUSI(const Score score, const Score alpha, const Score beta) {
     std::stringstream ss;
 
-    int normalizedScore = score * 100 / PawnScore;
-    int normalizedAlpha = alpha * 100 / PawnScore;
-    int normalizedBeta = beta * 100 / PawnScore;
+    assert(score != ScoreNone);
 
-    if (abs(score) < ScoreMateInMaxPly) {
-      // cp は centi pawn の略
-      ss << "cp " << normalizedScore;
-    }
-    else {
+    if (isMate(score)) {
+      // 詰み
       // mate の後には、何手で詰むかを表示する。
-      ss << "mate " << (0 < score ? ScoreMate0Ply - score : -ScoreMate0Ply - score);
+      ss << "mate " << (ScoreMate0Ply - score);
+    }
+    else if (isMated(score)) {
+      // 詰まされている
+      // mate の後には、何手で詰むかを表示する。
+      ss << "mate " << (ScoreMated0Ply - score);
+    }
+    else if (isSuperior(score)) {
+      // 優等局面
+      // mate の後には、何手優等局面が続くか1000足して表示する
+      ss << "mate " << (ScoreSuperior0Ply - score + 1000);
+    }
+    else if (isInferior(score)) {
+      // 劣等局面
+      // mate の後には、何手劣等局面が続くか1000引いて表示する
+      ss << "mate " << (ScoreInferior0Ply - score - 1000);
+    }
+    else if (abs(score) < ScoreSuperiorMaxPly) {
+      // cp は centi pawn の略
+      int normalizedScore = score * 100 / PawnScore;
+      ss << "cp " << normalizedScore;
     }
 
     ss << (beta <= score ? " lowerbound" : score <= alpha ? " upperbound" : "");
@@ -380,6 +453,15 @@ Score Searcher::qsearch(Position& pos, SearchStack* ss, Score alpha, Score beta,
   tte = tt.probe(posKey, ttHit);
   ttMove = (ttHit ? move16toMove(tte->move(), pos) : Move::moveNone());
   ttScore = (ttHit ? scoreFromTT(tte->score(), ss->ply) : ScoreNone);
+  if (!((-ScoreInfinite < ttScore && ttScore < ScoreInfinite) || ttScore == ScoreNone)) {
+    pos.print();
+    std::cerr << __FILE__ << " " << __FUNCTION__ << " " << __LINE__
+      << " ttScore=" << ttScore
+      << " tte->score()=" << tte->score()
+      << " ss->ply=" << ss->ply
+      << std::endl;
+    assert(false);
+  }
 
   if (ttHit
     && ttDepth <= tte->depth()
@@ -389,6 +471,7 @@ Score Searcher::qsearch(Position& pos, SearchStack* ss, Score alpha, Score beta,
         : (tte->bound() & BoundUpper))))
   {
     ss->currentMove = ttMove;
+    assert(-ScoreInfinite < ttScore && ttScore < ScoreInfinite);
     return ttScore;
   }
 
@@ -400,7 +483,9 @@ Score Searcher::qsearch(Position& pos, SearchStack* ss, Score alpha, Score beta,
   }
   else {
     if (!(move = pos.mateMoveIn1Ply()).isNone()) {
-      return mateIn(ss->ply);
+      score = mateIn(ss->ply);
+      assert(-ScoreInfinite < score && score < ScoreInfinite);
+      return score;
     }
 
     if (ttHit) {
@@ -414,10 +499,13 @@ Score Searcher::qsearch(Position& pos, SearchStack* ss, Score alpha, Score beta,
 
     if (beta <= bestScore) {
       if (!ttHit) {
+        Score newTtScore = scoreToTT(bestScore, ss->ply);
+        assert(-ScoreInfinite < newTtScore && newTtScore < ScoreInfinite);
         tte->save(pos.getKey(), scoreToTT(bestScore, ss->ply), BoundLower,
           DepthNone, Move::moveNone(), ss->staticEval, tt.generation());
       }
 
+      assert(-ScoreInfinite < bestScore && bestScore < ScoreInfinite);
       return bestScore;
     }
 
@@ -453,6 +541,7 @@ Score Searcher::qsearch(Position& pos, SearchStack* ss, Score alpha, Score beta,
 
       if (futilityScore < beta) {
         bestScore = std::max(bestScore, futilityScore);
+        assert(-ScoreInfinite < bestScore && bestScore < ScoreInfinite);
         continue;
       }
 
@@ -462,6 +551,7 @@ Score Searcher::qsearch(Position& pos, SearchStack* ss, Score alpha, Score beta,
         && pos.see(move, beta - futilityBase) <= ScoreZero)
       {
         bestScore = std::max(bestScore, futilityBase);
+        assert(-ScoreInfinite < bestScore && bestScore < ScoreInfinite);
         continue;
       }
     }
@@ -490,7 +580,9 @@ Score Searcher::qsearch(Position& pos, SearchStack* ss, Score alpha, Score beta,
       SYNCCOUT << "info string Searcher::qsearch() Tried to capture the opponent's king." << SYNCENDL;
       // TODO(nodchip): 置換表に保存しなくていよいのか？
       // 上にあるmateMoveIn1Ply()では保存していない。
-      return mateIn(ss->ply);
+      score = mateIn(ss->ply);
+      assert(-ScoreInfinite < score && score < ScoreInfinite);
+      return score;
     }
 
     pos.doMove(move, st, ci, givesCheck);
@@ -511,8 +603,11 @@ Score Searcher::qsearch(Position& pos, SearchStack* ss, Score alpha, Score beta,
         }
         else {
           // fail high
-          tte->save(posKey, scoreToTT(score, ss->ply), BoundLower,
+          Score newTtScore = scoreToTT(score, ss->ply);
+          assert(-ScoreInfinite < newTtScore && newTtScore < ScoreInfinite);
+          tte->save(posKey, newTtScore, BoundLower,
             ttDepth, move, ss->staticEval, tt.generation());
+          assert(-ScoreInfinite < score && score < ScoreInfinite);
           return score;
         }
       }
@@ -520,10 +615,14 @@ Score Searcher::qsearch(Position& pos, SearchStack* ss, Score alpha, Score beta,
   }
 
   if (INCHECK && bestScore == -ScoreInfinite) {
-    return matedIn(ss->ply);
+    score = matedIn(ss->ply);
+    assert(-ScoreInfinite < score && score < ScoreInfinite);
+    return score;
   }
 
-  tte->save(posKey, scoreToTT(bestScore, ss->ply),
+  Score newTtScore = scoreToTT(bestScore, ss->ply);
+  assert(-ScoreInfinite < newTtScore && newTtScore < ScoreInfinite);
+  tte->save(posKey, newTtScore,
     ((PVNode && oldAlpha < bestScore) ? BoundExact : BoundUpper),
     ttDepth, bestMove, ss->staticEval, tt.generation());
 
@@ -998,8 +1097,8 @@ Score Searcher::search(Position& pos, SearchStack* ss, Score alpha, Score beta, 
     case RepetitionDraw: return ScoreDraw;
     case RepetitionWin: return mateIn(ss->ply);
     case RepetitionLose: return matedIn(ss->ply);
-    case RepetitionSuperior: if (ss->ply != 2) { return ScoreMateInMaxPly; } break;
-    case RepetitionInferior: if (ss->ply != 2) { return ScoreMatedInMaxPly; } break;
+    case RepetitionSuperior: if (ss->ply != 2) { return superiorIn(ss->ply); } break;
+    case RepetitionInferior: if (ss->ply != 2) { return inferiorIn(ss->ply); } break;
     default: UNREACHABLE;
     }
 
@@ -1027,6 +1126,15 @@ Score Searcher::search(Position& pos, SearchStack* ss, Score alpha, Score beta, 
     move16toMove(tte->move(), pos) :
     Move::moveNone();
   ttScore = (ttHit ? scoreFromTT(tte->score(), ss->ply) : ScoreNone);
+  if (!((-ScoreInfinite < ttScore && ttScore < ScoreInfinite) || ttScore == ScoreNone)) {
+    pos.print();
+    std::cerr << __FILE__ << " " << __FUNCTION__ << " " << __LINE__
+      << " ttScore=" << ttScore
+      << " tte->score()=" << tte->score()
+      << " ss->ply=" << ss->ply
+      << std::endl;
+    assert(false);
+  }
 
   if (!RootNode
     && ttHit
@@ -1767,7 +1875,7 @@ void Searcher::think() {
   if (nyugyoku(pos)) {
     nyugyokuWin = true;
     goto finalize;
-}
+  }
 #endif
 #endif
   pos.setNodesSearched(0);
