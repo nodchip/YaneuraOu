@@ -1261,17 +1261,20 @@ Score Searcher::search(Position& pos, SearchStack* ss, Score alpha, Score beta, 
     if (beta < eval - SEARCH_NULL_MOVE_MARGIN) {
       reduction += OnePly;
     }
+    Depth nextDepth = depth - reduction;
+    nextDepth = std::min(nextDepth, depth - Depth1);
+    nextDepth = std::max(nextDepth, Depth1);
 
     pos.doNullMove<true>(st);
     (ss + 1)->staticEvalRaw = (ss)->staticEvalRaw; // 評価値の差分評価の為。
     (ss + 1)->skipNullMove = true;
     Score nullScore;
-    if (depth - reduction < OnePly) {
+    if (nextDepth < OnePly) {
       nullScore = -qsearch<NonPV, false>(pos, ss + 1, -beta, -alpha, Depth0);
     }
     else {
-      assert(Depth0 < depth - reduction);
-      nullScore = -search<NonPV>(pos, ss + 1, -beta, -alpha, depth - reduction, !cutNode);
+      assert(Depth0 < nextDepth);
+      nullScore = -search<NonPV>(pos, ss + 1, -beta, -alpha, nextDepth, !cutNode);
     }
     (ss + 1)->skipNullMove = false;
     pos.doNullMove<false>(st);
@@ -1287,8 +1290,8 @@ Score Searcher::search(Position& pos, SearchStack* ss, Score alpha, Score beta, 
       }
 
       ss->skipNullMove = true;
-      assert(Depth0 < depth - reduction);
-      const Score s = search<NonPV>(pos, ss, alpha, beta, depth - reduction, false);
+      assert(Depth0 < nextDepth);
+      const Score s = search<NonPV>(pos, ss, alpha, beta, nextDepth, false);
       ss->skipNullMove = false;
 
       if (beta <= s) {
@@ -1448,7 +1451,7 @@ split_point_start:
       ss->excludedMove = move;
       ss->skipNullMove = true;
       Depth nextDepth = SEARCH_SINGULAR_EXTENSION_NULL_WINDOW_SEARCH_DEPTH_SCALE * depth / FLOAT_SCALE;
-      nextDepth = std::min(nextDepth, depth - 1);
+      nextDepth = std::min(nextDepth, depth - Depth1);
       nextDepth = std::max(nextDepth, Depth1);
       assert(Depth0 < nextDepth);
       score = search<NonPV>(pos, ss, rBeta - 1, rBeta, nextDepth, cutNode);
