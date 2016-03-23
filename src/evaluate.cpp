@@ -262,8 +262,8 @@ namespace {
           pos.plist0()[listIndex_cap] = pos.cl().clistpair1.oldlist0;
           diff.p[0] -= doablack(pos, pos.cl().clistpair1.oldlist0, pos.cl().clistpair1.oldlist1);
           pos.plist0()[listIndex_cap] = pos.cl().clistpair1.newlist0;
+        }
       }
-    }
       else {
         const auto* ppkppb = Evaluater::KPP[sq_bk];
         const int* list0 = pos.plist0();
@@ -316,8 +316,8 @@ namespace {
           pos.plist1()[listIndex_cap] = pos.cl().clistpair1.oldlist1;
           diff.p[1] -= doawhite(pos, pos.cl().clistpair1.oldlist0, pos.cl().clistpair1.oldlist1);
           pos.plist1()[listIndex_cap] = pos.cl().clistpair1.newlist1;
+        }
       }
-  }
       ss->staticEvalRaw = diff;
 }
     else {
@@ -391,10 +391,13 @@ namespace {
 
   void evaluateBody(Position& pos, SearchStack* ss) {
     if (calcDifference(pos, ss)) {
-      assert([&] {
-        const auto score = ss->staticEvalRaw.sum(pos.turn());
-        return (evaluateUnUseDiff(pos) == score);
-      }());
+#ifndef NDEBUG
+      const auto score = ss->staticEvalRaw.sum(pos.turn());
+      if (evaluateUnUseDiff(pos) != score) {
+        debugOutputEvalSum(pos, ss->staticEvalRaw);
+        assert(false);
+      }
+#endif
       return;
     }
 
@@ -453,7 +456,12 @@ namespace {
 #endif
     ss->staticEvalRaw = sum;
 
-    assert(evaluateUnUseDiff(pos) == sum.sum(pos.turn()));
+#ifndef NDEBUG
+    if (evaluateUnUseDiff(pos) != sum.sum(pos.turn())) {
+      debugOutputEvalSum(pos, sum);
+      assert(false);
+    }
+#endif
   }
 }
 
@@ -526,10 +534,102 @@ Score evaluateUnUseDiff(const Position& pos) {
   return static_cast<Score>(score.sum(pos.turn()));
 }
 
+void debugOutputEvalSum(const Position& pos, const EvalSum& evalSum) {
+  int list0[EvalList::ListSize];
+  int list1[EvalList::ListSize];
+
+  const Hand handB = pos.hand(Black);
+  const Hand handW = pos.hand(White);
+
+  const Square sq_bk = pos.kingSquare(Black);
+  const Square sq_wk = pos.kingSquare(White);
+  int nlist = 0;
+
+  auto func = [&](const Hand hand, const HandPiece hp, const int list0_index, const int list1_index) {
+    for (u32 i = 1; i <= hand.numOf(hp); ++i) {
+      list0[nlist] = list0_index + i;
+      list1[nlist] = list1_index + i;
+      ++nlist;
+    }
+  };
+  func(handB, HPawn, f_hand_pawn, e_hand_pawn);
+  func(handW, HPawn, e_hand_pawn, f_hand_pawn);
+  func(handB, HLance, f_hand_lance, e_hand_lance);
+  func(handW, HLance, e_hand_lance, f_hand_lance);
+  func(handB, HKnight, f_hand_knight, e_hand_knight);
+  func(handW, HKnight, e_hand_knight, f_hand_knight);
+  func(handB, HSilver, f_hand_silver, e_hand_silver);
+  func(handW, HSilver, e_hand_silver, f_hand_silver);
+  func(handB, HGold, f_hand_gold, e_hand_gold);
+  func(handW, HGold, e_hand_gold, f_hand_gold);
+  func(handB, HBishop, f_hand_bishop, e_hand_bishop);
+  func(handW, HBishop, e_hand_bishop, f_hand_bishop);
+  func(handB, HRook, f_hand_rook, e_hand_rook);
+  func(handW, HRook, e_hand_rook, f_hand_rook);
+
+  nlist = make_list_unUseDiff(pos, list0, list1, nlist);
+
+  const auto* ppkppb = Evaluater::KPP[sq_bk];
+  const auto* ppkppw = Evaluater::KPP[inverse(sq_wk)];
+
+  EvalSum score;
+  score.p[2] = Evaluater::KK[sq_bk][sq_wk];
+
+  score.p[0][0] = 0;
+  score.p[0][1] = 0;
+  score.p[1][0] = 0;
+  score.p[1][1] = 0;
+  for (int i = 0; i < nlist; ++i) {
+    const int k0 = list0[i];
+    assert(0 <= k0);
+    assert(k0 < fe_end);
+    const int k1 = list1[i];
+    assert(0 <= k1);
+    assert(k1 < fe_end);
+    const auto* pkppb = ppkppb[k0];
+    const auto* pkppw = ppkppw[k1];
+    for (int j = 0; j < i; ++j) {
+      const int l0 = list0[j];
+      const int l1 = list1[j];
+      score.p[0] += pkppb[l0];
+      score.p[1] += pkppw[l1];
+    }
+    score.p[2] += Evaluater::KKP[sq_bk][sq_wk][k0];
+  }
+
+  score.p[2][0] += pos.material() * FVScale;
+
+#if defined INANIWA_SHIFT
+  score.p[2][0] += inaniwaScore(pos);
+#endif
+
+  std::cerr << "unuseDiff=" << std::endl;
+  for (int i = 0; i < 3; ++i) {
+    for (int j = 0; j < 2; ++j) {
+      std::cerr << "p[" << i << "][" << j << "]" << score.p[i][j] << std::endl;
+    }
+  }
+  std::cerr << "sum(pos.turn())=" << score.sum(pos.turn()) << std::endl;
+  std::cerr << std::endl;
+
+  std::cerr << "diff=" << std::endl;
+  for (int i = 0; i < 3; ++i) {
+    for (int j = 0; j < 2; ++j) {
+      std::cerr << "p[" << i << "][" << j << "]" << evalSum.p[i][j] << std::endl;
+    }
+  }
+  std::cerr << "sum(pos.turn())=" << evalSum.sum(pos.turn()) << std::endl;
+}
+
 Score evaluate(Position& pos, SearchStack* ss) {
   if (ss->staticEvalRaw.p[0][0] != ScoreNotEvaluated) {
     const Score score = static_cast<Score>(ss->staticEvalRaw.sum(pos.turn()));
-    assert(score == evaluateUnUseDiff(pos));
+#ifndef NDEBUG
+    if (evaluateUnUseDiff(pos) != score) {
+      debugOutputEvalSum(pos, ss->staticEvalRaw);
+      assert(false);
+    }
+#endif
     return score / FVScale;
   }
 
@@ -538,7 +638,12 @@ Score evaluate(Position& pos, SearchStack* ss) {
   entry.decode();
   if (entry.key == keyExcludeTurn) {
     ss->staticEvalRaw = entry;
-    assert(static_cast<Score>(ss->staticEvalRaw.sum(pos.turn())) == evaluateUnUseDiff(pos));
+#ifndef NDEBUG
+    if (ss->staticEvalRaw.sum(pos.turn()) != evaluateUnUseDiff(pos)) {
+      debugOutputEvalSum(pos, ss->staticEvalRaw);
+      assert(false);
+    }
+#endif
     return static_cast<Score>(entry.sum(pos.turn())) / FVScale;
   }
 

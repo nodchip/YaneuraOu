@@ -467,7 +467,11 @@ void Position::doMove(const Move move, StateInfo& newSt, const CheckInfo& ci, co
 }
 
 void Position::undoMove(const Move move) {
-  assert(isOK());
+#ifndef NDEBUG
+  if (!isOK()) {
+    std::cerr << "move=" << move.toCSA() << std::endl;
+  }
+#endif
   assert(!move.isNone());
 
   const Color them = turn();
@@ -1608,39 +1612,77 @@ bool Position::isOK() const {
   const bool debugPiece = debugAll || false;
   const bool debugMaterial = debugAll || false;
 
-  int failedStep = 0;
   if (debugBitboards) {
     if ((bbOf(Black) & bbOf(White)).isNot0()) {
+      std::cerr << "(bbOf(Black) & bbOf(White)).isNot0()" << std::endl;
+      std::cerr << "bbOf(Black)=" << std::endl;
+      bbOf(Black).printBoard();
+      std::cerr << "bbOf(White)=" << std::endl;
+      bbOf(White).printBoard();
+      std::cerr << "(bbOf(Black) & bbOf(White))=" << std::endl;
+      (bbOf(Black) & bbOf(White)).printBoard();
       goto incorrect_position;
     }
+
     if ((bbOf(Black) | bbOf(White)) != occupiedBB()) {
+      std::cerr << "(bbOf(Black) | bbOf(White)) != occupiedBB()" << std::endl;
+      std::cerr << "bbOf(Black)=" << std::endl;
+      bbOf(Black).printBoard();
+      std::cerr << "bbOf(White)=" << std::endl;
+      bbOf(White).printBoard();
+      std::cerr << "(bbOf(Black) | bbOf(White))=" << std::endl;
+      (bbOf(Black) | bbOf(White)).printBoard();
+      std::cerr << "occupiedBB()=" << std::endl;
+      occupiedBB().printBoard();
       goto incorrect_position;
     }
+
     if ((bbOf(Pawn) ^ bbOf(Lance) ^ bbOf(Knight) ^ bbOf(Silver) ^ bbOf(Bishop) ^
       bbOf(Rook) ^ bbOf(Gold) ^ bbOf(King) ^ bbOf(ProPawn) ^ bbOf(ProLance) ^
       bbOf(ProKnight) ^ bbOf(ProSilver) ^ bbOf(Horse) ^ bbOf(Dragon)) != occupiedBB())
     {
+      std::cerr << "(bbOf(Pawn) ^ bbOf(Lance) ^ bbOf(Knight) ^ bbOf(Silver) ^ bbOf(Bishop) ^ bbOf(Rook) ^ bbOf(Gold) ^ bbOf(King) ^ bbOf(ProPawn) ^ bbOf(ProLance) ^ bbOf(ProKnight) ^ bbOf(ProSilver) ^ bbOf(Horse) ^ bbOf(Dragon)) != occupiedBB()" << std::endl;
+      for (PieceType pieceType = Pawn; pieceType < PieceTypeNum; ++pieceType) {
+        std::cerr << "bbOf(" << pieceType << ")=" << std::endl;
+        bbOf(pieceType).printBoard();
+      }
+      std::cerr << "(bbOf(Pawn) ^ bbOf(Lance) ^ bbOf(Knight) ^ bbOf(Silver) ^ bbOf(Bishop) ^ bbOf(Rook) ^ bbOf(Gold) ^ bbOf(King) ^ bbOf(ProPawn) ^ bbOf(ProLance) ^ bbOf(ProKnight) ^ bbOf(ProSilver) ^ bbOf(Horse) ^ bbOf(Dragon))=" << std::endl;
+      (bbOf(Pawn) ^ bbOf(Lance) ^ bbOf(Knight) ^ bbOf(Silver) ^ bbOf(Bishop) ^ bbOf(Rook) ^ bbOf(Gold) ^ bbOf(King) ^ bbOf(ProPawn) ^ bbOf(ProLance) ^ bbOf(ProKnight) ^ bbOf(ProSilver) ^ bbOf(Horse) ^ bbOf(Dragon)).printBoard();
+      std::cerr << "occupiedBB()=" << std::endl;
+      occupiedBB().printBoard();
       goto incorrect_position;
     }
     for (PieceType pt1 = Pawn; pt1 < PieceTypeNum; ++pt1) {
       for (PieceType pt2 = pt1 + 1; pt2 < PieceTypeNum; ++pt2) {
         if ((bbOf(pt1) & bbOf(pt2)).isNot0()) {
+          std::cerr << "pt1=" << pt1 << " pt2=" << pt2 << std::endl;
+          std::cerr << "bbOf(pt1)=" << std::endl;
+          bbOf(pt1).printBoard();
+          std::cerr << "bbOf(pt2)=" << std::endl;
+          bbOf(pt2).printBoard();
           goto incorrect_position;
         }
       }
     }
   }
 
-  ++failedStep;
   if (debugKingCount) {
     int kingCount[ColorNum] = { 0, 0 };
     if (bbOf(King).popCount() != 2) {
+      std::cerr << "bbOf(King).popCount() != 2" << std::endl;
+      std::cerr << "bbOf(King).popCount()=" << bbOf(King).popCount() << std::endl;
       goto incorrect_position;
     }
     if (!bbOf(King, Black).isOneBit()) {
+      std::cerr << "!bbOf(King, Black).isOneBit()" << std::endl;
+      std::cerr << "bbOf(King, Black)=" << std::endl;
+      bbOf(King, Black).printBoard();
       goto incorrect_position;
     }
     if (!bbOf(King, White).isOneBit()) {
+      std::cerr << "!bbOf(King, White).isOneBit()" << std::endl;
+      std::cerr << "bbOf(King, White)=" << std::endl;
+      bbOf(King, White).printBoard();
       goto incorrect_position;
     }
     for (Square sq = I9; sq < SquareNum; ++sq) {
@@ -1651,68 +1693,91 @@ bool Position::isOK() const {
         ++kingCount[White];
       }
     }
-    if (kingCount[Black] != 1 || kingCount[White] != 1) {
+    if (kingCount[Black] != 1) {
+      std::cerr << "kingCount[Black] != 1" << std::endl;
+      std::cerr << "kingCount[Black]=" << kingCount[Black] << std::endl;
+      goto incorrect_position;
+    }
+    if (kingCount[White] != 1) {
+      std::cerr << "kingCount[White] != 1" << std::endl;
+      std::cerr << "kingCount[White]=" << kingCount[White] << std::endl;
       goto incorrect_position;
     }
   }
 
-  ++failedStep;
   if (debugKingCapture) {
     // 相手玉を取れないことを確認
     const Color us = turn();
     const Color them = oppositeColor(us);
     const Square ksq = kingSquare(them);
     if (attackersTo(us, ksq).isNot0()) {
+      std::cerr << "attackersTo(us, ksq).isNot0()" << std::endl;
+      std::cerr << "attackersTo(us, ksq)=" << std::endl;
+      attackersTo(us, ksq).printBoard();
       goto incorrect_position;
     }
   }
 
-  ++failedStep;
   if (debugCheckerCount) {
     if (2 < st_->checkersBB.popCount()) {
+      std::cerr << "2 < st_->checkersBB.popCount()" << std::endl;
+      std::cerr << "st_->checkersBB.popCount()=" << st_->checkersBB.popCount() << std::endl;
       goto incorrect_position;
     }
   }
 
-  ++failedStep;
   if (debugKey) {
     if (getKey() != computeKey()) {
+      std::cerr << "getKey() != computeKey()" << std::endl;
+      std::cerr << "getKey()=" << getKey() << std::endl;
+      std::cerr << "computeKey()=" << computeKey() << std::endl;
       goto incorrect_position;
     }
   }
 
-  ++failedStep;
   if (debugStateHand) {
     if (st_->hand != hand(turn())) {
+      std::cerr << "st_->hand != hand(turn())" << std::endl;
+      std::cerr << "st_->hand=" << st_->hand.value() << std::endl;
+      std::cerr << "hand(turn())=" << hand(turn()).value() << std::endl;
       goto incorrect_position;
     }
   }
 
-  ++failedStep;
   if (debugPiece) {
     for (Square sq = I9; sq < SquareNum; ++sq) {
       const Piece pc = piece(sq);
       if (pc == Empty) {
         if (!emptyBB().isSet(sq)) {
+          std::cerr << "!emptyBB().isSet(sq) sq=" << sq << " pc=" << pc << std::endl;
+          std::cerr << "emptyBB()=" << std::endl;
+          emptyBB().printBoard();
+          std::cerr << "sq=" << sq << std::endl;
           goto incorrect_position;
         }
       }
       else {
         if (!bbOf(pieceToPieceType(pc), pieceToColor(pc)).isSet(sq)) {
+          std::cerr << "!bbOf(pieceToPieceType(pc), pieceToColor(pc)).isSet(sq) sq=" << sq << " pc=" << pc << std::endl;
+          std::cerr << "pieceToPieceType(pc)=" << pieceToPieceType(pc) << std::endl;
+          std::cerr << "pieceToColor(pc)=" << pieceToColor(pc) << std::endl;
+          std::cerr << "bbOf(pieceToPieceType(pc), pieceToColor(pc))=" << std::endl;
+          bbOf(pieceToPieceType(pc), pieceToColor(pc)).printBoard();
           goto incorrect_position;
         }
       }
     }
   }
 
-  ++failedStep;
   if (debugMaterial) {
     if (material() != computeMaterial()) {
+      std::cerr << "material() != computeMaterial()" << std::endl;
+      std::cerr << "material()=" << material() << std::endl;
+      std::cerr << "computeMaterial()=" << computeMaterial() << std::endl;
       goto incorrect_position;
     }
   }
 
-  ++failedStep;
   {
     int i;
     if ((i = debugSetEvalList()) != 0) {
@@ -1725,7 +1790,6 @@ bool Position::isOK() const {
   return true;
 
 incorrect_position:
-  std::cerr << "Error! failedStep = " << failedStep << std::endl;
   std::cerr << "prevKey = " << prevKey << std::endl;
   std::cerr << "currKey = " << getKey() << std::endl;
   print();
