@@ -1334,13 +1334,11 @@ Score Searcher::search(Position& pos, SearchStack* ss, Score alpha, Score beta, 
     && SEARCH_PROBCUT_DEPTH_THRESHOLD <= depth
     && !ss->skipNullMove
     // 確実にバグらせないようにする。
-    && abs(beta) < ScoreInfinite - 200)
+    && abs(beta) < ScoreInfinite - 300)
   {
     const Score rbeta = beta + SEARCH_PROBCUT_RBETA_SCORE_DELTA;
-    Depth rdepth = (depth < OnePly + SEARCH_PROBCUT_RBETA_DEPTH_DELTA)
-      ? OnePly
-      : depth - SEARCH_PROBCUT_RBETA_DEPTH_DELTA;
-    rdepth = clamp(rdepth, Depth1, depth - Depth1);
+    Depth rdepth = clamp(
+      depth - SEARCH_PROBCUT_RBETA_DEPTH_DELTA, OnePly, depth - Depth1);
 
     assert(OnePly <= rdepth);
     assert(!(ss - 1)->currentMove.isNone());

@@ -80,7 +80,7 @@ constexpr int FLOAT_SCALE = 1 << 10;
 #define SEARCH_NULL_FAIL_LOW_SCORE_DEPTH_THRESHOLD 10 // 5 * OnePly
 #endif
 
-// [2, 20]
+// [3, 20]
 #ifndef SEARCH_PROBCUT_DEPTH_THRESHOLD
 #define SEARCH_PROBCUT_DEPTH_THRESHOLD 10 // 5 * OnePly
 #endif
