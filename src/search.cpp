@@ -1019,6 +1019,23 @@ template <bool DO> void Position::doNullMove(StateInfo& backUpSt) {
   assert(isOK());
 }
 
+namespace
+{
+  Depth clamp(Depth d, Depth lo, Depth hi)
+  {
+    assert(lo <= hi);
+    if (d < lo) {
+      return lo;
+    }
+    else if (hi < d) {
+      return hi;
+    }
+    else {
+      return d;
+    }
+  }
+}
+
 template <NodeType NT>
 Score Searcher::search(Position& pos, SearchStack* ss, Score alpha, Score beta, const Depth depth, const bool cutNode) {
   constexpr bool PVNode = (NT == PV || NT == Root || NT == SplitPointPV || NT == SplitPointRoot);
@@ -1261,9 +1278,7 @@ Score Searcher::search(Position& pos, SearchStack* ss, Score alpha, Score beta, 
     if (beta < eval - SEARCH_NULL_MOVE_MARGIN) {
       reduction += OnePly;
     }
-    Depth nextDepth = depth - reduction;
-    nextDepth = std::min(nextDepth, depth - Depth1);
-    nextDepth = std::max(nextDepth, Depth1);
+    Depth nextDepth = clamp(depth - reduction, Depth1, depth - Depth1);
 
     pos.doNullMove<true>(st);
     (ss + 1)->staticEvalRaw = (ss)->staticEvalRaw; // 評価値の差分評価の為。
@@ -1322,9 +1337,10 @@ Score Searcher::search(Position& pos, SearchStack* ss, Score alpha, Score beta, 
     && abs(beta) < ScoreInfinite - 200)
   {
     const Score rbeta = beta + SEARCH_PROBCUT_RBETA_SCORE_DELTA;
-    const Depth rdepth = (depth < OnePly + SEARCH_PROBCUT_RBETA_DEPTH_DELTA)
+    Depth rdepth = (depth < OnePly + SEARCH_PROBCUT_RBETA_DEPTH_DELTA)
       ? OnePly
       : depth - SEARCH_PROBCUT_RBETA_DEPTH_DELTA;
+    rdepth = clamp(rdepth, Depth1, depth - Depth1);
 
     assert(OnePly <= rdepth);
     assert(!(ss - 1)->currentMove.isNone());
@@ -1362,8 +1378,7 @@ iid_start:
     Depth d = PVNode
       ? (depth - SEARCH_INTERNAL_ITERATIVE_DEEPENING_PV_NODE_DEPTH_DELTA)
       : (depth * SEARCH_INTERNAL_ITERATIVE_DEEPENING_NON_PV_DEPTH_SCALE / FLOAT_SCALE);
-    d = std::min(d, depth - Depth1);
-    d = std::max(d, Depth1);
+    d = clamp(d, Depth1, depth - Depth1);
 
     ss->skipNullMove = true;
     assert(Depth0 < d);
@@ -1451,8 +1466,7 @@ split_point_start:
       ss->excludedMove = move;
       ss->skipNullMove = true;
       Depth nextDepth = SEARCH_SINGULAR_EXTENSION_NULL_WINDOW_SEARCH_DEPTH_SCALE * depth / FLOAT_SCALE;
-      nextDepth = std::min(nextDepth, depth - Depth1);
-      nextDepth = std::max(nextDepth, Depth1);
+      nextDepth = clamp(nextDepth, Depth1, depth - Depth1);
       assert(Depth0 < nextDepth);
       score = search<NonPV>(pos, ss, rBeta - 1, rBeta, nextDepth, cutNode);
       ss->skipNullMove = false;
@@ -1550,7 +1564,7 @@ split_point_start:
       if (!PVNode && cutNode) {
         ss->reduction += OnePly;
       }
-      const Depth d = std::max(newDepth - ss->reduction, OnePly);
+      Depth d = clamp(newDepth - ss->reduction, Depth1, depth - Depth1);
       if (SPNode) {
         alpha = splitPoint->alpha;
       }
