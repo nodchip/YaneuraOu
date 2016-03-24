@@ -15,8 +15,17 @@
 # 2. Execute the following commands.
 # - python -m pip install --upgrade pip
 # - pip install hyperopt bson pymongo networkx
+#
+# 3. If using MSVC instead of MSYS (Windows)
+# - install MSVC14 (Visual Studio 2015)
+# - uncomment the line: buider = MSVCBuilder()
+# - open developer console
+# - move in src directory
+# - run this script
 from hyperopt import fmin, tpe, hp, rand
 from math import log
+import os
+import sys
 import datetime
 import re
 import shutil
@@ -62,9 +71,186 @@ space = [
   hp.quniform('SEARCH_STATIC_NULL_MOVE_PRUNING_DEPTH_THRESHOLD', 2, 16, 1),
 ]
 
+build_argument_names = [
+  'QSEARCH_FUTILITY_MARGIN',
+  'SEARCH_FUTILITY_MARGIN_DEPTH_THRESHOLD',
+  'SEARCH_FUTILITY_MARGIN_INTERCEPT',
+  'SEARCH_FUTILITY_MARGIN_LOG_D_COEFFICIENT',
+  'SEARCH_FUTILITY_MARGIN_MOVE_COUNT_COEFFICIENT',
+  'SEARCH_FUTILITY_MOVE_COUNTS_INTERCEPT',
+  'SEARCH_FUTILITY_MOVE_COUNTS_POWER',
+  'SEARCH_FUTILITY_MOVE_COUNTS_SCALE',
+  'SEARCH_FUTILITY_PRUNING_NON_PV_REDUCTION_INTERCEPT',
+  'SEARCH_FUTILITY_PRUNING_NON_PV_REDUCTION_SLOPE',
+  'SEARCH_FUTILITY_PRUNING_PREDICTED_DEPTH_THRESHOLD',
+  'SEARCH_FUTILITY_PRUNING_PV_REDUCTION_INTERCEPT',
+  'SEARCH_FUTILITY_PRUNING_PV_REDUCTION_SLOPE',
+  'SEARCH_FUTILITY_PRUNING_SCORE_GAIN_SLOPE',
+  'SEARCH_INTERNAL_ITERATIVE_DEEPENING_NON_PV_DEPTH_SCALE',
+  'SEARCH_INTERNAL_ITERATIVE_DEEPENING_NON_PV_NODE_DEPTH_THRESHOLD',
+  'SEARCH_INTERNAL_ITERATIVE_DEEPENING_PV_NODE_DEPTH_DELTA',
+  'SEARCH_INTERNAL_ITERATIVE_DEEPENING_PV_NODE_DEPTH_THRESHOLD',
+  'SEARCH_INTERNAL_ITERATIVE_DEEPENING_SCORE_MARGIN',
+  'SEARCH_LATE_MOVE_REDUCTION_DEPTH_THRESHOLD',
+  'SEARCH_NULL_FAIL_LOW_SCORE_DEPTH_THRESHOLD',
+  'SEARCH_NULL_MOVE_DEPTH_THRESHOLD',
+  'SEARCH_NULL_MOVE_MARGIN',
+  'SEARCH_NULL_MOVE_NULL_SCORE_DEPTH_THRESHOLD',
+  'SEARCH_NULL_MOVE_REDUCTION_INTERCEPT',
+  'SEARCH_NULL_MOVE_REDUCTION_SLOPE',
+  'SEARCH_PROBCUT_DEPTH_THRESHOLD',
+  'SEARCH_PROBCUT_RBETA_DEPTH_DELTA',
+  'SEARCH_PROBCUT_RBETA_SCORE_DELTA',
+  'SEARCH_RAZORING_DEPTH',
+  'SEARCH_RAZORING_MARGIN_INTERCEPT',
+  'SEARCH_RAZORING_MARGIN_SLOPE',
+  'SEARCH_SINGULAR_EXTENSION_DEPTH_THRESHOLD',
+  'SEARCH_SINGULAR_EXTENSION_NULL_WINDOW_SEARCH_DEPTH_SCALE',
+  'SEARCH_SINGULAR_EXTENSION_TTE_DEPTH_THRESHOLD',
+  'SEARCH_STATIC_NULL_MOVE_PRUNING_DEPTH_THRESHOLD',
+  ]
+
 COUNTER = 0;
 MAX_EVALS = 100;
 START_TIME_SEC = time.time()
+
+class MSYSBuilder(object):
+  def __init__(self):
+    pass
+
+  def clean(self):
+    popenargs = [
+      'make',
+      'clean',
+    ]
+    print(popenargs)
+    while True:
+      try:
+        with open('make-clean.txt', 'w') as file:
+          output = subprocess.check_output(popenargs)
+          file.write(output)
+        break
+      except subprocess.CalledProcessError:
+        continue
+
+  def build(self, args):
+    popenargs = [
+      'make',
+      '-j4',
+      'native',
+      'TARGET_PREFIX=tanuki-modified',
+      ]
+    for key, val in zip(build_argument_names, args):
+      popenargs.append('{}={}'.format(key, int(val)))
+
+    print('Executing: make native (MSYS) ...')
+    while True:
+      try:
+        with open('make-native.txt', 'w') as file:
+          output = subprocess.check_output(popenargs)
+          file.write(output)
+        break
+      except subprocess.CalledProcessError:
+        continue
+
+  def kill(self, process_name):
+    subprocess.call(['pkill', process_name])
+
+class MSVCBuilder(object):
+  def __init__(self):
+    self.devenv_path = 'devenv.exe'
+    self.header_path = r'builder_generated.hpp'
+
+  def clean(self):
+    log_path = 'make-clean.txt'
+    popenargs = [
+      self.devenv_path,
+      r'..\tanuki-\tanuki-.sln',
+      '/Clean',
+      'Release|x64',
+      '/Project',
+      r'..\tanuki-\tanuki-\tanuki-.vcxproj',
+      '/Out',
+      log_path,
+      ]
+    print(popenargs)
+    while True:
+      try:
+        if os.path.isfile(log_path):
+          os.unlink(log_path)
+        subprocess.call(popenargs)
+        break
+      except subprocess.CalledProcessError:
+        print('retry')
+        continue
+
+  def update_header(self, args):
+    while True:
+      try:
+        with open(self.header_path, 'w') as file:
+          file.write('#ifndef __BUILDER_GENERATED_HPP__\n')
+          file.write('#define __BUILDER_GENERATED_HPP__\n')
+          file.write('// this file was automatically generated.\n')
+          file.write('// generated at {}\n'.format(datetime.datetime.now().strftime('%Y%m%d-%H%M%S')))
+          for key, val in zip(build_argument_names, args):
+            file.write('#define {} {}\n'.format(key, int(val)))
+          file.write('#endif // __BUILDER_GENERATED_HPP__\n')
+        break
+      except IOError:
+        print('retry')
+        continue
+  
+  def clean_header(self):
+    while True:
+      try:
+        with open(self.header_path, 'w') as file:
+          file.write('// this file was automatically generated.\n')
+          file.write('// generated at {}\n'.format(datetime.datetime.now().strftime('%Y%m%d-%H%M%S')))
+        break
+      except IOError:
+        print('retry')
+        continue
+
+  def move_exe(self):
+    shutil.copyfile(
+        r'..\tanuki-\x64\Release\tanuki-.exe',
+        r'tanuki-modified.exe',
+        )
+
+  def build(self, args):
+    self.update_header(args)
+
+    log_path = 'make-native.txt'
+    popenargs = [
+      self.devenv_path,
+      r'..\tanuki-\tanuki-.sln',
+      '/Build',
+      'Release|x64',
+      '/Project',
+      r'..\tanuki-\tanuki-\tanuki-.vcxproj',
+      '/Out',
+      log_path,
+      ]
+    print('Executing: make native (MSVC) ...')
+    while True:
+      try:
+        if os.path.isfile(log_path):
+          os.unlink(log_path)
+        output = subprocess.call(popenargs)
+        break
+      except subprocess.CalledProcessError:
+        print('retry')
+        continue
+
+    self.move_exe()
+    self.clean_header()
+
+  def kill(self, process_name):
+    subprocess.call(['taskkill', '/T', '/F', '/IM', process_name + '.exe'])
+
+# -- select one of two lines below:
+builder = MSYSBuilder()
+#builder = MSVCBuilder()
 
 def function(args):
   print('-' * 78)
@@ -82,71 +268,8 @@ def function(args):
     print(COUNTER, '/', MAX_EVALS, str(remaining))
   COUNTER += 1
 
-  popenargs = [
-    'make',
-    'clean',
-  ]
-  print(popenargs)
-  while True:
-    try:
-      with open('make-clean.txt', 'w') as file:
-        output = subprocess.check_output(popenargs)
-        file.write(output)
-      break
-    except subprocess.CalledProcessError:
-      continue
-
-  popenargs = [
-    'make',
-    '-j4',
-    'native',
-    'TARGET_PREFIX=tanuki-modified',
-    'QSEARCH_FUTILITY_MARGIN=' + str(int(args[0])),
-    'SEARCH_FUTILITY_MARGIN_DEPTH_THRESHOLD=' + str(int(args[1])),
-    'SEARCH_FUTILITY_MARGIN_INTERCEPT=' + str(int(args[2])),
-    'SEARCH_FUTILITY_MARGIN_LOG_D_COEFFICIENT=' + str(int(args[3])),
-    'SEARCH_FUTILITY_MARGIN_MOVE_COUNT_COEFFICIENT=' + str(int(args[4])),
-    'SEARCH_FUTILITY_MOVE_COUNTS_INTERCEPT=' + str(int(args[5])),
-    'SEARCH_FUTILITY_MOVE_COUNTS_POWER=' + str(int(args[6])),
-    'SEARCH_FUTILITY_MOVE_COUNTS_SCALE=' + str(int(args[7])),
-    'SEARCH_FUTILITY_PRUNING_NON_PV_REDUCTION_INTERCEPT=' + str(int(args[8])),
-    'SEARCH_FUTILITY_PRUNING_NON_PV_REDUCTION_SLOPE=' + str(int(args[9])),
-    'SEARCH_FUTILITY_PRUNING_PREDICTED_DEPTH_THRESHOLD=' + str(int(args[10])),
-    'SEARCH_FUTILITY_PRUNING_PV_REDUCTION_INTERCEPT=' + str(int(args[11])),
-    'SEARCH_FUTILITY_PRUNING_PV_REDUCTION_SLOPE=' + str(int(args[12])),
-    'SEARCH_FUTILITY_PRUNING_SCORE_GAIN_SLOPE=' + str(int(args[13])),
-    'SEARCH_INTERNAL_ITERATIVE_DEEPENING_NON_PV_DEPTH_SCALE=' + str(int(args[14])),
-    'SEARCH_INTERNAL_ITERATIVE_DEEPENING_NON_PV_NODE_DEPTH_THRESHOLD=' + str(int(args[15])),
-    'SEARCH_INTERNAL_ITERATIVE_DEEPENING_PV_NODE_DEPTH_DELTA=' + str(int(args[16])),
-    'SEARCH_INTERNAL_ITERATIVE_DEEPENING_PV_NODE_DEPTH_THRESHOLD=' + str(int(args[17])),
-    'SEARCH_INTERNAL_ITERATIVE_DEEPENING_SCORE_MARGIN=' + str(int(args[18])),
-    'SEARCH_LATE_MOVE_REDUCTION_DEPTH_THRESHOLD=' + str(int(args[19])),
-    'SEARCH_NULL_FAIL_LOW_SCORE_DEPTH_THRESHOLD=' + str(int(args[20])),
-    'SEARCH_NULL_MOVE_DEPTH_THRESHOLD=' + str(int(args[21])),
-    'SEARCH_NULL_MOVE_MARGIN=' + str(int(args[22])),
-    'SEARCH_NULL_MOVE_NULL_SCORE_DEPTH_THRESHOLD=' + str(int(args[23])),
-    'SEARCH_NULL_MOVE_REDUCTION_INTERCEPT=' + str(int(args[24])),
-    'SEARCH_NULL_MOVE_REDUCTION_SLOPE=' + str(int(args[25])),
-    'SEARCH_PROBCUT_DEPTH_THRESHOLD=' + str(int(args[26])),
-    'SEARCH_PROBCUT_RBETA_DEPTH_DELTA=' + str(int(args[27])),
-    'SEARCH_PROBCUT_RBETA_SCORE_DELTA=' + str(int(args[28])),
-    'SEARCH_RAZORING_DEPTH=' + str(int(args[29])),
-    'SEARCH_RAZORING_MARGIN_INTERCEPT=' + str(int(args[30])),
-    'SEARCH_RAZORING_MARGIN_SLOPE=' + str(int(args[31])),
-    'SEARCH_SINGULAR_EXTENSION_DEPTH_THRESHOLD=' + str(int(args[32])),
-    'SEARCH_SINGULAR_EXTENSION_NULL_WINDOW_SEARCH_DEPTH_SCALE=' + str(int(args[33])),
-    'SEARCH_SINGULAR_EXTENSION_TTE_DEPTH_THRESHOLD=' + str(int(args[34])),
-    'SEARCH_STATIC_NULL_MOVE_PRUNING_DEPTH_THRESHOLD=' + str(int(args[35])),
-  ]
-  print('Executing: make native ...')
-  while True:
-    try:
-      with open('make-native.txt', 'w') as file:
-        output = subprocess.check_output(popenargs)
-        file.write(output)
-      break
-    except subprocess.CalledProcessError:
-      continue
+  builder.clean()
+  builder.build(args)
 
   popenargs = ['./YaneuraOu.exe',]
   print(popenargs)
@@ -166,8 +289,8 @@ def function(args):
    ratio = win / (lose + draw + win)
   print ratio
 
-  subprocess.call(['pkill', 'tanuki-baseline'])
-  subprocess.call(['pkill', 'tanuki-modified'])
+  builder.kill('tanuki-baseline')
+  builder.kill('tanuki-modified')
 
   return -ratio
 
