@@ -118,6 +118,13 @@
 #define OUTPUT_EVALUATE_HASH_EXPIRATION_RATE
 #endif
 
+// 例外(SEH/C++)発生時にMiniDumpを出力する(MSVCでのみ有効)
+#if 0
+#if defined(_MSC_VER)
+#define DUMP_MINIDUMP_ON_EXCEPTION
+#endif
+#endif
+
 #if 1
 #define NYUGYOKU_WIN
 #endif
