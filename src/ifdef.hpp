@@ -1,6 +1,9 @@
 ﻿#ifndef APERY_IFDEF_HPP
 #define APERY_IFDEF_HPP
 
+// MSVC向け自動ビルドのパラメタが書き込まれるヘッダファイル
+#include "builder_generated.hpp"
+
 #if 0
 // 機械学習を行う際に使う。
 #define LEARN
