@@ -128,15 +128,18 @@ commandline_args = parser.parse_args()
 class HyperoptState(object):
   def __init__(self):
     self.trials = Trials()
-    self.n_accumulated_iterations = 0
+    self.iteration_logs = []
 
   def get_trials(self): return self.trials
 
-  def get_n_accumulated_iterations(self): return self.n_accumulated_iterations
+  def get_n_accumulated_iterations(self): return len(self.iteration_logs)
 
-  def record_iteration(self): self.n_accumulated_iterations += 1
+  def record_iteration(self, **kwargs):
+    # record any pickle-able object as a dictionary at each iteration.
+    # also, len(self.iteration_logs) is used to keep the accumulated number of iterations.
+    self.iteration_logs.append(kwargs)
 
-  def calc_max_evals(self, n_additional_evals): return self.n_accumulated_iterations + n_additional_evals
+  def calc_max_evals(self, n_additional_evals): return self.get_n_accumulated_iterations() + n_additional_evals
 
   @staticmethod
   def load(file_path):
@@ -312,11 +315,6 @@ def function(args):
     print(COUNTER, '/', MAX_EVALS, str(remaining))
   COUNTER += 1
 
-  global state
-  state.record_iteration()
-  if commandline_args.store_interval > 0 and state.get_n_accumulated_iterations() % commandline_args.store_interval == 0:
-    state.save(state_store_path)
-
   builder.clean()
   builder.build(args)
 
@@ -340,6 +338,17 @@ def function(args):
 
   builder.kill('tanuki-baseline')
   builder.kill('tanuki-modified')
+
+  global state
+  state.record_iteration(
+      args=args,
+      output=output,
+      lose=lose,
+      draw=draw,
+      win=win,
+      )
+  if commandline_args.store_interval > 0 and state.get_n_accumulated_iterations() % commandline_args.store_interval == 0:
+    state.save(state_store_path)
 
   return -ratio
 
