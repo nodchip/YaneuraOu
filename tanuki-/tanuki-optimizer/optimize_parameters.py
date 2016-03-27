@@ -122,6 +122,8 @@ parser.add_argument('--store-interval', type=int, default=1,
     help=u'store internal state of hyper-parameter search after every <store_interval> iterations. set 0 to disable storing.')
 parser.add_argument('--resume', type=str, default=None,
     help=u'resume hyper-parameter search from a file.')
+parser.add_argument('--builder', type=str, default='MSYS',
+    help=u'select building environment. MSYS or MSVC.')
 commandline_args = parser.parse_args()
 
 # pause/resume
@@ -295,9 +297,11 @@ class MSVCBuilder(object):
   def kill(self, process_name):
     subprocess.call(['taskkill', '/T', '/F', '/IM', process_name + '.exe'])
 
-# -- select one of two lines below:
-builder = MSYSBuilder()
-#builder = MSVCBuilder()
+# build environment.
+if commandline_args.builder == 'MSVC':
+  builder = MSVCBuilder()
+else:
+  builder = MSYSBuilder()
 
 def function(args):
   print('-' * 78)
