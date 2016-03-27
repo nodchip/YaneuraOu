@@ -22,7 +22,7 @@
 # - open developer console
 # - move in src directory
 # - run this script
-from hyperopt import fmin, tpe, hp, rand
+from hyperopt import fmin, tpe, hp, rand, Trials
 from math import log
 import os
 import sys
@@ -31,6 +31,8 @@ import re
 import shutil
 import subprocess
 import time
+import argparse
+import cPickle as pickle
 
 space = [
   hp.quniform('QSEARCH_FUTILITY_MARGIN', 0, 256, 1),
@@ -113,6 +115,48 @@ build_argument_names = [
 COUNTER = 0;
 MAX_EVALS = 100;
 START_TIME_SEC = time.time()
+
+# arguments
+parser = argparse.ArgumentParser('optimize_parameters.py')
+parser.add_argument('--store-interval', type=int, default=1,
+    help=u'store internal state of hyper-parameter search after every <store_interval> iterations. set 0 to disable storing.')
+parser.add_argument('--resume', type=str, default=None,
+    help=u'resume hyper-parameter search from a file.')
+commandline_args = parser.parse_args()
+
+# pause/resume
+class HyperoptState(object):
+  def __init__(self):
+    self.trials = Trials()
+    self.n_accumulated_iterations = 0
+
+  def get_trials(self): return self.trials
+
+  def get_n_accumulated_iterations(self): return self.n_accumulated_iterations
+
+  def record_iteration(self): self.n_accumulated_iterations += 1
+
+  def calc_max_evals(self, n_additional_evals): return self.n_accumulated_iterations + n_additional_evals
+
+  @staticmethod
+  def load(file_path):
+    with open(file_path, 'rb') as fi:
+      state = pickle.load(fi)
+      print('resume from state: {} ({} iteration done)'.format(file_path, state.get_n_accumulated_iterations()))
+      return state
+
+  def save(self, file_path):
+    try:
+      with open(file_path, 'wb') as fo:
+        pickle.dump(self, fo, protocol=-1)
+        print('saved state to: {}'.format(file_path))
+    except:
+      print('failed to save state. continue.')
+
+state = HyperoptState()
+state_store_path = 'optimize_parameters.hyperopt_state.{}.pickle'.format(datetime.datetime.now().strftime('%Y%m%d_%H%M%S'))
+if commandline_args.resume is not None:
+  state = HyperoptState.load(commandline_args.resume)
 
 class MSYSBuilder(object):
   def __init__(self):
@@ -268,6 +312,11 @@ def function(args):
     print(COUNTER, '/', MAX_EVALS, str(remaining))
   COUNTER += 1
 
+  global state
+  state.record_iteration()
+  if commandline_args.store_interval > 0 and state.get_n_accumulated_iterations() % commandline_args.store_interval == 0:
+    state.save(state_store_path)
+
   builder.clean()
   builder.build(args)
 
@@ -295,7 +344,7 @@ def function(args):
   return -ratio
 
 # shutil.copyfile('../tanuki-/x64/Release/tanuki-.exe', 'tanuki-.exe')
-best = fmin(function, space, algo=tpe.suggest, max_evals=MAX_EVALS)
+best = fmin(function, space, algo=tpe.suggest, max_evals=state.calc_max_evals(MAX_EVALS), trials=state.get_trials())
 print("best estimate parameters", best)
 for key in sorted(best.keys()):
   print("{0}={1}".format(key, str(int(best[key]))))
