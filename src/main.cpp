@@ -59,6 +59,7 @@ int main_sub(int argc, char* argv[]) {
   std::unique_ptr<Evaluater>(new Evaluater)->init(USI::Options[OptionNames::EVAL_DIR], true);
   s->doUSICommandLoop(argc, argv);
   s->threads.exit();
+  return 0;
 }
 
 #endif
