@@ -1904,8 +1904,12 @@ bool nyugyoku(const Position& pos) {
   return true;
 }
 
-void Searcher::think() {
+namespace
+{
   static Book book;
+}
+
+void Searcher::think() {
   Position& pos = rootPosition;
   timeManager.reset(new TimeManager(limits, pos.gamePly(), pos.turn(), thisptr));
   std::uniform_int_distribution<int> dist(USI::Options[OptionNames::MIN_BOOK_PLY], USI::Options[OptionNames::MAX_BOOK_PLY]);
@@ -2020,15 +2024,22 @@ finalize:
 
   if (nyugyokuWin) {
     SYNCCOUT << "bestmove win" << SYNCENDL;
+    return;
   }
-  else if (rootMoves[0].pv_[0].isNone()) {
+
+  assert(rootMoves.size() >= 1);
+  const RootMove& rootMove = rootMoves[0];
+  assert(rootMove.pv_.size() >= 1);
+  if (rootMove.pv_[0].isNone()) {
     SYNCCOUT << "bestmove resign" << SYNCENDL;
+    return;
   }
-  else {
-    SYNCCOUT << "bestmove " << rootMoves[0].pv_[0].toUSI()
-      << " ponder " << rootMoves[0].pv_[1].toUSI()
-      << SYNCENDL;
-  }
+
+  assert(rootMove.pv_.size() >= 2);
+  SYNCCOUT
+    << "bestmove " << rootMove.pv_[0].toUSI()
+    << " ponder " << rootMove.pv_[1].toUSI()
+    << SYNCENDL;
 #endif
 }
 
