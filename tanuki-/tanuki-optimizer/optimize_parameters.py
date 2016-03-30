@@ -122,6 +122,8 @@ parser.add_argument('--store-interval', type=int, default=1,
     help=u'store internal state of hyper-parameter search after every <store_interval> iterations. set 0 to disable storing.')
 parser.add_argument('--resume', type=str, default=None,
     help=u'resume hyper-parameter search from a file.')
+parser.add_argument('--dump-log', type=str, default=None,
+    help=u'open a hyper-parameter search file and dump its log.')
 parser.add_argument('--builder', type=str, default='MSYS',
     help=u'select building environment. MSYS or MSVC.')
 commandline_args = parser.parse_args()
@@ -158,8 +160,33 @@ class HyperoptState(object):
     except:
       print('failed to save state. continue.')
 
+  def dump_log(self):
+    for index, entry in enumerate(self.iteration_logs):
+      # emulate function()'s output.
+      print('-' * 78)
+      print(datetime.datetime.today().strftime("%Y-%m-%d %H:%M:%S"))
+      print(entry['args'])
+      if index:
+        remaining = datetime.timedelta(seconds=0)
+        print(index, '/', self.get_n_accumulated_iterations(), str(remaining))
+      popenargs = ['./YaneuraOu.exe',]
+      print(popenargs)
+      print(entry['output'])
+      lose = entry['lose']
+      draw = entry['draw']
+      win = entry['win']
+      ratio = 0.0
+      if lose + draw + win > 0.1:
+       ratio = win / (lose + draw + win)
+      print ratio
+
 state = HyperoptState()
 state_store_path = 'optimize_parameters.hyperopt_state.{}.pickle'.format(datetime.datetime.now().strftime('%Y%m%d_%H%M%S'))
+if commandline_args.dump_log is not None:
+  state = HyperoptState.load(commandline_args.dump_log)
+  state.dump_log()
+  sys.exit(0)
+
 if commandline_args.resume is not None:
   state = HyperoptState.load(commandline_args.resume)
 
