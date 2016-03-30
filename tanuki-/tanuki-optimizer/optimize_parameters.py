@@ -125,9 +125,12 @@ if __name__=='__main__':
       help=u'resume hyper-parameter search from a file.')
   parser.add_argument('--dump-log', type=str, default=None,
       help=u'open a hyper-parameter search file and dump its log.')
+  parser.add_argument('--max-evals', type=int, default=MAX_EVALS,
+      help=u'max evaluation for hyperopt. (default: use MAX_EVALS={})'.format(MAX_EVALS))
   parser.add_argument('--builder', type=str, default='MSYS',
       help=u'select building environment. MSYS or MSVC.')
   commandline_args = parser.parse_args()
+  MAX_EVALS = commandline_args.max_evals
 
 # pause/resume
 class HyperoptState(object):
