@@ -117,16 +117,17 @@ MAX_EVALS = 100;
 START_TIME_SEC = time.time()
 
 # arguments
-parser = argparse.ArgumentParser('optimize_parameters.py')
-parser.add_argument('--store-interval', type=int, default=1,
-    help=u'store internal state of hyper-parameter search after every <store_interval> iterations. set 0 to disable storing.')
-parser.add_argument('--resume', type=str, default=None,
-    help=u'resume hyper-parameter search from a file.')
-parser.add_argument('--dump-log', type=str, default=None,
-    help=u'open a hyper-parameter search file and dump its log.')
-parser.add_argument('--builder', type=str, default='MSYS',
-    help=u'select building environment. MSYS or MSVC.')
-commandline_args = parser.parse_args()
+if __name__=='__main__':
+  parser = argparse.ArgumentParser('optimize_parameters.py')
+  parser.add_argument('--store-interval', type=int, default=1,
+      help=u'store internal state of hyper-parameter search after every <store_interval> iterations. set 0 to disable storing.')
+  parser.add_argument('--resume', type=str, default=None,
+      help=u'resume hyper-parameter search from a file.')
+  parser.add_argument('--dump-log', type=str, default=None,
+      help=u'open a hyper-parameter search file and dump its log.')
+  parser.add_argument('--builder', type=str, default='MSYS',
+      help=u'select building environment. MSYS or MSVC.')
+  commandline_args = parser.parse_args()
 
 # pause/resume
 class HyperoptState(object):
@@ -180,15 +181,16 @@ class HyperoptState(object):
        ratio = win / (lose + draw + win)
       print ratio
 
-state = HyperoptState()
-state_store_path = 'optimize_parameters.hyperopt_state.{}.pickle'.format(datetime.datetime.now().strftime('%Y%m%d_%H%M%S'))
-if commandline_args.dump_log is not None:
-  state = HyperoptState.load(commandline_args.dump_log)
-  state.dump_log()
-  sys.exit(0)
+if __name__=='__main__':
+  state = HyperoptState()
+  state_store_path = 'optimize_parameters.hyperopt_state.{}.pickle'.format(datetime.datetime.now().strftime('%Y%m%d_%H%M%S'))
+  if commandline_args.dump_log is not None:
+    state = HyperoptState.load(commandline_args.dump_log)
+    state.dump_log()
+    sys.exit(0)
 
-if commandline_args.resume is not None:
-  state = HyperoptState.load(commandline_args.resume)
+  if commandline_args.resume is not None:
+    state = HyperoptState.load(commandline_args.resume)
 
 class MSYSBuilder(object):
   def __init__(self):
@@ -324,11 +326,12 @@ class MSVCBuilder(object):
   def kill(self, process_name):
     subprocess.call(['taskkill', '/T', '/F', '/IM', process_name + '.exe'])
 
-# build environment.
-if commandline_args.builder == 'MSVC':
-  builder = MSVCBuilder()
-else:
-  builder = MSYSBuilder()
+if __name__=='__main__':
+  # build environment.
+  if commandline_args.builder == 'MSVC':
+    builder = MSVCBuilder()
+  else:
+    builder = MSYSBuilder()
 
 def function(args):
   print('-' * 78)
@@ -383,8 +386,10 @@ def function(args):
 
   return -ratio
 
-# shutil.copyfile('../tanuki-/x64/Release/tanuki-.exe', 'tanuki-.exe')
-best = fmin(function, space, algo=tpe.suggest, max_evals=state.calc_max_evals(MAX_EVALS), trials=state.get_trials())
-print("best estimate parameters", best)
-for key in sorted(best.keys()):
-  print("{0}={1}".format(key, str(int(best[key]))))
+if __name__=='__main__':
+  # shutil.copyfile('../tanuki-/x64/Release/tanuki-.exe', 'tanuki-.exe')
+  best = fmin(function, space, algo=tpe.suggest, max_evals=state.calc_max_evals(MAX_EVALS), trials=state.get_trials())
+  print("best estimate parameters", best)
+  for key in sorted(best.keys()):
+    print("{0}={1}".format(key, str(int(best[key]))))
+
