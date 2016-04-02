@@ -794,8 +794,9 @@ void Searcher::idLoop(Position& pos) {
       // alpha, beta をある程度絞ることで、探索効率を上げる。
       if (5 <= depth && abs(rootMoves[pvIdx].prevScore_) < ScoreKnownWin) {
         delta = INITIAL_ASPIRATION_WINDOW_WIDTH;
-        alpha = rootMoves[pvIdx].prevScore_ - delta;
-        beta = rootMoves[pvIdx].prevScore_ + delta;
+        int searchWindowOffset = USI::Options[OptionNames::SEARCH_WINDOW_OFFSET];
+        alpha = std::max(-ScoreInfinite, rootMoves[pvIdx].prevScore_ - delta + searchWindowOffset);
+        beta = std::min(ScoreInfinite, rootMoves[pvIdx].prevScore_ + delta + searchWindowOffset);
       }
       else {
         alpha = -ScoreInfinite;
