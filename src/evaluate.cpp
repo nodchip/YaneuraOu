@@ -208,24 +208,16 @@ namespace {
             ymm index1 = _mm256_load_si256((const ymm*)&list1[j]);
             ymm mask = MASK[std::min(i - j, 8)];
             ymm kpp1 = _mm256_mask_i32gather_epi32(zero, (const int*)pkppw, index1, mask, 4);
-            // TODO(nodchip): _mm256_add_epi32()で上位128ビットがクリアされる原因を調べる
             ymm kpp1lo = _mm256_cvtepi16_epi32(_mm256_extracti128_si256(kpp1, 0));
-            ymm kpp1lolo = _mm256_castsi128_si256(_mm256_extracti128_si256(kpp1lo, 0));
-            ymm kpp1lohi = _mm256_castsi128_si256(_mm256_extracti128_si256(kpp1lo, 1));
-            sum1 = _mm256_add_epi32(sum1, kpp1lolo);
-            sum1 = _mm256_add_epi32(sum1, kpp1lohi);
+            sum1 = _mm256_add_epi32(sum1, kpp1lo);
             ymm kpp1hi = _mm256_cvtepi16_epi32(_mm256_extracti128_si256(kpp1, 1));
-            ymm kpp1hilo = _mm256_castsi128_si256(_mm256_extracti128_si256(kpp1hi, 0));
-            ymm kpp1hihi = _mm256_castsi128_si256(_mm256_extracti128_si256(kpp1hi, 1));
-            sum1 = _mm256_add_epi32(sum1, kpp1hilo);
-            sum1 = _mm256_add_epi32(sum1, kpp1hihi);
+            sum1 = _mm256_add_epi32(sum1, kpp1hi);
           }
           diff.p[2][0] -= Evaluater::KKP[inverse(sq_wk)][inverse(sq_bk)][k1][0];
           diff.p[2][1] += Evaluater::KKP[inverse(sq_wk)][inverse(sq_bk)][k1][1];
         }
-        //sum1 = _mm256_add_epi32(sum1, _mm256_srli_si256(sum1, 16));
         sum1 = _mm256_add_epi32(sum1, _mm256_srli_si256(sum1, 8));
-        _mm_storel_epi64((xmm*)&diff.p[1], _mm256_castsi256_si128(sum1));
+        _mm_storel_epi64((xmm*)&diff.p[1], _mm_add_epi32(_mm256_extracti128_si256(sum1, 0), _mm256_extracti128_si256(sum1, 1)));
 #else
         diff.p[1][0] = 0;
         diff.p[1][1] = 0;
@@ -263,24 +255,15 @@ namespace {
             ymm index1 = _mm256_load_si256((const ymm*)&list0[j]);
             ymm mask = MASK[std::min(i - j, 8)];
             ymm kpp0 = _mm256_mask_i32gather_epi32(zero, (const int*)pkppb, index1, mask, 4);
-            // デバッガをアタッチした場合にymmレジスタの上位128bitがクリアされるのを回避する
-            // TODO(nodchip): 上位128ビットも使用する
             ymm kpp0lo = _mm256_cvtepi16_epi32(_mm256_extracti128_si256(kpp0, 0));
-            ymm kpp0lolo = _mm256_castsi128_si256(_mm256_extracti128_si256(kpp0lo, 0));
-            ymm kpp0lohi = _mm256_castsi128_si256(_mm256_extracti128_si256(kpp0lo, 1));
-            sum0 = _mm256_add_epi32(sum0, kpp0lolo);
-            sum0 = _mm256_add_epi32(sum0, kpp0lohi);
+            sum0 = _mm256_add_epi32(sum0, kpp0lo);
             ymm kpp0hi = _mm256_cvtepi16_epi32(_mm256_extracti128_si256(kpp0, 1));
-            ymm kpp0hilo = _mm256_castsi128_si256(_mm256_extracti128_si256(kpp0hi, 0));
-            ymm kpp0hihi = _mm256_castsi128_si256(_mm256_extracti128_si256(kpp0hi, 1));
-            sum0 = _mm256_add_epi32(sum0, kpp0hilo);
-            sum0 = _mm256_add_epi32(sum0, kpp0hihi);
+            sum0 = _mm256_add_epi32(sum0, kpp0hi);
           }
           diff.p[2] += Evaluater::KKP[sq_bk][sq_wk][k0];
         }
-        //sum0 = _mm256_add_epi32(sum0, _mm256_srli_si256(sum0, 16));
         sum0 = _mm256_add_epi32(sum0, _mm256_srli_si256(sum0, 8));
-        _mm_storel_epi64((xmm*)&diff.p[0], _mm256_castsi256_si128(sum0));
+        _mm_storel_epi64((xmm*)&diff.p[0], _mm_add_epi32(_mm256_extracti128_si256(sum0, 0), _mm256_extracti128_si256(sum0, 1)));
 #else
         diff.p[0][0] = 0;
         diff.p[0][1] = 0;
