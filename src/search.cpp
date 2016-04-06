@@ -653,8 +653,13 @@ void Searcher::skipCurrentDepth(Position& pos, Ply& depth)
   }
   while (iss >> term) {
     Move move = usiToMove(pos, term);
-    assert(!move.isNone());
-    assert(pos.moveIsLegal(move));
+    // 実機でテストしたところtermが不正な場合があるためreturn
+    if (move.isNone()) {
+      return;
+    }
+    if (!pos.moveIsLegal(move)) {
+      return;
+    }
     pos.doMove(move, *st++);
     moves.push_back(move);
   }
@@ -832,7 +837,7 @@ void Searcher::idLoop(Position& pos) {
 
         if (lastTimeToOutputInfoMs + THROTTLE_TO_OUTPUT_INFO_MS < searchTimer.elapsed() ||
           (OUTPUT_COMPLETE_SCORE_FROM_MS < searchTimer.elapsed() &&
-            (alpha < bestScore && bestScore < beta))) {
+          (alpha < bestScore && bestScore < beta))) {
           if (USI::Options[OptionNames::OUTPUT_INFO]) {
             SYNCCOUT << pvInfoToUSI(pos, depth, alpha, beta) << SYNCENDL;
           }
@@ -993,7 +998,7 @@ void Searcher::detectBishopInDanger(const Position& pos) {
     {
       bishopInDangerFlag = (pos.turn() == Black ? BlackBishopInDangerIn78 : WhiteBishopInDangerIn78);
       //tt.clear();
-    }
+  }
   }
 }
 #endif
@@ -1656,11 +1661,11 @@ split_point_start:
         if (!isPVMove) {
           ++bestMoveChanges;
         }
-      }
+  }
       else {
         rm.score_ = -ScoreInfinite;
       }
-    }
+}
 
     if (bestScore < score) {
       bestScore = (SPNode ? splitPoint->bestScore = score : score);
@@ -1694,7 +1699,7 @@ split_point_start:
         break;
       }
     }
-  }
+}
 
   if (SPNode) {
     assert(-ScoreInfinite < bestScore && bestScore < ScoreInfinite);
@@ -2042,7 +2047,7 @@ finalize:
     << " ponder " << rootMove.pv_[1].toUSI()
     << SYNCENDL;
 #endif
-}
+  }
 
 void Searcher::checkTime() {
   if (limits.ponder)
