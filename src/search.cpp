@@ -657,7 +657,7 @@ void Searcher::skipCurrentDepth(Position& pos, Ply& depth)
     if (move.isNone()) {
       return;
     }
-    if (!pos.moveIsLegal(move)) {
+    if (!pos.moveIsPseudoLegal(move)) {
       return;
     }
     pos.doMove(move, *st++);
