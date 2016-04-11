@@ -700,6 +700,23 @@ void Searcher::doUSICommandLoop(int argc, char* argv[]) {
         gameRecords);
       csa::writeCsa1("C:\\home\\develop\\shogi-kifu\\tanuki-lose.csa1", gameRecords);
       std::cout << "Finished..." << std::endl;
+    } else if (token == "convert_to_sfen") {
+      std::vector<GameRecord> gameRecords;
+      csa::readCsa1("C:\\home\\develop\\shogi-kifu\\2chkifu_csa\\2chkifu.csa1", pos, gameRecords);
+      std::ofstream ofs("C:\\home\\develop\\shogi-kifu\\2chkifu.sfen");
+      int counter = 0;
+      for (const auto& gameRecord : gameRecords) {
+        if (++counter % 1000 == 0) {
+          std::cout << counter << std::endl;
+        }
+        pos.set(DefaultStartPositionSFEN, pos.searcher()->threads.mainThread());
+
+        ofs << "startpos moves";
+        for (const auto& move : gameRecord.moves) {
+          ofs << " " << move.toUSI();
+        }
+        ofs << std::endl;
+      }
     }
 #endif
 #endif
