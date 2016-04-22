@@ -1,3 +1,4 @@
+#include "timeManager.hpp"
 #include <gtest/gtest.h>
 #include "init.hpp"
 #include "thread.hpp"
@@ -9,11 +10,10 @@ int main(int argc, char **argv) {
 
   initTable();
   Position::initZobrist();
-  auto s = std::unique_ptr<Searcher>(new Searcher);
-  s->init();
+  Search::init();
   // 一時オブジェクトの生成と破棄
-  std::unique_ptr<Evaluater>(new Evaluater)->init(USI::Options[OptionNames::EVAL_DIR], true);
+  std::unique_ptr<Evaluater>(new Evaluater)->init(Options[USI::OptionNames::EVAL_DIR], true);
   int statusCode = RUN_ALL_TESTS();
-  s->threads.exit();
+  Threads.exit();
   return statusCode;
 }

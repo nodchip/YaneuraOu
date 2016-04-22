@@ -11,7 +11,8 @@ enum Depth {
   DepthQChecks = -1 * OnePly,
   DepthQNoChecks = -2 * OnePly,
   DepthQRecaptures = -8 * OnePly,
-  DepthNone = -127 * OnePly
+  DepthNone = -127 * OnePly,
+  DepthMax = MaxPly,
 };
 OverloadEnumOperators(Depth);
 
@@ -103,5 +104,7 @@ private:
   Cluster* table;
   uint8_t generation8; // Size must be not bigger than TTEntry::genBound8
 };
+
+extern TranspositionTable TT;
 
 #endif // #ifndef APERY_TT_HPP

@@ -1,4 +1,5 @@
-﻿#include "common.hpp"
+﻿#include "timeManager.hpp"
+#include "common.hpp"
 #include "bitboard.hpp"
 #include "init.hpp"
 #include "position.hpp"
@@ -53,12 +54,11 @@ int main_sub(int argc, char* argv[]) {
 int main_sub(int argc, char* argv[]) {
   initTable();
   Position::initZobrist();
-  auto s = std::unique_ptr<Searcher>(new Searcher);
-  s->init();
+  Search::init();
   // 一時オブジェクトの生成と破棄
-  std::unique_ptr<Evaluater>(new Evaluater)->init(USI::Options[OptionNames::EVAL_DIR], true);
-  s->doUSICommandLoop(argc, argv);
-  s->threads.exit();
+  std::unique_ptr<Evaluater>(new Evaluater)->init(Options[USI::OptionNames::EVAL_DIR], true);
+  USI::doUSICommandLoop(argc, argv);
+  Threads.exit();
   return 0;
 }
 

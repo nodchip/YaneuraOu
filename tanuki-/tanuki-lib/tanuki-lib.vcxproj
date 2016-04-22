@@ -176,6 +176,7 @@
     <ClInclude Include="..\..\src\stdafx.h" />
     <ClInclude Include="..\..\src\string_util.hpp" />
     <ClInclude Include="..\..\src\thread.hpp" />
+    <ClInclude Include="..\..\src\thread_win32.hpp" />
     <ClInclude Include="..\..\src\timeManager.hpp" />
     <ClInclude Include="..\..\src\time_util.hpp" />
     <ClInclude Include="..\..\src\tt.hpp" />

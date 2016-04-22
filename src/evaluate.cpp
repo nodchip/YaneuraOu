@@ -1,7 +1,11 @@
-﻿#include "evaluate.hpp"
+﻿#include "timeManager.hpp"
+#include "evaluate.hpp"
+
 #include "position.hpp"
 #include "search.hpp"
 #include "thread.hpp"
+
+using namespace Search;
 
 KPPBoardIndexStartToPiece g_kppBoardIndexStartToPiece;
 
@@ -178,7 +182,7 @@ namespace {
   }
 #endif
 
-  bool calcDifference(Position& pos, SearchStack* ss) {
+  bool calcDifference(Position& pos, Search::SearchStack* ss) {
 #if defined INANIWA_SHIFT
     if (pos.csearcher()->inaniwaFlag != NotInaniwa) return false;
 #endif
@@ -287,7 +291,7 @@ namespace {
         }
       }
       ss->staticEvalRaw = diff;
-}
+    }
     else {
       const int listIndex = pos.cl().listindex0;
       auto diff = doapc(pos, pos.cl().clistpair0.newlist0, pos.cl().clistpair0.newlist1);
@@ -357,7 +361,7 @@ namespace {
     return nlist;
   }
 
-  void evaluateBody(Position& pos, SearchStack* ss) {
+  void evaluateBody(Position& pos, Search::SearchStack* ss) {
     if (calcDifference(pos, ss)) {
 #ifndef NDEBUG
       const auto score = ss->staticEvalRaw.sum(pos.turn());
@@ -589,7 +593,7 @@ void debugOutputEvalSum(const Position& pos, const EvalSum& evalSum) {
   std::cerr << "sum(pos.turn())=" << evalSum.sum(pos.turn()) << std::endl;
 }
 
-Score evaluate(Position& pos, SearchStack* ss) {
+Score evaluate(Position& pos, Search::SearchStack* ss) {
   if (ss->staticEvalRaw.p[0][0] != ScoreNotEvaluated) {
     const Score score = static_cast<Score>(ss->staticEvalRaw.sum(pos.turn()));
 #ifndef NDEBUG

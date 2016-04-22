@@ -13,6 +13,8 @@
 
 #include <limits>
 
+#include "../../src/timeManager.hpp"
+
 #include "tanuki-book-viewer.h"
 #include "tanuki-book-viewerDlg.h"
 #include "afxdialogex.h"
@@ -195,7 +197,7 @@ void CtanukibookviewerDlg::OnBnClickedOk()
   }
 
   Position position;
-  setPosition(position, "startpos moves");
+  USI::setPosition(position, "startpos moves");
   std::list<StateInfo> stateInfos;
   for (const auto& move : gameRecord.moves) {
     stateInfos.push_back(StateInfo());

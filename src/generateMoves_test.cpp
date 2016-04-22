@@ -42,7 +42,7 @@ TEST_F(GenerateMovesTest, generateDropMoves_verify) {
     string subSfen = string_util::concat(vector<string>(sfen.begin(), sfen.begin() + i));
     std::istringstream ss_sfen(subSfen);
     Position pos;
-    setPosition(pos, ss_sfen);
+    USI::setPosition(pos, ss_sfen);
     //pos.print();
 
     MoveStack moveStackExpected[1024];

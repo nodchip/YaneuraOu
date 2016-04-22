@@ -1,8 +1,10 @@
 #include <fstream>
 #include <memory>
+#include "timeManager.hpp"
 #include "csa1.hpp"
 #include "search.hpp"
 #include "string_util.hpp"
+#include "usi.hpp"
 
 #define RETURN_IF_FALSE(x) if (!(x)) { return false; }
 
@@ -54,11 +56,11 @@ bool csa::readCsa1(
       continue;
     }
 
-    pos.set(DefaultStartPositionSFEN, pos.searcher()->threads.mainThread());
+    pos.set(USI::DefaultStartPositionSFEN, Threads.main());
     std::stack<StateInfo> stateStack;
     for (int play = 0; play < gameRecord.numberOfPlays; ++play) {
       std::string moveStr = line.substr(play * 6, 6);
-      Move move = csaToMove(pos, moveStr);
+      Move move = USI::csaToMove(pos, moveStr);
       if (move.isNone()) {
         //pos.print();
         //std::cout

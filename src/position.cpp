@@ -1,8 +1,9 @@
-﻿#include "position.hpp"
-#include "move.hpp"
+﻿#include "timeManager.hpp"
 #include "generateMoves.hpp"
-#include "tt.hpp"
+#include "move.hpp"
+#include "position.hpp"
 #include "search.hpp"
+#include "tt.hpp"
 
 Key Position::zobrist_[PieceTypeNum][SquareNum][ColorNum];
 Key Position::zobTurn_;
@@ -316,7 +317,7 @@ void Position::doMove(const Move move, StateInfo& newSt, const CheckInfo& ci, co
     handKey -= zobHand(hpTo, us);
     boardKey += zobrist(ptTo, to, us);
 
-    prefetch(csearcher()->tt.first_entry(boardKey + handKey));
+    prefetch(TT.first_entry(boardKey + handKey));
 
     const int handnum = hand(us).numOf(hpTo);
     const int listIndex = evalList_.squareHandToList[HandPieceToSquareHand[us][hpTo] + handnum];
@@ -394,7 +395,7 @@ void Position::doMove(const Move move, StateInfo& newSt, const CheckInfo& ci, co
 
       st_->material += (us == Black ? capturePieceScore(ptCaptured) : -capturePieceScore(ptCaptured));
     }
-    prefetch(csearcher()->tt.first_entry(boardKey + handKey));
+    prefetch(TT.first_entry(boardKey + handKey));
     // Occupied は to, from の位置のビットを操作するよりも、
     // Black と White の or を取る方が速いはず。
     byTypeBB_[Occupied] = bbOf(Black) | bbOf(White);
@@ -1925,9 +1926,7 @@ void Position::set(const std::string& sfen, Thread* th) {
   char token;
   Square sq = A9;
 
-  Searcher* s = std::move(searcher_);
   clear();
-  setSearcher(s);
 
   // 盤上の駒
   while (ss.get(token) && token != ' ') {

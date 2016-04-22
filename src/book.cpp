@@ -1,4 +1,6 @@
-﻿#include "book.hpp"
+﻿#include "timeManager.hpp"
+#include "book.hpp"
+
 #include "csa1.hpp"
 #include "game_record.hpp"
 #include "move.hpp"
@@ -81,7 +83,7 @@ std::tuple<Move, Score> Book::probe(const Position& pos, const std::string& fNam
   u32 sum = 0;
   Move move = Move::moveNone();
   const BookKey key = bookKey(pos);
-  const Score min_book_score = static_cast<Score>(static_cast<int>(USI::Options[OptionNames::MIN_BOOK_SCORE]));
+  const Score min_book_score = static_cast<Score>(static_cast<int>(Options[USI::OptionNames::MIN_BOOK_SCORE]));
   Score score = ScoreZero;
 
   if (!open(fName.c_str())) {
@@ -157,7 +159,7 @@ std::vector<std::pair<Move, int> > Book::enumerateMoves(const Position& pos, con
       }
     }
 
-    if (USI::Options[OptionNames::MIN_BOOK_SCORE]) {
+    if (Options[USI::OptionNames::MIN_BOOK_SCORE]) {
       if (moves.empty()) {
         moves.push_back(std::make_pair(move, it->second.score));
       }
@@ -201,7 +203,7 @@ void makeBook(Position& pos, std::istringstream& ssCmd) {
     "name Output_Info value false",
   };
   for (auto& option : options) {
-    pos.searcher()->setOption(option);
+    USI::setOption(option);
   }
 
   std::string fileName;
@@ -232,8 +234,8 @@ void makeBook(Position& pos, std::istringstream& ssCmd) {
 
     //printf("winner=%s\n", winner == Black ? "Black" : "White");
 
-    pos.set(DefaultStartPositionSFEN, pos.searcher()->threads.mainThread());
-    StateStackPtr SetUpStates = StateStackPtr(new std::stack<StateInfo>());
+    pos.set(USI::DefaultStartPositionSFEN, Threads.main());
+    Search::StateStackPtr SetUpStates = Search::StateStackPtr(new std::stack<StateInfo>());
     for (const auto& move : gameRecord.moves) {
       if (move.isNone()) {
         //pos.print();
@@ -296,8 +298,8 @@ void makeBook(Position& pos, std::istringstream& ssCmd) {
   std::set<BookKey> recordedKeys;
   startClockSec = clock() / double(CLOCKS_PER_SEC);
   for (const auto& gameRecord : gameRecords) {
-    pos.set(DefaultStartPositionSFEN, pos.searcher()->threads.mainThread());
-    StateStackPtr SetUpStates = StateStackPtr(new std::stack<StateInfo>());
+    pos.set(USI::DefaultStartPositionSFEN, Threads.main());
+    Search::StateStackPtr SetUpStates = Search::StateStackPtr(new std::stack<StateInfo>());
     for (const auto& move : gameRecord.moves) {
       if (move.isNone()) {
         //pos.print();
@@ -316,12 +318,12 @@ void makeBook(Position& pos, std::istringstream& ssCmd) {
         Move entryMove = move16toMove(entry.fromToPro, pos);
         SetUpStates->push(StateInfo());
         pos.doMove(entryMove, SetUpStates->top());
-        go(pos, "depth 3");
-        pos.searcher()->threads.waitForThinkFinished();
+        USI::go(pos, "depth 3");
+        Threads.main()->wait_for_search_finished();
         pos.undoMove(entryMove);
         SetUpStates->pop();
         // doMove してから search してるので点数が反転しているので直す。
-        entry.score = -pos.csearcher()->rootMoves[0].score_;
+        entry.score = -Threads.main()->rootMoves[0].score;
         //pos.print();
         printf("score=%d\n", entry.score);
 

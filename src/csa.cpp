@@ -1,9 +1,11 @@
 #include <filesystem>
 #include <fstream>
+#include "timeManager.hpp"
 #include "csa.hpp"
 #include "search.hpp"
 #include "string_util.hpp"
 #include "time_util.hpp"
+#include "usi.hpp"
 
 using namespace std::tr2::sys;
 
@@ -33,7 +35,7 @@ bool csa::toSfen(const std::tr2::sys::path& filepath, std::vector<std::string>& 
   sfen.push_back("moves");
 
   Position position;
-  setPosition(position, string_util::concat(sfen));
+  USI::setPosition(position, string_util::concat(sfen));
 
   std::ifstream ifs(filepath);
   if (!ifs.is_open()) {
@@ -58,7 +60,7 @@ bool csa::toSfen(const std::tr2::sys::path& filepath, std::vector<std::string>& 
     }
 
     std::string csaMove = line.substr(1);
-    Move move = csaToMove(position, csaMove);
+    Move move = USI::csaToMove(position, csaMove);
 
 #if !defined NDEBUG
     if (!position.moveIsLegal(move)) {
@@ -238,11 +240,11 @@ bool csa::convertCsa1LineToSfen(
     ofs << "startpos moves";
 
     Position pos;
-    pos.set(DefaultStartPositionSFEN, pos.searcher()->threads.mainThread());
-    StateStackPtr SetUpStates = StateStackPtr(new std::stack<StateInfo>());
+    pos.set(USI::DefaultStartPositionSFEN, Threads.main());
+    Search::StateStackPtr SetUpStates = Search::StateStackPtr(new std::stack<StateInfo>());
     while (!line.empty()) {
       const std::string moveStrCSA = line.substr(0, 6);
-      const Move move = csaToMove(pos, moveStrCSA);
+      const Move move = USI::csaToMove(pos, moveStrCSA);
       if (move.isNone()) {
         pos.print();
         std::cout << "!!! Illegal move = " << moveStrCSA << " !!!" << std::endl;
@@ -271,7 +273,7 @@ bool csa::readCsa(const std::tr2::sys::path& filepath, GameRecord& gameRecord)
   gameRecord.strategy = "???";
 
   Position position;
-  setPosition(position, "startpos moves");
+  USI::setPosition(position, "startpos moves");
 
   std::ifstream ifs(filepath);
   if (!ifs.is_open()) {
@@ -302,7 +304,7 @@ bool csa::readCsa(const std::tr2::sys::path& filepath, GameRecord& gameRecord)
     }
     else if (line.size() == 7 && (line[0] == '+' || line[0] == '-')) {
       std::string csaMove = line.substr(1);
-      Move move = csaToMove(position, csaMove);
+      Move move = USI::csaToMove(position, csaMove);
 
       if (!position.moveIsPseudoLegal(move)) {
         std::cout << "!!! Found an illegal move." << std::endl;

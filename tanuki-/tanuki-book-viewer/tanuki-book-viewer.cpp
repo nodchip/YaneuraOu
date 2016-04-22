@@ -11,6 +11,8 @@
 #undef min
 #endif
 
+#include "../../src/timeManager.hpp"
+
 #include "tanuki-book-viewer.h"
 #include "tanuki-book-viewerDlg.h"
 
@@ -56,8 +58,7 @@ BOOL CtanukibookviewerApp::InitInstance()
 
   initTable();
   Position::initZobrist();
-  auto s = std::unique_ptr<Searcher>(new Searcher);
-  s->init();
+  Search::init();
 
   // アプリケーション マニフェストが visual スタイルを有効にするために、
 	// ComCtl32.dll Version 6 以降の使用を指定する場合は、

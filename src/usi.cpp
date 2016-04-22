@@ -1,4 +1,5 @@
 ﻿#include <memory>
+#include "timeManager.hpp"
 #include "benchmark.hpp"
 #include "book.hpp"
 #include "generateMoves.hpp"
@@ -11,23 +12,24 @@
 #include "tt.hpp"
 #include "usi.hpp"
 #include "csa1.hpp"
+#include "thread.hpp"
 
 #ifdef _MSC_VER
 #include "csa.hpp"
 #endif
 
-OptionsMap USI::Options;
+USI::OptionsMap Options;
 
 namespace {
-  void onThreads(Searcher* s, const USIOption&) { s->threads.readUSIOptions(s); }
-  void onHashSize(Searcher* s, const USIOption& opt) { s->tt.resize(opt); }
-  void onClearHash(Searcher* s, const USIOption&) { s->tt.clear(); }
-  void onEvalDir(Searcher*, const USIOption& opt) {
+  void onThreads(const USI::USIOption&) { Threads.read_usi_options(); }
+  void onHashSize(const USI::USIOption& opt) { TT.resize(opt); }
+  void onClearHash(const USI::USIOption&) { Search::clear(); }
+  void onEvalDir(const USI::USIOption& opt) {
     std::unique_ptr<Evaluater>(new Evaluater)->init(opt, true);
   }
 }
 
-bool CaseInsensitiveLess::operator () (const std::string& s1, const std::string& s2) const {
+bool USI::CaseInsensitiveLess::operator () (const std::string& s1, const std::string& s2) const {
   for (size_t i = 0; i < s1.size() && i < s2.size(); ++i) {
     const int c1 = tolower(s1[i]);
     const int c2 = tolower(s2[i]);
@@ -75,66 +77,68 @@ namespace {
   const StringToPieceTypeCSA g_stringToPieceTypeCSA;
 }
 
-const USIOption OptionsMap::INVALID_OPTION;
+const USI::USIOption USI::OptionsMap::INVALID_OPTION;
 
-void OptionsMap::init(Searcher* s) {
-  (*this)[OptionNames::USI_HASH] = USIOption(256, 1, 65536, onHashSize, s);
-  (*this)[OptionNames::CLEAR_HASH] = USIOption(onClearHash, s);
-  (*this)[OptionNames::BOOK_FILE] = USIOption("../bin/book-2016-02-01.bin");
-  (*this)[OptionNames::BEST_BOOK_MOVE] = USIOption(false);
-  (*this)[OptionNames::OWNBOOK] = USIOption(true);
-  (*this)[OptionNames::MIN_BOOK_PLY] = USIOption(SHRT_MAX, 0, SHRT_MAX);
-  (*this)[OptionNames::MAX_BOOK_PLY] = USIOption(SHRT_MAX, 0, SHRT_MAX);
-  (*this)[OptionNames::MIN_BOOK_SCORE] = USIOption(-180, -ScoreInfinite, ScoreInfinite);
-  (*this)[OptionNames::EVAL_DIR] = USIOption("../bin/20151105", onEvalDir);
-  (*this)[OptionNames::WRITE_SYNTHESIZED_EVAL] = USIOption(false);
-  (*this)[OptionNames::USI_PONDER] = USIOption(true);
-  (*this)[OptionNames::BYOYOMI_MARGIN] = USIOption(500, 0, INT_MAX);
-  (*this)[OptionNames::PONDER_TIME_MARGIN] = USIOption(500, 0, INT_MAX);
-  (*this)[OptionNames::MULTIPV] = USIOption(1, 1, MaxLegalMoves);
-  (*this)[OptionNames::SKILL_LEVEL] = USIOption(20, 0, 20);
-  (*this)[OptionNames::MAX_RANDOM_SCORE_DIFF] = USIOption(0, 0, ScoreMate0Ply);
-  (*this)[OptionNames::MAX_RANDOM_SCORE_DIFF_PLY] = USIOption(0, 0, SHRT_MAX);
-  (*this)[OptionNames::EMERGENCY_MOVE_HORIZON] = USIOption(40, 0, 50);
-  (*this)[OptionNames::EMERGENCY_BASE_TIME] = USIOption(200, 0, 30000);
-  (*this)[OptionNames::EMERGENCY_MOVE_TIME] = USIOption(70, 0, 5000);
-  (*this)[OptionNames::SLOW_MOVER] = USIOption(100, 10, 1000);
-  (*this)[OptionNames::MINIMUM_THINKING_TIME] = USIOption(1500, 0, INT_MAX);
-  (*this)[OptionNames::MAX_THREADS_PER_SPLIT_POINT] = USIOption(5, 4, 8, onThreads, s);
-  (*this)[OptionNames::THREADS] = USIOption(cpuCoreCount(), 1, MaxThreads, onThreads, s);
-  (*this)[OptionNames::USE_SLEEPING_THREADS] = USIOption(true);
-  (*this)[OptionNames::BOOK_THINKING_TIME] = USIOption(1500, 0, INT_MAX);
-  (*this)[OptionNames::OUTPUT_INFO] = USIOption(true);
-  (*this)[OptionNames::SEARCH_WINDOW_OFFSET] = USIOption(0, -1024, 1024);
+void USI::OptionsMap::init() {
+  (*this)[USI::OptionNames::USI_HASH] = USIOption(256, 1, 65536, onHashSize);
+  (*this)[USI::OptionNames::CLEAR_HASH] = USIOption(onClearHash);
+  (*this)[USI::OptionNames::BOOK_FILE] = USIOption("../bin/book-2016-02-01.bin");
+  (*this)[USI::OptionNames::BEST_BOOK_MOVE] = USIOption(false);
+  (*this)[USI::OptionNames::OWNBOOK] = USIOption(true);
+  (*this)[USI::OptionNames::MIN_BOOK_PLY] = USIOption(SHRT_MAX, 0, SHRT_MAX);
+  (*this)[USI::OptionNames::MAX_BOOK_PLY] = USIOption(SHRT_MAX, 0, SHRT_MAX);
+  (*this)[USI::OptionNames::MIN_BOOK_SCORE] = USIOption(-180, -ScoreInfinite, ScoreInfinite);
+  (*this)[USI::OptionNames::EVAL_DIR] = USIOption("../bin/20151105", onEvalDir);
+  (*this)[USI::OptionNames::WRITE_SYNTHESIZED_EVAL] = USIOption(false);
+  (*this)[USI::OptionNames::USI_PONDER] = USIOption(true);
+  (*this)[USI::OptionNames::BYOYOMI_MARGIN] = USIOption(500, 0, INT_MAX);
+  (*this)[USI::OptionNames::PONDER_TIME_MARGIN] = USIOption(500, 0, INT_MAX);
+  (*this)[USI::OptionNames::MULTIPV] = USIOption(1, 1, MaxLegalMoves);
+  (*this)[USI::OptionNames::SKILL_LEVEL] = USIOption(20, 0, 20);
+  (*this)[USI::OptionNames::MAX_RANDOM_SCORE_DIFF] = USIOption(0, 0, ScoreMate0Ply);
+  (*this)[USI::OptionNames::MAX_RANDOM_SCORE_DIFF_PLY] = USIOption(0, 0, SHRT_MAX);
+  (*this)[USI::OptionNames::EMERGENCY_MOVE_HORIZON] = USIOption(40, 0, 50);
+  (*this)[USI::OptionNames::EMERGENCY_BASE_TIME] = USIOption(200, 0, 30000);
+  (*this)[USI::OptionNames::EMERGENCY_MOVE_TIME] = USIOption(70, 0, 5000);
+  (*this)[USI::OptionNames::SLOW_MOVER] = USIOption(100, 10, 1000);
+  (*this)[USI::OptionNames::MINIMUM_THINKING_TIME] = USIOption(1500, 0, INT_MAX);
+  (*this)[USI::OptionNames::MAX_THREADS_PER_SPLIT_POINT] = USIOption(5, 4, 8, onThreads);
+  (*this)[USI::OptionNames::THREADS] = USIOption(cpuCoreCount(), 1, MaxThreads, onThreads);
+  (*this)[USI::OptionNames::USE_SLEEPING_THREADS] = USIOption(true);
+  (*this)[USI::OptionNames::BOOK_THINKING_TIME] = USIOption(1500, 0, INT_MAX);
+  (*this)[USI::OptionNames::OUTPUT_INFO] = USIOption(true);
+  (*this)[USI::OptionNames::SEARCH_WINDOW_OFFSET] = USIOption(0, -1024, 1024);
+  (*this)[USI::OptionNames::MOVE_OVERHEAD] = USIOption(30, 0, 5000);
+  (*this)[USI::OptionNames::NODESTIME] = USIOption(0, 0, 10000);
 #if defined BISHOP_IN_DANGER
-  (*this)[OptionNames::DANGER_DEMERIT_SCORE] = USIOption(700, SHRT_MIN, SHRT_MAX);
+  (*this)[USI::OptionNames::DANGER_DEMERIT_SCORE] = USIOption(700, SHRT_MIN, SHRT_MAX);
 #endif
 }
 
-USIOption::USIOption(const char* v, Fn* f, Searcher* s) :
-  type_("string"), min_(0), max_(0), onChange_(f), searcher_(s)
+USI::USIOption::USIOption(const char* v, Fn* f) :
+  type_("string"), min_(0), max_(0), onChange_(f)
 {
   defaultValue_ = currentValue_ = v;
 }
 
-USIOption::USIOption(const bool v, Fn* f, Searcher* s) :
-  type_("check"), min_(0), max_(0), onChange_(f), searcher_(s)
+USI::USIOption::USIOption(const bool v, Fn* f) :
+  type_("check"), min_(0), max_(0), onChange_(f)
 {
   defaultValue_ = currentValue_ = (v ? "true" : "false");
 }
 
-USIOption::USIOption(Fn* f, Searcher* s) :
-  type_("button"), min_(0), max_(0), onChange_(f), searcher_(s) {}
+USI::USIOption::USIOption(Fn* f) :
+  type_("button"), min_(0), max_(0), onChange_(f) {}
 
-USIOption::USIOption(const int v, const int min, const int max, Fn* f, Searcher* s)
-  : type_("spin"), min_(min), max_(max), onChange_(f), searcher_(s)
+USI::USIOption::USIOption(const int v, const int min, const int max, Fn* f)
+  : type_("spin"), min_(min), max_(max), onChange_(f)
 {
   std::ostringstream ss;
   ss << v;
   defaultValue_ = currentValue_ = ss.str();
 }
 
-USIOption& USIOption::operator = (const std::string& v) {
+USI::USIOption& USI::USIOption::operator = (const std::string& v) {
   assert(!type_.empty());
 
   if ((type_ != "button" && v.empty())
@@ -149,36 +153,35 @@ USIOption& USIOption::operator = (const std::string& v) {
   }
 
   if (onChange_ != nullptr) {
-    (*onChange_)(searcher_, *this);
+    (*onChange_)(*this);
   }
 
   return *this;
 }
 
-std::ostream& operator << (std::ostream& os, const OptionsMap& om) {
+std::ostream& operator << (std::ostream& os, const USI::OptionsMap& om) {
   for (auto& elem : om) {
-    const USIOption& o = elem.second;
-    os << "\noption name " << elem.first << " type " << o.type_;
-    if (o.type_ != "button") {
-      os << " default " << o.defaultValue_;
+    const USI::USIOption& o = elem.second;
+    os << "\noption name " << elem.first << " type " << o.type();
+    if (o.type() != "button") {
+      os << " default " << o.defaultValue();
     }
 
-    if (o.type_ == "spin") {
-      os << " min " << o.min_ << " max " << o.max_;
+    if (o.type() == "spin") {
+      os << " min " << o.min() << " max " << o.max();
     }
   }
   return os;
 }
 
-void go(const Position& pos, const std::string& cmd) {
+void USI::go(const Position& pos, const std::string& cmd) {
   std::istringstream iss(cmd);
   go(pos, iss);
 }
 
-void go(const Position& pos, std::istringstream& ssCmd) {
-  std::chrono::time_point<std::chrono::system_clock> goReceivedTime =
-    std::chrono::system_clock::now();
-  LimitsType limits;
+void USI::go(const Position& pos, std::istringstream& ssCmd) {
+  Search::LimitsType limits;
+  limits.startTime = now(); // As early as possible!
   std::vector<Move> moves;
   std::string token;
 
@@ -200,6 +203,7 @@ void go(const Position& pos, std::istringstream& ssCmd) {
       int byoyomi;
       ssCmd >> byoyomi;
       limits.byoyomi = byoyomi;
+      if (limits.byoyomi != 0) { limits.byoyomi -= Options[USI::OptionNames::BYOYOMI_MARGIN]; }
     }
     else if (token == "depth") {
       int depth;
@@ -216,8 +220,8 @@ void go(const Position& pos, std::istringstream& ssCmd) {
         moves.push_back(usiToMove(pos, token));
     }
   }
-  pos.searcher()->searchMoves = moves;
-  pos.searcher()->threads.startThinking(pos, limits, moves, goReceivedTime);
+  limits.searchmoves = moves;
+  Threads.start_thinking(pos, limits, Search::SetupStates);
 }
 
 #if defined LEARN
@@ -300,7 +304,7 @@ Move csaToMoveDebug(const Position& pos, const std::string& moveStr) {
   return Move::moveNone();
 }
 #endif
-Move usiToMove(const Position& pos, const std::string& moveStr) {
+Move USI::usiToMove(const Position& pos, const std::string& moveStr) {
   const Move move = usiToMoveBody(pos, moveStr);
   assert(move == usiToMoveDebug(pos, moveStr));
   return move;
@@ -354,19 +358,19 @@ Move csaToMoveBody(const Position& pos, const std::string& moveStr) {
   }
   return Move::moveNone();
 }
-Move csaToMove(const Position& pos, const std::string& moveStr) {
+Move USI::csaToMove(const Position& pos, const std::string& moveStr) {
   const Move move = csaToMoveBody(pos, moveStr);
   assert(move == csaToMoveDebug(pos, moveStr));
   return move;
 }
 
-void setPosition(Position& pos, const std::string& cmd)
+void USI::setPosition(Position& pos, const std::string& cmd)
 {
   std::istringstream iss(cmd);
   setPosition(pos, iss);
 }
 
-void setPosition(Position& pos, std::istringstream& ssCmd) {
+void USI::setPosition(Position& pos, std::istringstream& ssCmd) {
   std::string token;
   std::string sfen;
 
@@ -385,27 +389,27 @@ void setPosition(Position& pos, std::istringstream& ssCmd) {
     return;
   }
 
-  pos.set(sfen, pos.searcher()->threads.mainThread());
-  pos.searcher()->setUpStates = StateStackPtr(new std::stack<StateInfo>());
+  pos.set(sfen, Threads.main());
+  Search::SetupStates = Search::StateStackPtr(new std::stack<StateInfo>());
 
   Ply currentPly = pos.gamePly();
   while (ssCmd >> token) {
     const Move move = usiToMove(pos, token);
     if (move.isNone()) break;
-    pos.searcher()->setUpStates->push(StateInfo());
-    pos.doMove(move, pos.searcher()->setUpStates->top());
+    Search::SetupStates->push(StateInfo());
+    pos.doMove(move, Search::SetupStates->top());
     ++currentPly;
   }
   pos.setStartPosPly(currentPly);
 }
 
-void Searcher::setOption(const std::string& cmd)
+void USI::setOption(const std::string& cmd)
 {
   std::istringstream iss(cmd);
   setOption(iss);
 }
 
-void Searcher::setOption(std::istringstream& ssCmd) {
+void USI::setOption(std::istringstream& ssCmd) {
   std::string token;
   std::string name;
   std::string value;
@@ -424,11 +428,11 @@ void Searcher::setOption(std::istringstream& ssCmd) {
     value += " " + token;
   }
 
-  if (!USI::Options.isLegalOption(name)) {
+  if (!Options.isLegalOption(name)) {
     std::cout << "No such option: " << name << std::endl;
   }
   else {
-    USI::Options[name] = value;
+    Options[name] = value;
   }
 }
 
@@ -442,8 +446,8 @@ const std::string MyName = "tanuki-";
 const std::string MyName = "tanuki- Debug Build";
 #endif
 
-void Searcher::doUSICommandLoop(int argc, char* argv[]) {
-  Position pos(DefaultStartPositionSFEN, threads.mainThread(), thisptr);
+void USI::doUSICommandLoop(int argc, char* argv[]) {
+  Position pos(USI::DefaultStartPositionSFEN, Threads.main());
 
   std::string cmd;
   std::string token;
@@ -468,29 +472,19 @@ void Searcher::doUSICommandLoop(int argc, char* argv[]) {
 
     ssCmd >> std::skipws >> token;
 
-    if (token == "quit" || token == "stop" || token == "ponderhit" || token == "gameover") {
-      if (token != "ponderhit" || signals.stopOnPonderHit) {
-        signals.stop = true;
-        threads.mainThread()->notifyOne();
-      }
-      else {
-        limits.ponder = false;
-      }
-      if (token == "ponderhit" && limits.byoyomi != 0) {
-        // ponder した時間だけ制限時間が伸びたので limits に追加する
-        int elapsed = searchTimer.elapsed();
-        limits.ponderTime = elapsed;
-        Searcher::timeManager->update();
-
-        int firstMs = Searcher::timeManager->getHardTimeLimitMs() - elapsed - MAX_TIMER_PERIOD_MS * 2;
-        firstMs = std::max(firstMs, MIN_TIMER_PERIOD_MS);
-        int afterMs = MAX_TIMER_PERIOD_MS;
-        threads.timerThread()->restartTimer(firstMs, afterMs);
-      }
+    if (token == "quit" ||
+      token == "stop" ||
+      (token == "ponderhit" && Search::Signals.stopOnPonderhit) ||
+      token == "gameover") {
+      Search::Signals.stop = true;
+      Threads.main()->start_searching(true);
+    }
+    else if (token == "ponderhit" && Search::Limits.byoyomi != 0) {
+      Search::Limits.ponder = 0;
     }
     else if (token == "usinewgame") {
-      tt.clear();
-      Searcher::book.open(((std::string)USI::Options[OptionNames::BOOK_FILE]).c_str());
+      TT.clear();
+      Search::book.open(((std::string)Options[USI::OptionNames::BOOK_FILE]).c_str());
 #if defined INANIWA_SHIFT
       inaniwaFlag = NotInaniwa;
 #endif
@@ -502,32 +496,32 @@ void Searcher::doUSICommandLoop(int argc, char* argv[]) {
     else if (token == "usi") {
       SYNCCOUT << "id name " << MyName
         << "\nid author nodchip"
-        << "\n" << USI::Options
+        << "\n" << Options
         << "\nusiok" << SYNCENDL;
     }
     else if (token == "go") {
-      go(pos, ssCmd);
+      USI::go(pos, ssCmd);
       SYNCCOUT << "info string started" << SYNCENDL;
     }
     else if (token == "isready") { SYNCCOUT << "readyok" << SYNCENDL; }
-    else if (token == "position") { setPosition(pos, ssCmd); }
-    else if (token == "setoption") { setOption(ssCmd); }
-    else if (token == "broadcast") {
-      std::getline(ssCmd, pos.searcher()->broadcastedPvInfo);
+    else if (token == "position") { USI::setPosition(pos, ssCmd); }
+    else if (token == "setoption") { USI::setOption(ssCmd); }
+    //else if (token == "broadcast") {
+    //  std::getline(ssCmd, pos.searcher()->broadcastedPvInfo);
 
-      pos.searcher()->broadcastedPvDepth = 0;
-      std::istringstream iss(pos.searcher()->broadcastedPvInfo);
-      std::string term;
-      while (iss >> term) {
-        if (term != "depth") {
-          continue;
-        }
-        iss >> pos.searcher()->broadcastedPvDepth;
-        break;
-      }
-      signals.skipMainThreadCurrentDepth =
-        pos.searcher()->broadcastedPvDepth >= pos.searcher()->mainThreadCurrentSearchDepth;
-    }
+    //  pos.searcher()->broadcastedPvDepth = 0;
+    //  std::istringstream iss(pos.searcher()->broadcastedPvInfo);
+    //  std::string term;
+    //  while (iss >> term) {
+    //    if (term != "depth") {
+    //      continue;
+    //    }
+    //    iss >> pos.searcher()->broadcastedPvDepth;
+    //    break;
+    //  }
+    //  signals.skipMainThreadCurrentDepth =
+    //    pos.searcher()->broadcastedPvDepth >= pos.searcher()->mainThreadCurrentSearchDepth;
+    //}
 #if defined LEARN
     else if (token == "l") {
       auto learner = std::unique_ptr<Learner>(new Learner());
@@ -700,7 +694,8 @@ void Searcher::doUSICommandLoop(int argc, char* argv[]) {
         gameRecords);
       csa::writeCsa1("C:\\home\\develop\\shogi-kifu\\tanuki-lose.csa1", gameRecords);
       std::cout << "Finished..." << std::endl;
-    } else if (token == "convert_to_sfen") {
+    }
+    else if (token == "convert_to_sfen") {
       std::vector<GameRecord> gameRecords;
       csa::readCsa1("C:\\home\\develop\\shogi-kifu\\2chkifu_csa\\2chkifu.csa1", pos, gameRecords);
       std::ofstream ofs("C:\\home\\develop\\shogi-kifu\\2chkifu.sfen");
@@ -709,7 +704,7 @@ void Searcher::doUSICommandLoop(int argc, char* argv[]) {
         if (++counter % 1000 == 0) {
           std::cout << counter << std::endl;
         }
-        pos.set(DefaultStartPositionSFEN, pos.searcher()->threads.mainThread());
+        pos.set(USI::DefaultStartPositionSFEN, Threads.main());
 
         ofs << "startpos moves";
         for (const auto& move : gameRecord.moves) {
@@ -723,8 +718,50 @@ void Searcher::doUSICommandLoop(int argc, char* argv[]) {
     else { SYNCCOUT << "unknown command: " << cmd << SYNCENDL; }
   } while (token != "quit" && argc == 1);
 
-  if (USI::Options[OptionNames::WRITE_SYNTHESIZED_EVAL])
-    Evaluater::writeSynthesized(USI::Options[OptionNames::EVAL_DIR]);
+  if (Options[USI::OptionNames::WRITE_SYNTHESIZED_EVAL])
+    Evaluater::writeSynthesized(Options[USI::OptionNames::EVAL_DIR]);
 
-  threads.waitForThinkFinished();
+  Threads.main()->wait_for_search_finished();
+}
+
+std::string USI::score(Score score, Score alpha, Score beta)
+{
+  std::stringstream ss;
+
+  assert(score != ScoreNone);
+
+  if (isMate(score)) {
+    // 詰み
+    // mate の後には、何手で詰むかを表示する。
+    ss << "mate " << (ScoreMate0Ply - score);
+  }
+  else if (isMated(score)) {
+    // 詰まされている
+    // mate の後には、何手で詰むかを表示する。
+    ss << "mate " << (ScoreMated0Ply - score);
+  }
+  else if (isSuperior(score)) {
+    // 優等局面
+    // mate の後には、何手優等局面が続くか1000足して表示する
+    ss << "mate " << (ScoreSuperior0Ply - score + 1000);
+  }
+  else if (isInferior(score)) {
+    // 劣等局面
+    // mate の後には、何手劣等局面が続くか1000引いて表示する
+    ss << "mate " << (ScoreInferior0Ply - score - 1000);
+  }
+  else if (abs(score) < ScoreSuperiorMaxPly) {
+    // cp は centi pawn の略
+    int normalizedScore = score * 100 / PawnScore;
+    ss << "cp " << normalizedScore;
+  }
+
+  ss << (beta <= score ? " lowerbound" : score <= alpha ? " upperbound" : "");
+
+  return ss.str();
+}
+
+std::string USI::score(Score score)
+{
+  return USI::score(score, -ScoreInfinite, ScoreInfinite);
 }

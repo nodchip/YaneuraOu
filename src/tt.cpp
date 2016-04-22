@@ -1,7 +1,7 @@
 ﻿#include "tt.hpp"
 
 // Our global transposition table
-//TranspositionTable TT;
+TranspositionTable TT;
 
 
 /// TranspositionTable::resize() sets the size of the transposition table,

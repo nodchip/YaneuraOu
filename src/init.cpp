@@ -1,4 +1,5 @@
-﻿#include "common.hpp"
+﻿#include "timeManager.hpp"
+#include "common.hpp"
 #include "init.hpp"
 #include "evaluate.hpp"
 #include "book.hpp"
@@ -330,7 +331,7 @@ void initTable() {
   initSquareDistance();
 
   Book::init();
-  initSearchTable();
+  Search::init();
 }
 
 #if defined FIND_MAGIC
