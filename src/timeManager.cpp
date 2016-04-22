@@ -27,7 +27,7 @@ namespace {
     const double XShift = 59.;
     const double Skew = 0.179;
 
-    return pow((1 + exp((ply - XShift) / XScale)), -Skew) + DBL_MIN; // Ensure non-zero
+    return pow((1 + exp((ply - XShift) / XScale)), -Skew) + std::numeric_limits<double>::min(); // Ensure non-zero
   }
 
   template<TimeType T>
