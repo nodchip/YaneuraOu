@@ -165,45 +165,63 @@ void Search::clear() {
 /// the "bestmove" to output.
 
 void MainThread::search() {
-  // 定跡データベースのlookup
-  auto bookMove = book.probe(rootPos);
-  if (bookMove.first != Move::moveNone()) {
-    const auto& move = bookMove.first;
-    const auto& score = bookMove.second;
-    SYNCCOUT << "info"
-      << " score " << USI::score(score)
-      << " pv " << move.toUSI()
-      << SYNCENDL;
-    SYNCCOUT << "bestmove " << move.toUSI() << SYNCENDL;
-    return;
-  }
-
   Color us = rootPos.turn();
   Time.init(Limits, us, rootPos.gamePly());
 
   // 指し手がなければ負け
   if (rootMoves.empty())
   {
+    rootMoves.push_back(RootMove(Move::moveNone()));
     SYNCCOUT << "info depth 0 score "
       << USI::score(-ScoreMate0Ply)
       << SYNCENDL;
-    SYNCCOUT << "bestmove resign" << SYNCENDL;
-    return;
   }
-
-  for (Thread* th : Threads)
+  else
   {
-    th->maxPly = 0;
-    th->rootDepth = Depth0;
-    if (th != this)
-    {
-      th->rootPos = Position(rootPos, th);
-      th->rootMoves = rootMoves;
-      th->start_searching();
+    // 定跡データベースのlookup
+    auto bookMove = book.probe(rootPos);
+    if (bookMove.first != Move::moveNone()) {
+      const auto& move = bookMove.first;
+      const auto& score = bookMove.second;
+
+      // rootMovesを1手だけにし、スコアを付加する
+      rootMoves.clear();
+      rootMoves.push_back(RootMove(move));
+      rootMoves[0].score = score;
+
+      // rootMoves等をヘルパースレッド伝搬する
+      for (Thread* th : Threads)
+      {
+        th->maxPly = 0;
+        th->rootDepth = Depth0;
+        if (th != this)
+        {
+          th->rootPos = Position(rootPos, th);
+          th->rootMoves = rootMoves;
+        }
+      }
+
+      SYNCCOUT << "info"
+        << " score " << USI::score(score)
+        << " pv " << move.toUSI()
+        << SYNCENDL;
+    }
+    else {
+      for (Thread* th : Threads)
+      {
+        th->maxPly = 0;
+        th->rootDepth = Depth0;
+        if (th != this)
+        {
+          th->rootPos = Position(rootPos, th);
+          th->rootMoves = rootMoves;
+          th->start_searching();
+        }
+      }
+
+      Thread::search(); // Let's start searching!
     }
   }
-
-  Thread::search(); // Let's start searching!
 
   // When playing in 'nodes as time' mode, subtract the searched nodes from
   // the available ones before to exit.
@@ -244,7 +262,13 @@ void MainThread::search() {
   if (bestThread != this)
     SYNCCOUT << USI::pv(bestThread->rootPos, bestThread->completedDepth, -ScoreInfinite, ScoreInfinite) << SYNCENDL;
 
-  SYNCCOUT << "bestmove " << bestThread->rootMoves[0].pv[0].toUSI();
+  if (rootMoves[0].pv[0].isNone()) {
+    // 指し手がない場合、投了する
+    SYNCCOUT << "bestmove resign" << SYNCENDL;
+  }
+  else {
+    SYNCCOUT << "bestmove " << bestThread->rootMoves[0].pv[0].toUSI();
+  }
 
   if (bestThread->rootMoves[0].pv.size() > 1 || bestThread->rootMoves[0].extract_ponder_from_tt(rootPos))
     std::cout << " ponder " << bestThread->rootMoves[0].pv[1].toUSI();
@@ -1008,9 +1032,9 @@ namespace {
           SYNCCOUT << "info depth " << depth / OnePly
             << " currmove " << move.toUSI()
             << " currmovenumber " << moveCount + pvIdx << SYNCENDL;
-    }
+        }
 #endif
-  }
+      }
 
       if (PVNode)
         (ss + 1)->pv = nullptr;
@@ -1246,7 +1270,7 @@ namespace {
           }
         }
       }
-}
+    }
 
     // step20
     if (moveCount == 0) {
@@ -1706,7 +1730,7 @@ std::string USI::pv(const Position& pos, Depth depth, Score alpha, Score beta) {
     << " numExpirations=" << tt.getNumberOfCacheExpirations() << std::endl;
 #endif
   return ss.str();
-    }
+}
 
 
 /// RootMove::insert_pv_in_tt() is called at the end of a search iteration, and

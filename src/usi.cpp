@@ -492,7 +492,7 @@ void USI::doUSICommandLoop(int argc, char* argv[]) {
       Search::Signals.stop = true;
       Threads.main()->start_searching(true);
     }
-    else if (token == "ponderhit" && Search::Limits.byoyomi != 0) {
+    else if (token == "ponderhit") {
       Search::Limits.ponder = 0;
     }
     else if (token == "usinewgame") {
