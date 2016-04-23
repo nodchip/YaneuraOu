@@ -18,8 +18,7 @@ private:
 TEST_F(UsiTest, go_startSearch) {
   Position pos;
   USI::setPosition(pos, std::istringstream("startpos moves"));
-  //USI::go(pos, std::istringstream("btime 0 wtime 0 byoyomi 2000"));
-  USI::go(pos, std::istringstream("btime 0 wtime 0 infinite"));
+  USI::go(pos, std::istringstream("btime 0 wtime 0 byoyomi 2000"));
   Threads.main()->wait_for_search_finished();
 }
 
