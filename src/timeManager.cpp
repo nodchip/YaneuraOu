@@ -120,4 +120,6 @@ void TimeManagement::init(Search::LimitsType& limits, Color us, int ply)
     if (limits.time[us] != 0)
       limits.byoyomi = 0;
   }
+
+  SYNCCOUT << "info string optimumTime=" << optimumTime << " maximumTime=" << maximumTime << SYNCENDL;
 }
