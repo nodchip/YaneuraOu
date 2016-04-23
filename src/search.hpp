@@ -49,7 +49,8 @@ namespace Search {
 
     LimitsType() { // Init explicitly due to broken value-initialization of non POD in MSVC
       nodes = time[White] = time[Black] = inc[White] = inc[Black] = npmsec = movestogo =
-        depth = movetime = mate = infinite = ponder = 0;
+        depth = movetime = mate = infinite = ponder = byoyomi = 0;
+      startTime = now();
     }
 
     bool use_time_management() const {
