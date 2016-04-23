@@ -165,6 +165,19 @@ void Search::clear() {
 /// the "bestmove" to output.
 
 void MainThread::search() {
+  // 定跡データベースのlookup
+  auto bookMove = book.probe(rootPos);
+  if (bookMove.first != Move::moveNone()) {
+    const auto& move = bookMove.first;
+    const auto& score = bookMove.second;
+    SYNCCOUT << "info"
+      << " score " << USI::score(score)
+      << " pv " << move.toUSI()
+      << SYNCENDL;
+    SYNCCOUT << "bestmove " << move.toUSI() << SYNCENDL;
+    return;
+  }
+
   Color us = rootPos.turn();
   Time.init(Limits, us, rootPos.gamePly());
 
@@ -992,9 +1005,9 @@ namespace {
           SYNCCOUT << "info depth " << depth / OnePly
             << " currmove " << move.toUSI()
             << " currmovenumber " << moveCount + pvIdx << SYNCENDL;
-    }
+        }
 #endif
-  }
+      }
 
       if (PVNode)
         (ss + 1)->pv = nullptr;
@@ -1230,7 +1243,7 @@ namespace {
           }
         }
       }
-}
+    }
 
     // step20
     if (moveCount == 0) {
@@ -1690,7 +1703,7 @@ std::string USI::pv(const Position& pos, Depth depth, Score alpha, Score beta) {
     << " numExpirations=" << tt.getNumberOfCacheExpirations() << std::endl;
 #endif
   return ss.str();
-    }
+}
 
 
 /// RootMove::insert_pv_in_tt() is called at the end of a search iteration, and
