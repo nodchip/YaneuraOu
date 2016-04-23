@@ -23,19 +23,6 @@ namespace Search {
     // 0: 双玉に対する評価値, 1: 先手玉に対する評価値, 2: 後手玉に対する評価値
     EvalSum staticEvalRaw;
     int moveCount;
-
-    //SplitPoint* splitPoint;
-    //Ply ply;
-    //Move currentMove;
-    //Move excludedMove; // todo: これは必要？
-    //Move killers[2];
-    //Depth reduction;
-    //Score staticEval;
-    //bool skipNullMove;
-    //// 評価関数の差分計算用、値が入っていないときは [0] を ScoreNotEvaluated にしておく。
-    //// 常に Black 側から見た評価値を入れておく。
-    //// 0: 双玉に対する評価値, 1: 先手玉に対する評価値, 2: 後手玉に対する評価値
-    //EvalSum staticEvalRaw;
   };
 
   /// RootMove struct is used for moves at the root of the tree. For each root move
@@ -77,11 +64,6 @@ namespace Search {
 
   struct SignalsType {
     std::atomic_bool stop, stopOnPonderhit;
-    //std::atomic<bool> stopOnPonderHit;
-    //std::atomic<bool> firstRootMove;
-    //std::atomic<bool> stop;
-    //std::atomic<bool> failedLowAtRoot;
-    std::atomic_bool skipMainThreadCurrentDepth;
   };
 
   using StateStackPtr = std::unique_ptr<std::stack<StateInfo> >;
@@ -89,6 +71,9 @@ namespace Search {
   extern SignalsType Signals;
   extern LimitsType Limits;
   extern StateStackPtr SetupStates;
+  extern std::mutex BroadcastMutex;
+  extern int BroadcastPvDepth;
+  extern std::string BroadcastPvInfo;
 
   void init();
   void clear();
@@ -112,65 +97,5 @@ namespace Search {
   extern Book book;
 
 }
-
-//struct Searcher {
-//  // static メンバ関数からだとthis呼べないので代わりに thisptr を使う。
-//  // static じゃないときは this を入れることにする。
-//  STATIC Searcher* thisptr;
-//  STATIC SignalsType signals;
-//  STATIC LimitsType limits;
-//  STATIC std::vector<Move> searchMoves;
-//  STATIC Time searchTimer;
-//  STATIC u64 lastSearchedNodes;
-//  STATIC StateStackPtr setUpStates;
-//  //STATIC std::vector<RootMove> rootMoves;
-//
-//#if defined LEARN
-//  STATIC Score alpha;
-//  STATIC Score beta;
-//#endif
-//
-//  STATIC size_t pvSize;
-//  STATIC size_t pvIdx;
-//  STATIC std::unique_ptr<TimeManager> timeManager;
-//  STATIC Ply bestMoveChanges;
-//  //STATIC History history;
-//  //STATIC Gains gains;
-//  STATIC TranspositionTable tt;
-//
-//#if defined INANIWA_SHIFT
-//  STATIC InaniwaFlag inaniwaFlag;
-//#endif
-//#if defined BISHOP_IN_DANGER
-//  STATIC BishopInDangerFlag bishopInDangerFlag;
-//#endif
-//  STATIC Position rootPosition;
-//  //STATIC ThreadPool threads;
-//  STATIC Book book;
-//  STATIC int broadcastedPvDepth;
-//  STATIC std::string broadcastedPvInfo;
-//  STATIC std::atomic<int> mainThreadCurrentSearchDepth;
-//
-//  STATIC void init();
-//  STATIC void idLoop(Position& pos);
-//  STATIC void skipCurrentDepth(Position& pos, Ply& depth);
-//  STATIC std::string pvInfoToUSI(Position& pos, const Ply depth, const Score alpha, const Score beta);
-//  template <NodeType NT, bool INCHECK>
-//  STATIC Score qsearch(Position& pos, SearchStack* ss, Score alpha, Score beta, const Depth depth);
-//#if defined INANIWA_SHIFT
-//  STATIC void detectInaniwa(const Position& pos);
-//#endif
-//#if defined BISHOP_IN_DANGER
-//  STATIC void detectBishopInDanger(const Position& pos);
-//#endif
-//  template <NodeType NT>
-//  STATIC Score search(Position& pos, SearchStack* ss, Score alpha, Score beta, const Depth depth, const bool cutNode);
-//  STATIC void think();
-//  STATIC void checkTime();
-//
-//  STATIC void doUSICommandLoop(int argc, char* argv[]);
-//};
-//
-//void initSearchTable();
 
 #endif // #ifndef APERY_SEARCH_HPP

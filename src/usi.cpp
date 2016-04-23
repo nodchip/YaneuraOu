@@ -221,6 +221,7 @@ void USI::go(const Position& pos, std::istringstream& ssCmd) {
     }
   }
   limits.searchmoves = moves;
+  Search::BroadcastPvDepth = 0;
   Threads.start_thinking(pos, limits, Search::SetupStates);
 }
 
@@ -506,22 +507,27 @@ void USI::doUSICommandLoop(int argc, char* argv[]) {
     else if (token == "isready") { SYNCCOUT << "readyok" << SYNCENDL; }
     else if (token == "position") { USI::setPosition(pos, ssCmd); }
     else if (token == "setoption") { USI::setOption(ssCmd); }
-    //else if (token == "broadcast") {
-    //  std::getline(ssCmd, pos.searcher()->broadcastedPvInfo);
+    else if (token == "broadcast") {
+      std::getline(ssCmd, Search::BroadcastPvInfo);
 
-    //  pos.searcher()->broadcastedPvDepth = 0;
-    //  std::istringstream iss(pos.searcher()->broadcastedPvInfo);
-    //  std::string term;
-    //  while (iss >> term) {
-    //    if (term != "depth") {
-    //      continue;
-    //    }
-    //    iss >> pos.searcher()->broadcastedPvDepth;
-    //    break;
-    //  }
-    //  signals.skipMainThreadCurrentDepth =
-    //    pos.searcher()->broadcastedPvDepth >= pos.searcher()->mainThreadCurrentSearchDepth;
-    //}
+      Search::BroadcastPvDepth = 0;
+      std::istringstream iss(Search::BroadcastPvInfo);
+      std::string term;
+      while (iss >> term) {
+        if (term != "depth") {
+          continue;
+        }
+        int depth;
+        iss >> depth;
+
+        {
+          std::lock_guard<std::mutex> lock(Search::BroadcastMutex);
+          Search::BroadcastPvDepth = std::max(Search::BroadcastPvDepth, depth);
+        }
+
+        break;
+      }
+    }
 #if defined LEARN
     else if (token == "l") {
       auto learner = std::unique_ptr<Learner>(new Learner());
