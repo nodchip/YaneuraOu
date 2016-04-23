@@ -166,7 +166,7 @@ std::pair<Move, Score> Book::probe(const Position& pos) {
   entries.erase(std::remove_if(
     entries.begin(),
     entries.end(),
-    [bestScore, scoreDiff](const auto& entry) {
+    [bestScore, scoreDiff](const BookEntry& entry) {
     return entry.score < bestScore - scoreDiff;
   }), entries.end());
 
@@ -177,15 +177,16 @@ std::pair<Move, Score> Book::probe(const Position& pos) {
 
   // countに比例する確率で1手選ぶ
   int64_t sumCount = 0;
-  BookEntry selectedEntry;
+  const BookEntry* selectedEntry = nullptr;
   for (const auto& entry : entries) {
     sumCount += entry.count;
     if (g_randomTimeSeed() % sumCount < entry.count) {
-      selectedEntry = entry;
+      selectedEntry = &entry;
     }
   }
+  assert(selectedEntry);
 
-  return std::make_pair(complementMove(selectedEntry.fromToPro, pos), selectedEntry.score);
+  return std::make_pair(complementMove(selectedEntry->fromToPro, pos), selectedEntry->score);
 }
 
 std::vector<std::pair<Move, int> > Book::enumerateMoves(const Position& pos, const std::string& fName)
