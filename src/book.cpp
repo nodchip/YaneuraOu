@@ -40,7 +40,7 @@ bool Book::open(const char* fName) {
     return false;
   }
 
-  int numberOfEntries = ifs.tellg() / sizeof(BookEntry);
+  int numberOfEntries = static_cast<int>(ifs.tellg() / sizeof(BookEntry));
   if (!ifs.seekg(0)) {
     SYNCCOUT << "info string Failed to seek in the book file: " << fName << SYNCENDL;
     return false;
@@ -78,53 +78,107 @@ BookKey Book::bookKey(const Position& pos) {
   return key;
 }
 
-std::tuple<Move, Score> Book::probe(const Position& pos, const std::string& fName, const bool pickBest) {
-  u16 best = 0;
-  u32 sum = 0;
-  Move move = Move::moveNone();
-  const BookKey key = bookKey(pos);
-  const Score min_book_score = static_cast<Score>(static_cast<int>(Options[USI::OptionNames::MIN_BOOK_SCORE]));
-  Score score = ScoreZero;
+std::pair<Move, Score> Book::probe(const Position& pos) {
+  std::string bookFilePath = Options[USI::OptionNames::BOOK_FILE];
+  bool bestBookMove = Options[USI::OptionNames::BEST_BOOK_MOVE] != 0;
+  bool ownBook = Options[USI::OptionNames::OWNBOOK] != 0;
+  int minBookPly = Options[USI::OptionNames::MIN_BOOK_PLY];
+  int maxBookPly = Options[USI::OptionNames::MAX_BOOK_PLY];
+  int minBookSscore = Options[USI::OptionNames::MIN_BOOK_SCORE];
+  int maxRandomScoreDiff = Options[USI::OptionNames::MAX_RANDOM_SCORE_DIFF];
+  int maxRandomScoreDiffPly = Options[USI::OptionNames::MAX_RANDOM_SCORE_DIFF_PLY];
 
-  if (!open(fName.c_str())) {
-    return std::make_tuple(Move::moveNone(), ScoreNone);
+  // 定跡データベースを使用しない場合はmoveNoneを返す
+  if (!ownBook) {
+    return std::make_pair(Move::moveNone(), ScoreNone);
   }
+
+  // 定跡データベースを開けない場合もmoveNoneを返す
+  if (!open(bookFilePath.c_str())) {
+    return std::make_pair(Move::moveNone(), ScoreNone);
+  }
+
+  // 定跡データベースを使用しない手数の場合もmoveNoneを返す
+  std::uniform_int_distribution<int> dist(minBookPly, maxBookPly);
+  Ply bookPly = dist(g_randomTimeSeed);
+  if (pos.gamePly() > bookPly) {
+    return std::make_pair(Move::moveNone(), ScoreNone);
+  }
+
+  int scoreDiff;
+  if (bestBookMove) {
+    // 最も良いスコアの手を指す場合
+    scoreDiff = 0;
+  }
+  else if (maxRandomScoreDiffPly < pos.gamePly()) {
+    // 第一候補手以外を指す手数を過ぎた場合
+    scoreDiff = 0;
+  }
+  else {
+    // それ以外の場合
+    scoreDiff = maxRandomScoreDiffPly;
+  }
+
+  std::vector<BookEntry> entries;
+  BookKey key = bookKey(pos);
+  Score bestScore = -ScoreInfinite;
 
   // 現在の局面における定跡手の数だけループする。
   auto range = entries_.equal_range(key);
   for (auto it = range.first; it != range.second; ++it) {
     const BookEntry& entry = it->second;
-    best = std::max(best, entry.count);
-    sum += entry.count;
+    if (entry.score < minBookSscore) {
+      continue;
+    }
+    entries.push_back(entry);
+    bestScore = std::max(bestScore, entry.score);
+  }
 
-    // 指された確率に従って手が選択される。
-    // count が大きい順に並んでいる必要はない。
-    if (min_book_score <= entry.score
-      && ((random_() % sum < entry.count)
-        || (pickBest && entry.count == best)))
-    {
-      const Move tmp = Move(entry.fromToPro);
-      const Square to = tmp.to();
-      if (tmp.isDrop()) {
-        const PieceType ptDropped = tmp.pieceTypeDropped();
-        move = makeDropMove(ptDropped, to);
-      }
-      else {
-        const Square from = tmp.from();
-        const PieceType ptFrom = pieceToPieceType(pos.piece(from));
-        const bool promo = tmp.isPromotion() != 0;
-        if (promo) {
-          move = makeCapturePromoteMove(ptFrom, from, to, pos);
-        }
-        else {
-          move = makeCaptureMove(ptFrom, from, to, pos);
-        }
-      }
-      score = entry.score;
+  // スコアがbestScore - scoreDiff以下のものは取り除く
+  entries.erase(std::remove_if(
+    entries.begin(),
+    entries.end(),
+    [bestScore, scoreDiff](const auto& entry) {
+    return entry.score < bestScore - scoreDiff;
+  }), entries.end());
+
+  // 定跡が見つからなかった場合はmoveNone()を返す
+  if (entries.empty()) {
+    return std::make_pair(Move::moveNone(), ScoreNone);
+  }
+
+  // countに比例する確率で1手選ぶ
+  int64_t sumCount = 0;
+  BookEntry selectedEntry;
+  for (const auto& entry : entries) {
+    sumCount += entry.count;
+    if (g_randomTimeSeed() % sumCount < entry.count) {
+      selectedEntry = entry;
     }
   }
 
-  return std::make_tuple(move, score);
+  // moveの上位16bitをposから補完する
+  Move raw = Move(selectedEntry.fromToPro);
+  Square to = raw.to();
+  Move move = Move::moveNone();
+  if (raw.isDrop()) {
+    PieceType ptDropped = raw.pieceTypeDropped();
+    move = makeDropMove(ptDropped, to);
+  }
+  else {
+    Square from = raw.from();
+    PieceType ptFrom = pieceToPieceType(pos.piece(from));
+    bool promo = raw.isPromotion() != 0;
+    if (promo) {
+      move = makeCapturePromoteMove(ptFrom, from, to, pos);
+    }
+    else {
+      move = makeCaptureMove(ptFrom, from, to, pos);
+    }
+  }
+  assert(move != Move::moveNone());
+
+  return std::make_pair(move, selectedEntry.score);
 }
 
 std::vector<std::pair<Move, int> > Book::enumerateMoves(const Position& pos, const std::string& fName)
