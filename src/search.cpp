@@ -810,6 +810,20 @@ namespace {
       return ttScore;
     }
 
+    // 宣言勝ち
+    {
+      // 王手がかかってようがかかってまいが、宣言勝ちの判定は正しい。
+      // (トライルールのとき王手を回避しながら入玉することはありうるので)
+      bool nyugyokuWin = nyugyoku(pos);
+      if (nyugyokuWin)
+      {
+        bestScore = mateIn(ss->ply + 1); // 1手詰めなのでこの次のnodeで(指し手がなくなって)詰むという解釈
+        tte->save(posKey, score_to_tt(bestScore, ss->ply), BoundExact,
+          DepthMax, Move::moveNone(), ss->staticEval, TT.generation());
+        return bestScore;
+      }
+    }
+
 #if 1
     if (!RootNode
       && !inCheck)
