@@ -1037,9 +1037,9 @@ namespace {
           SYNCCOUT << "info depth " << depth / OnePly
             << " currmove " << move.toUSI()
             << " currmovenumber " << moveCount + pvIdx << SYNCENDL;
-    }
+        }
 #endif
-  }
+      }
 
       if (PVNode)
         (ss + 1)->pv = nullptr;
@@ -1237,18 +1237,18 @@ namespace {
             || (bishopInDangerFlag == WhiteBishopInDangerIn78 && move.toCSA() == "0078KA"))
           {
             rm.score_ -= options[OptionNames::DANGER_DEMERIT_SCORE];
-        }
+          }
 #endif
           //rm.extract_ponder_from_tt(pos);
 
           //if (!isPVMove) {
           //  ++bestMoveChanges;
           //}
-      }
+        }
         else {
           rm.score = -ScoreInfinite;
         }
-}
+      }
 
       if (bestScore < score) {
         bestScore = score;
@@ -1275,7 +1275,7 @@ namespace {
           }
         }
       }
-        }
+    }
 
     // step20
     if (moveCount == 0) {
@@ -1332,7 +1332,7 @@ namespace {
     assert(-ScoreInfinite < bestScore && bestScore < ScoreInfinite);
 
     return bestScore;
-      }
+  }
 
 
   // qsearch() is the quiescence search function, which is called by the main
@@ -1410,6 +1410,20 @@ namespace {
     }
 
     pos.setNodesSearched(pos.nodesSearched() + 1);
+
+    // 宣言勝ち
+    {
+      // 王手がかかってようがかかってまいが、宣言勝ちの判定は正しい。
+      // (トライルールのとき王手を回避しながら入玉することはありうるので)
+      bool nyugyokuWin = nyugyoku(pos);
+      if (nyugyokuWin)
+      {
+        bestScore = mateIn(ss->ply + 1); // 1手詰めなのでこの次のnodeで(指し手がなくなって)詰むという解釈
+        tte->save(posKey, score_to_tt(bestScore, ss->ply), BoundExact,
+          DepthMax, Move::moveNone(), ss->staticEval, TT.generation());
+        return bestScore;
+      }
+    }
 
     if (InCheck) {
       ss->staticEval = ScoreNone;
@@ -1685,7 +1699,7 @@ namespace {
 
     const Color us = pos.turn();
     // 敵陣のマスク
-    const Bitboard opponentsField = (us == Black ? inFrontMask<Black, Rank4>() : inFrontMask<White, Rank6>());
+    const Bitboard opponentsField = (us == Black ? inFrontMask<Black, Rank6>() : inFrontMask<White, Rank4>());
 
     // 二 宣言側の玉が敵陣三段目以内に入っている。
     if (!pos.bbOf(King, us).andIsNot0(opponentsField))
@@ -1726,11 +1740,11 @@ namespace {
 
     return true;
   }
-    } // namespace
+} // namespace
 
 
-      /// USI::pv() formats PV information according to the UCI protocol. UCI requires
-      /// that all (if any) unsearched PV lines are sent using a previous search score.
+  /// USI::pv() formats PV information according to the UCI protocol. UCI requires
+  /// that all (if any) unsearched PV lines are sent using a previous search score.
 
 std::string USI::pv(const Position& pos, Depth depth, Score alpha, Score beta) {
   std::stringstream ss;
@@ -1786,7 +1800,7 @@ std::string USI::pv(const Position& pos, Depth depth, Score alpha, Score beta) {
     << " numExpirations=" << tt.getNumberOfCacheExpirations() << std::endl;
 #endif
   return ss.str();
-  }
+}
 
 
 /// RootMove::insert_pv_in_tt() is called at the end of a search iteration, and
