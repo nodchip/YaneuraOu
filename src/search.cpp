@@ -181,29 +181,29 @@ void MainThread::search() {
   Color us = rootPos.turn();
   Time.init(Limits, us, rootPos.gamePly());
 
+  // 指し手がなければ負け
   if (rootMoves.empty())
   {
-    rootMoves.push_back(RootMove(Move::moveNone()));
     SYNCCOUT << "info depth 0 score "
       << USI::score(-ScoreMate0Ply)
       << SYNCENDL;
+    SYNCCOUT << "bestmove resign" << SYNCENDL;
+    return;
   }
-  else
-  {
-    for (Thread* th : Threads)
-    {
-      th->maxPly = 0;
-      th->rootDepth = Depth0;
-      if (th != this)
-      {
-        th->rootPos = Position(rootPos, th);
-        th->rootMoves = rootMoves;
-        th->start_searching();
-      }
-    }
 
-    Thread::search(); // Let's start searching!
+  for (Thread* th : Threads)
+  {
+    th->maxPly = 0;
+    th->rootDepth = Depth0;
+    if (th != this)
+    {
+      th->rootPos = Position(rootPos, th);
+      th->rootMoves = rootMoves;
+      th->start_searching();
+    }
   }
+
+  Thread::search(); // Let's start searching!
 
   // When playing in 'nodes as time' mode, subtract the searched nodes from
   // the available ones before to exit.
