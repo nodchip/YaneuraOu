@@ -197,6 +197,16 @@ void USI::go(const Position& pos, std::istringstream& ssCmd) {
       ssCmd >> wtime;
       limits.time[White] = wtime;
     }
+    else if (token == "winc") {
+      int winc;
+      ssCmd >> winc;
+      limits.inc[White] = winc;
+    }
+    else if (token == "binc") {
+      int binc;
+      ssCmd >> binc;
+      limits.inc[Black] = binc;
+    }
     else if (token == "infinite") { limits.infinite = true; }
     else if (token == "byoyomi" || token == "movetime") {
       // btime wtime の後に byoyomi が来る前提になっているので良くない。
