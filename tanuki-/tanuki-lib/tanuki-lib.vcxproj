@@ -162,7 +162,6 @@
     <ClInclude Include="..\..\src\ifdef.hpp" />
     <ClInclude Include="..\..\src\init.hpp" />
     <ClInclude Include="..\..\src\learner.hpp" />
-    <ClInclude Include="..\..\src\limits_type.hpp" />
     <ClInclude Include="..\..\src\move.hpp" />
     <ClInclude Include="..\..\src\movePicker.hpp" />
     <ClInclude Include="..\..\src\overloadEnumOperators.hpp" />
@@ -194,7 +193,6 @@
     <ClCompile Include="..\..\src\generateMoves.cpp" />
     <ClCompile Include="..\..\src\hand.cpp" />
     <ClCompile Include="..\..\src\init.cpp" />
-    <ClCompile Include="..\..\src\limits_type.cpp" />
     <ClCompile Include="..\..\src\move.cpp" />
     <ClCompile Include="..\..\src\movePicker.cpp" />
     <ClCompile Include="..\..\src\pieceScore.cpp" />
