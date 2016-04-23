@@ -155,6 +155,7 @@ int64_t ThreadPool::nodes_searched() {
 
 void ThreadPool::start_thinking(const Position& pos, const LimitsType& limits,
   StateStackPtr& states) {
+  assert(Limits.startTime != 0);
 
   main()->wait_for_search_finished();
 
