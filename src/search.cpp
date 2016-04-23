@@ -97,7 +97,8 @@ namespace {
   void update_pv(Move* pv, Move move, Move* childPv);
   void update_stats(const Position& pos, Search::SearchStack* ss, Move move, Depth depth, Move* quiets, int quietsCnt);
   void check_time();
-
+  // 入玉勝ちかどうかを判定
+  bool nyugyoku(const Position& pos);
 } // namespace
 
 
@@ -168,9 +169,12 @@ void MainThread::search() {
   Color us = rootPos.turn();
   Time.init(Limits, us, rootPos.gamePly());
 
-  // 指し手がなければ負け
-  if (rootMoves.empty())
-  {
+  bool nyugyokuWin = false;
+  if (nyugyoku(rootPos)) {
+    nyugyokuWin = true;
+  }
+  else if (rootMoves.empty()) {
+    // 指し手がなければ負け
     rootMoves.push_back(RootMove(Move::moveNone()));
     SYNCCOUT << "info depth 0 score "
       << USI::score(-ScoreMate0Ply)
@@ -262,18 +266,19 @@ void MainThread::search() {
   if (bestThread != this)
     SYNCCOUT << USI::pv(bestThread->rootPos, bestThread->completedDepth, -ScoreInfinite, ScoreInfinite) << SYNCENDL;
 
-  if (rootMoves[0].pv[0].isNone()) {
+  if (nyugyokuWin) {
+    SYNCCOUT << "bestmove win" << SYNCENDL;
+  }
+  else if (rootMoves[0].pv[0].isNone()) {
     // 指し手がない場合、投了する
     SYNCCOUT << "bestmove resign" << SYNCENDL;
   }
   else {
     SYNCCOUT << "bestmove " << bestThread->rootMoves[0].pv[0].toUSI();
+    if (bestThread->rootMoves[0].pv.size() > 1 || bestThread->rootMoves[0].extract_ponder_from_tt(rootPos))
+      std::cout << " ponder " << bestThread->rootMoves[0].pv[1].toUSI();
+    std::cout << SYNCENDL;
   }
-
-  if (bestThread->rootMoves[0].pv.size() > 1 || bestThread->rootMoves[0].extract_ponder_from_tt(rootPos))
-    std::cout << " ponder " << bestThread->rootMoves[0].pv[1].toUSI();
-
-  std::cout << SYNCENDL;
 }
 
 
@@ -1032,9 +1037,9 @@ namespace {
           SYNCCOUT << "info depth " << depth / OnePly
             << " currmove " << move.toUSI()
             << " currmovenumber " << moveCount + pvIdx << SYNCENDL;
-        }
+    }
 #endif
-      }
+  }
 
       if (PVNode)
         (ss + 1)->pv = nullptr;
@@ -1232,18 +1237,18 @@ namespace {
             || (bishopInDangerFlag == WhiteBishopInDangerIn78 && move.toCSA() == "0078KA"))
           {
             rm.score_ -= options[OptionNames::DANGER_DEMERIT_SCORE];
-          }
+        }
 #endif
           //rm.extract_ponder_from_tt(pos);
 
           //if (!isPVMove) {
           //  ++bestMoveChanges;
           //}
-        }
+      }
         else {
           rm.score = -ScoreInfinite;
         }
-      }
+}
 
       if (bestScore < score) {
         bestScore = score;
@@ -1270,7 +1275,7 @@ namespace {
           }
         }
       }
-    }
+        }
 
     // step20
     if (moveCount == 0) {
@@ -1327,7 +1332,7 @@ namespace {
     assert(-ScoreInfinite < bestScore && bestScore < ScoreInfinite);
 
     return bestScore;
-  }
+      }
 
 
   // qsearch() is the quiescence search function, which is called by the main
@@ -1670,11 +1675,62 @@ namespace {
       Signals.stop = true;
   }
 
-} // namespace
+  // 入玉勝ちかどうかを判定
+  bool nyugyoku(const Position& pos) {
+    // CSA ルールでは、一 から 六 の条件を全て満たすとき、入玉勝ち宣言が出来る。
+
+    // 一 宣言側の手番である。
+
+    // この関数を呼び出すのは自分の手番のみとする。ponder では呼び出さない。
+
+    const Color us = pos.turn();
+    // 敵陣のマスク
+    const Bitboard opponentsField = (us == Black ? inFrontMask<Black, Rank4>() : inFrontMask<White, Rank6>());
+
+    // 二 宣言側の玉が敵陣三段目以内に入っている。
+    if (!pos.bbOf(King, us).andIsNot0(opponentsField))
+      return false;
+
+    // 三 宣言側が、大駒5点小駒1点で計算して
+    //     先手の場合28点以上の持点がある。
+    //     後手の場合27点以上の持点がある。
+    //     点数の対象となるのは、宣言側の持駒と敵陣三段目以内に存在する玉を除く宣言側の駒のみである。
+    const Bitboard bigBB = pos.bbOf(Rook, Dragon, Bishop, Horse) & opponentsField & pos.bbOf(us);
+    const Bitboard smallBB = (pos.bbOf(Pawn, Lance, Knight, Silver) | pos.goldsBB()) & opponentsField & pos.bbOf(us);
+    const Hand hand = pos.hand(us);
+    const int val = (bigBB.popCount() + hand.numOf<HRook>() + hand.numOf<HBishop>()) * 5
+      + smallBB.popCount()
+      + hand.numOf<HPawn>() + hand.numOf<HLance>() + hand.numOf<HKnight>()
+      + hand.numOf<HSilver>() + hand.numOf<HGold>();
+#if defined LAW_24
+    if (val < 31)
+      return false;
+#else
+    if (val < (us == Black ? 28 : 27))
+      return false;
+#endif
+
+    // 四 宣言側の敵陣三段目以内の駒は、玉を除いて10枚以上存在する。
+
+    // 玉は敵陣にいるので、自駒が敵陣に11枚以上あればよい。
+    if ((pos.bbOf(us) & opponentsField).popCount() < 11)
+      return false;
+
+    // 五 宣言側の玉に王手がかかっていない。
+    if (pos.inCheck())
+      return false;
+
+    // 六 宣言側の持ち時間が残っている。
+
+    // 持ち時間が無ければ既に負けなので、何もチェックしない。
+
+    return true;
+  }
+    } // namespace
 
 
-  /// USI::pv() formats PV information according to the UCI protocol. UCI requires
-  /// that all (if any) unsearched PV lines are sent using a previous search score.
+      /// USI::pv() formats PV information according to the UCI protocol. UCI requires
+      /// that all (if any) unsearched PV lines are sent using a previous search score.
 
 std::string USI::pv(const Position& pos, Depth depth, Score alpha, Score beta) {
   std::stringstream ss;
@@ -1730,7 +1786,7 @@ std::string USI::pv(const Position& pos, Depth depth, Score alpha, Score beta) {
     << " numExpirations=" << tt.getNumberOfCacheExpirations() << std::endl;
 #endif
   return ss.str();
-}
+  }
 
 
 /// RootMove::insert_pv_in_tt() is called at the end of a search iteration, and
