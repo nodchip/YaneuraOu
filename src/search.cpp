@@ -465,6 +465,9 @@ void Thread::search() {
         // Stop the search if only one legal move is available or all
         // of the available time has been used or we matched an easyMove
         // from the previous search and just did a fast verification.
+        SYNCCOUT << "info string elapsed=" << Time.elapsed()
+          << " available=" << Time.available()
+          << " maximum=" << Time.maximum() << SYNCENDL;
         if (rootMoves.size() == 1
           || Time.elapsed() > Time.available() * (mainThread->failedLow ? 641 : 315) / 640
           || (mainThread->easyMovePlayed = (rootMoves[0].pv[0] == easyMove
@@ -1005,9 +1008,9 @@ namespace {
           SYNCCOUT << "info depth " << depth / OnePly
             << " currmove " << move.toUSI()
             << " currmovenumber " << moveCount + pvIdx << SYNCENDL;
-        }
+    }
 #endif
-      }
+  }
 
       if (PVNode)
         (ss + 1)->pv = nullptr;
@@ -1243,7 +1246,7 @@ namespace {
           }
         }
       }
-    }
+}
 
     // step20
     if (moveCount == 0) {
@@ -1703,7 +1706,7 @@ std::string USI::pv(const Position& pos, Depth depth, Score alpha, Score beta) {
     << " numExpirations=" << tt.getNumberOfCacheExpirations() << std::endl;
 #endif
   return ss.str();
-}
+    }
 
 
 /// RootMove::insert_pv_in_tt() is called at the end of a search iteration, and
