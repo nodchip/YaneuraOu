@@ -354,6 +354,14 @@ void Thread::search() {
         if (Signals.stop)
           break;
 
+        {
+          // broadcastされてきたdepth以下はスキップする
+          std::lock_guard<std::mutex> lock(Search::BroadcastMutex);
+          if (rootDepth <= Search::BroadcastPvDepth) {
+            break;
+          }
+        }
+
         // When failing high/low give some update (without cluttering
         // the UI) before a re-search.
         if (mainThread
@@ -404,6 +412,14 @@ void Thread::search() {
 
       else if (PVIdx + 1 == multiPV || Time.elapsed() > 3000)
         SYNCCOUT << USI::pv(rootPos, rootDepth, alpha, beta) << SYNCENDL;
+
+      {
+        // broadcastされてきたdepth以下はスキップする
+        std::lock_guard<std::mutex> lock(Search::BroadcastMutex);
+        if (rootDepth <= Search::BroadcastPvDepth) {
+          break;
+        }
+      }
     }
 
     if (!Signals.stop) {
