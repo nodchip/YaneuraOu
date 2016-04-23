@@ -200,11 +200,13 @@ void USI::go(const Position& pos, std::istringstream& ssCmd) {
     else if (token == "winc") {
       int winc;
       ssCmd >> winc;
+      winc = std::max(0, winc - Options[USI::OptionNames::BYOYOMI_MARGIN]);
       limits.inc[White] = winc;
     }
     else if (token == "binc") {
       int binc;
       ssCmd >> binc;
+      binc = std::max(0, binc - Options[USI::OptionNames::BYOYOMI_MARGIN]);
       limits.inc[Black] = binc;
     }
     else if (token == "infinite") { limits.infinite = true; }
@@ -212,8 +214,8 @@ void USI::go(const Position& pos, std::istringstream& ssCmd) {
       // btime wtime の後に byoyomi が来る前提になっているので良くない。
       int byoyomi;
       ssCmd >> byoyomi;
+      byoyomi = std::max(0, byoyomi - Options[USI::OptionNames::BYOYOMI_MARGIN]);
       limits.byoyomi = byoyomi;
-      if (limits.byoyomi != 0) { limits.byoyomi -= Options[USI::OptionNames::BYOYOMI_MARGIN]; }
     }
     else if (token == "depth") {
       int depth;
