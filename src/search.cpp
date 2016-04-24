@@ -20,6 +20,9 @@ using namespace Search;
 
 namespace {
 
+  // Ponder用の指し手
+  Move ponderCandidate;
+
   // Different node types, used as template parameter
   enum NodeType { Root, PV, NonPV };
 
@@ -282,7 +285,7 @@ void MainThread::search() {
   }
   else {
     SYNCCOUT << "bestmove " << bestThread->rootMoves[0].pv[0].toUSI();
-    if (bestThread->rootMoves[0].pv.size() > 1 || bestThread->rootMoves[0].extract_ponder_from_tt(rootPos))
+    if (bestThread->rootMoves[0].pv.size() > 1 || bestThread->rootMoves[0].extract_ponder_from_tt(rootPos, ponderCandidate))
       std::cout << " ponder " << bestThread->rootMoves[0].pv[1].toUSI();
     std::cout << SYNCENDL;
   }
@@ -312,6 +315,10 @@ void Thread::search() {
     EasyMove.clear();
     mainThread->easyMovePlayed = mainThread->failedLow = false;
     mainThread->bestMoveChanges = 0;
+
+    // ponder用の指し手の初期化
+    ponderCandidate = Move::moveNone();
+
     TT.new_search();
   }
 
@@ -497,6 +504,13 @@ void Thread::search() {
       && bestScore >= ScoreMateInMaxPly
       && ScoreMate0Ply - bestScore <= 2 * Limits.mate)
       Signals.stop = true;
+
+    // ponder用の指し手として、2手目の指し手を保存しておく。
+    // これがmain threadのものだけでいいかどうかはよくわからないが。
+    // とりあえず、無いよりマシだろう。
+    if (mainThread->rootMoves[0].pv.size() > 1) {
+      ponderCandidate = mainThread->rootMoves[0].pv[1];
+    }
 
     // Do we have time for the next iteration? Can we stop searching now?
     if (Limits.use_time_management())
@@ -1865,23 +1879,37 @@ void RootMove::insert_pv_in_tt(Position& pos) {
 /// fail high at root. We try hard to have a ponder move to return to the GUI,
 /// otherwise in case of 'ponder on' we have nothing to think on.
 
-bool RootMove::extract_ponder_from_tt(Position& pos)
+bool RootMove::extract_ponder_from_tt(Position& pos, Move ponderCandidate)
 {
   StateInfo st;
   bool ttHit;
 
   assert(pv.size() == 1);
 
-  pos.doMove(pv[0], st);
-  TTEntry* tte = TT.probe(pos.getKey(), ttHit);
-  pos.undoMove(pv[0]);
-
-  if (ttHit)
-  {
-    Move m = tte->move(); // Local copy to be SMP safe
-    if (MoveList<LegalAll>(pos).contains(m))
-      return pv.push_back(m), true;
+  if (pv[0] == Move::moveNone() || pv[0] == Move::moveNull()) {
+    return false;
   }
 
+  pos.doMove(pv[0], st);
+  TTEntry* tte = TT.probe(pos.getKey(), ttHit);
+  Move m;
+  if (ttHit) {
+    m = tte->move(); // SMP safeにするためlocal copy
+    if (MoveList<LegalAll>(pos).contains(m)) {
+      pos.undoMove(pv[0]);
+      pv.push_back(m);
+      return true;
+    }
+  }
+
+  // 置換表にもなかったので以前のiteration時のpv[1]をほじくり返す。
+  m = ponderCandidate;
+  if (MoveList<LegalAll>(pos).contains(m)) {
+    pos.undoMove(pv[0]);
+    pv.push_back(m);
+    return true;
+  }
+
+  pos.undoMove(pv[0]);
   return false;
 }
