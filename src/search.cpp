@@ -176,9 +176,11 @@ void MainThread::search() {
   else if (rootMoves.empty()) {
     // 指し手がなければ負け
     rootMoves.push_back(RootMove(Move::moveNone()));
-    SYNCCOUT << "info depth 0 score "
-      << USI::score(-ScoreMate0Ply)
-      << SYNCENDL;
+    if (Options[USI::OptionNames::OUTPUT_INFO]) {
+      SYNCCOUT << "info depth 0 score "
+        << USI::score(-ScoreMate0Ply)
+        << SYNCENDL;
+    }
   }
   else
   {
@@ -205,10 +207,12 @@ void MainThread::search() {
         }
       }
 
-      SYNCCOUT << "info"
-        << " score " << USI::score(score)
-        << " pv " << move.toUSI()
-        << SYNCENDL;
+      if (Options[USI::OptionNames::OUTPUT_INFO]) {
+        SYNCCOUT << "info"
+          << " score " << USI::score(score)
+          << " pv " << move.toUSI()
+          << SYNCENDL;
+      }
     }
     else {
       for (Thread* th : Threads)
@@ -263,8 +267,11 @@ void MainThread::search() {
   }
 
   // Send new PV when needed
-  if (bestThread != this)
-    SYNCCOUT << USI::pv(bestThread->rootPos, bestThread->completedDepth, -ScoreInfinite, ScoreInfinite) << SYNCENDL;
+  if (bestThread != this) {
+    if (Options[USI::OptionNames::OUTPUT_INFO]) {
+      SYNCCOUT << USI::pv(bestThread->rootPos, bestThread->completedDepth, -ScoreInfinite, ScoreInfinite) << SYNCENDL;
+    }
+  }
 
   if (nyugyokuWin) {
     SYNCCOUT << "bestmove win" << SYNCENDL;
@@ -409,8 +416,11 @@ void Thread::search() {
         if (mainThread
           && multiPV == 1
           && (bestScore <= alpha || bestScore >= beta)
-          && Time.elapsed() > 3000)
-          SYNCCOUT << USI::pv(rootPos, rootDepth, alpha, beta) << SYNCENDL;
+          && Time.elapsed() > 3000) {
+          if (Options[USI::OptionNames::OUTPUT_INFO]) {
+            SYNCCOUT << USI::pv(rootPos, rootDepth, alpha, beta) << SYNCENDL;
+          }
+        }
 
         if (delta == INITIAL_ASPIRATION_WINDOW_WIDTH) {
           delta = SECOND_ASPIRATION_WINDOW_WIDTH;
@@ -448,12 +458,18 @@ void Thread::search() {
       if (!mainThread)
         break;
 
-      if (Signals.stop)
-        SYNCCOUT << "info nodes " << Threads.nodes_searched()
-        << " time " << Time.elapsed() << SYNCENDL;
+      if (Signals.stop) {
+        if (Options[USI::OptionNames::OUTPUT_INFO]) {
+          SYNCCOUT << "info nodes " << Threads.nodes_searched()
+            << " time " << Time.elapsed() << SYNCENDL;
+        }
+      }
 
-      else if (PVIdx + 1 == multiPV || Time.elapsed() > 3000)
-        SYNCCOUT << USI::pv(rootPos, rootDepth, alpha, beta) << SYNCENDL;
+      else if (PVIdx + 1 == multiPV || Time.elapsed() > 3000) {
+        if (Options[USI::OptionNames::OUTPUT_INFO]) {
+          SYNCCOUT << USI::pv(rootPos, rootDepth, alpha, beta) << SYNCENDL;
+        }
+      }
 
       {
         // broadcastされてきたdepth以下はスキップする
@@ -494,9 +510,9 @@ void Thread::search() {
         // Stop the search if only one legal move is available or all
         // of the available time has been used or we matched an easyMove
         // from the previous search and just did a fast verification.
-        SYNCCOUT << "info string elapsed=" << Time.elapsed()
-          << " available=" << Time.available()
-          << " maximum=" << Time.maximum() << SYNCENDL;
+        //SYNCCOUT << "info string elapsed=" << Time.elapsed()
+        //  << " available=" << Time.available()
+        //  << " maximum=" << Time.maximum() << SYNCENDL;
         if (rootMoves.size() == 1
           || Time.elapsed() > Time.available() * (mainThread->failedLow ? 641 : 315) / 640
           || (mainThread->easyMovePlayed = (rootMoves[0].pv[0] == easyMove

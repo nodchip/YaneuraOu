@@ -121,5 +121,7 @@ void TimeManagement::init(Search::LimitsType& limits, Color us, int ply)
       limits.byoyomi = 0;
   }
 
-  SYNCCOUT << "info string optimumTime=" << optimumTime << " maximumTime=" << maximumTime << SYNCENDL;
+  if (Options[USI::OptionNames::OUTPUT_INFO]) {
+    SYNCCOUT << "info string optimumTime=" << optimumTime << " maximumTime=" << maximumTime << SYNCENDL;
+  }
 }
