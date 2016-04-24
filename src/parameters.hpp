@@ -1,8 +1,6 @@
 #ifndef APERY_PARAMETERS_HPP
 #define APERY_PARAMETERS_HPP
 
-#include "tt.hpp"
-
 constexpr int FLOAT_SCALE = 1 << 10;
 
 // [0, 256]
