@@ -95,7 +95,7 @@ void USI::OptionsMap::init() {
   (*this)[USI::OptionNames::MULTIPV] = USIOption(1, 1, MaxLegalMoves);
   (*this)[USI::OptionNames::MAX_RANDOM_SCORE_DIFF] = USIOption(0, 0, ScoreMate0Ply);
   (*this)[USI::OptionNames::MAX_RANDOM_SCORE_DIFF_PLY] = USIOption(0, 0, SHRT_MAX);
-  (*this)[USI::OptionNames::SLOW_MOVER] = USIOption(100, 10, 1000);
+  (*this)[USI::OptionNames::SLOW_MOVER] = USIOption(50, 10, 1000);
   (*this)[USI::OptionNames::MINIMUM_THINKING_TIME] = USIOption(1500, 0, INT_MAX);
   (*this)[USI::OptionNames::THREADS] = USIOption(cpuCoreCount(), 1, MaxThreads, onThreads);
   (*this)[USI::OptionNames::OUTPUT_INFO] = USIOption(true);
