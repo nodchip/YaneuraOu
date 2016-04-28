@@ -84,7 +84,7 @@ void TimeManagement::init(Search::LimitsType& limits, Color us, int ply)
 
   startTime = limits.startTime;
   unstablePvFactor = 1;
-  optimumTime = maximumTime = std::max(limits.time[us], minThinkingTime);
+  optimumTime = maximumTime = limits.time[us];
 
   const int MaxMTG = limits.movestogo ? std::min(limits.movestogo, MoveHorizon) : MoveHorizon;
 
@@ -109,6 +109,10 @@ void TimeManagement::init(Search::LimitsType& limits, Color us, int ply)
 
   if (Options[USI::OptionNames::USI_PONDER])
     optimumTime += optimumTime / 4;
+
+  // こちらも minThinkingTime 以上にする。
+  optimumTime = std::max(optimumTime, minThinkingTime);
+  optimumTime = std::min(optimumTime, maximumTime);
 
   if (limits.byoyomi != 0) {
     if (optimumTime < limits.byoyomi)
