@@ -8,10 +8,12 @@ using System.Text.RegularExpressions;
 using System.Threading;
 using System.Collections.Concurrent;
 using System.IO;
+using System.Runtime.Serialization;
+using System.Runtime.Serialization.Json;
 
 namespace tanuki_proxy
 {
-    class Program
+    public class Program
     {
         public enum UpstreamState
         {
@@ -27,9 +29,12 @@ namespace tanuki_proxy
         public static int upstreamGoIndex = 0;
         public static int numberOfReadyoks = 0;
 
-        struct Option
+        [DataContract]
+        public struct Option
         {
+            [DataMember]
             public string name;
+            [DataMember]
             public string value;
 
             public Option(string name, string value)
@@ -37,6 +42,44 @@ namespace tanuki_proxy
                 this.name = name;
                 this.value = value;
             }
+        }
+
+        [DataContract]
+        public class EngineOption
+        {
+            [DataMember]
+            public string engineName { get; set; }
+            [DataMember]
+            public string fileName { get; set; }
+            [DataMember]
+            public string arguments { get; set; }
+            [DataMember]
+            public string workingDirectory { get; set; }
+            [DataMember]
+            public Option[] optionOverrides { get; set; }
+
+            public EngineOption(string engineName, string fileName, string arguments, string workingDirectory, Option[] optionOverrides)
+            {
+                this.engineName = engineName;
+                this.fileName = fileName;
+                this.arguments = arguments;
+                this.workingDirectory = workingDirectory;
+                this.optionOverrides = optionOverrides;
+            }
+
+            public EngineOption()
+            {
+                //empty constructor for serialization
+            }
+        }
+
+        [DataContract]
+        public class ProxySetting
+        {
+            [DataMember]
+            public EngineOption[] engines { get; set; }
+            [DataMember]
+            public string logDirectory { get; set; }
         }
 
         class Engine
@@ -62,6 +105,11 @@ namespace tanuki_proxy
                 this.process.OutputDataReceived += HandleStdout;
                 this.process.ErrorDataReceived += HandleStderr;
                 this.optionOverrides = optionOverrides;
+            }
+
+            public Engine(EngineOption opt) : this(opt.engineName, opt.fileName, opt.arguments, opt.workingDirectory, opt.optionOverrides)
+            {
+
             }
 
             public void RunAsync()
@@ -417,49 +465,16 @@ namespace tanuki_proxy
 
         static void Main(string[] args)
         {
+            //writeSampleSetting();
+            ProxySetting setting = loadSetting();
             Debug.Listeners.Add(new TextWriterTraceListener(Console.Error));
-            string logFileFormat = "C:\\home\\develop\\tanuki-\\" + DateTime.Now.ToString("yyyy-MM-dd-HH-mm-ss") + ".txt";
+            string logFileFormat = setting.logDirectory + "\\" + DateTime.Now.ToString("yyyy-MM-dd-HH-mm-ss") + ".txt";
             Debug.Listeners.Add(new TextWriterTraceListener(new StreamWriter(logFileFormat, false, Encoding.UTF8)));
 
-            engines.Add(new Engine(
-                "doutanuki",
-                "C:\\home\\develop\\tanuki-\\tanuki-\\x64\\Release\\tanuki-.exe",
-                "",
-                "C:\\home\\develop\\tanuki-\\bin",
-                new[] {
-                    new Option("USI_Hash", "1024"),
-                    new Option("Book_File", "../bin/book-2016-02-01.bin"),
-                    new Option("Best_Book_Move", "true"),
-                    new Option("Max_Random_Score_Diff", "0"),
-                    new Option("Max_Random_Score_Diff_Ply", "0"),
-                    new Option("Threads", "1"),
-                }));
-            engines.Add(new Engine(
-                "nighthawk",
-                "ssh",
-                "-vvv nighthawk tanuki-.bat",
-                "C:\\home\\develop\\tanuki-\\bin",
-                new[] {
-                    new Option("USI_Hash", "1024"),
-                    new Option("Book_File", "../bin/book-2016-02-01.bin"),
-                    new Option("Best_Book_Move", "true"),
-                    new Option("Max_Random_Score_Diff", "0"),
-                    new Option("Max_Random_Score_Diff_Ply", "0"),
-                    new Option("Threads", "4"),
-                }));
-            engines.Add(new Engine(
-                "nue",
-                "ssh",
-                "-vvv nue tanuki-.bat",
-                "C:\\home\\develop\\tanuki-\\bin",
-                new[] {
-                    new Option("USI_Hash", "1024"),
-                    new Option("Book_File", "../bin/book-2016-02-01.bin"),
-                    new Option("Best_Book_Move", "true"),
-                    new Option("Max_Random_Score_Diff", "0"),
-                    new Option("Max_Random_Score_Diff_Ply", "0"),
-                    new Option("Threads", "4"),
-                }));
+            foreach (var item in setting.engines)
+            {
+                engines.Add(new Engine(item));
+            }
 
             // 子プロセスの標準入出力 (System.Diagnostics.Process) - Programming/.NET Framework/標準入出力 - 総武ソフトウェア推進所 http://smdn.jp/programming/netfx/standard_streams/1_process/
             try
@@ -504,6 +519,7 @@ namespace tanuki_proxy
             }
             finally
             {
+                Debug.Flush();//すべての出力をファイルに書き込むのに必要
                 foreach (var engine in engines)
                 {
                     engine.Close();
@@ -541,6 +557,69 @@ namespace tanuki_proxy
         {
             Debug.WriteLine("  || upstream {0} > {1}", upstreamState, newUpstreamState);
             upstreamState = newUpstreamState;
+        }
+
+        static void writeSampleSetting()
+        {
+            ProxySetting setting = new ProxySetting();
+            setting.logDirectory = "C:\\home\\develop\\tanuki-";
+            setting.engines = new EngineOption[]
+            {
+            new EngineOption(
+                "doutanuki",
+                "C:\\home\\develop\\tanuki-\\tanuki-\\x64\\Release\\tanuki-.exe",
+                "",
+                "C:\\home\\develop\\tanuki-\\bin",
+                new[] {
+                    new Option("USI_Hash", "1024"),
+                    new Option("Book_File", "../bin/book-2016-02-01.bin"),
+                    new Option("Best_Book_Move", "true"),
+                    new Option("Max_Random_Score_Diff", "0"),
+                    new Option("Max_Random_Score_Diff_Ply", "0"),
+                    new Option("Threads", "1"),
+                }),
+            new EngineOption(
+                "nighthawk",
+                "ssh",
+                "-vvv nighthawk tanuki-.bat",
+                "C:\\home\\develop\\tanuki-\\bin",
+                new[] {
+                    new Option("USI_Hash", "1024"),
+                    new Option("Book_File", "../bin/book-2016-02-01.bin"),
+                    new Option("Best_Book_Move", "true"),
+                    new Option("Max_Random_Score_Diff", "0"),
+                    new Option("Max_Random_Score_Diff_Ply", "0"),
+                    new Option("Threads", "4"),
+                }),
+            new EngineOption(
+                "doutanuki",
+                "C:\\home\\develop\\tanuki-\\tanuki-\\x64\\Release\\tanuki-.exe",
+                "",
+                "C:\\home\\develop\\tanuki-\\bin",
+                new[] {
+                    new Option("USI_Hash", "1024"),
+                    new Option("Book_File", "../bin/book-2016-02-01.bin"),
+                    new Option("Best_Book_Move", "true"),
+                    new Option("Max_Random_Score_Diff", "0"),
+                    new Option("Max_Random_Score_Diff_Ply", "0"),
+                    new Option("Threads", "1"),
+                })
+            };
+
+            DataContractJsonSerializer serializer = new DataContractJsonSerializer(typeof(ProxySetting));
+            using (FileStream f = new FileStream("proxy-setting.sample.json", FileMode.Create))
+            {
+                serializer.WriteObject(f, setting);
+            }
+        }
+
+        static ProxySetting loadSetting()
+        {
+            DataContractJsonSerializer serializer = new DataContractJsonSerializer(typeof(ProxySetting));
+            using (FileStream f = new FileStream("proxy-setting.json", FileMode.Open, FileAccess.Read, FileShare.Read))
+            {
+                return (ProxySetting)serializer.ReadObject(f);
+            }
         }
     }
 }
