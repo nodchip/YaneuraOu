@@ -103,7 +103,6 @@ void OptionsMap::init(Searcher* s) {
   (*this)[OptionNames::MAX_THREADS_PER_SPLIT_POINT] = USIOption(5, 4, 8, onThreads, s);
   (*this)[OptionNames::THREADS] = USIOption(cpuCoreCount(), 1, MaxThreads, onThreads, s);
   (*this)[OptionNames::USE_SLEEPING_THREADS] = USIOption(true);
-  (*this)[OptionNames::BOOK_THINKING_TIME] = USIOption(1500, 0, INT_MAX);
   (*this)[OptionNames::OUTPUT_INFO] = USIOption(true);
   (*this)[OptionNames::SEARCH_WINDOW_OFFSET] = USIOption(0, -1024, 1024);
   (*this)[OptionNames::MOVE_OVERHEAD] = USIOption(30, 0, 5000);

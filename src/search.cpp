@@ -999,7 +999,7 @@ void Searcher::detectBishopInDanger(const Position& pos) {
     {
       bishopInDangerFlag = (pos.turn() == Black ? BlackBishopInDangerIn78 : WhiteBishopInDangerIn78);
       //tt.clear();
-  }
+    }
   }
 }
 #endif
@@ -1676,11 +1676,11 @@ split_point_start:
         if (!isPVMove) {
           ++bestMoveChanges;
         }
-  }
+      }
       else {
         rm.score_ = -ScoreInfinite;
       }
-}
+    }
 
     if (bestScore < score) {
       bestScore = (SPNode ? splitPoint->bestScore = score : score);
@@ -1714,7 +1714,7 @@ split_point_start:
         break;
       }
     }
-}
+  }
 
   if (SPNode) {
     assert(-ScoreInfinite < bestScore && bestScore < ScoreInfinite);
@@ -1933,10 +1933,11 @@ namespace
 void Searcher::think() {
   Position& pos = rootPosition;
   Time.init(Limits, pos.turn(), pos.gamePly());
-  std::uniform_int_distribution<int> dist(USI::Options[OptionNames::MIN_BOOK_PLY], USI::Options[OptionNames::MAX_BOOK_PLY]);
-  const Ply book_ply = dist(g_randomTimeSeed);
-
   bool nyugyokuWin = false;
+  pos.setNodesSearched(0);
+  tt.resize(USI::Options[OptionNames::USI_HASH]); // operator int() 呼び出し。
+  auto bookMoveScore = book.probe(pos);
+
 #if defined LEARN
 #else
 #ifdef NYUGYOKU_WIN
@@ -1946,50 +1947,19 @@ void Searcher::think() {
   }
 #endif
 #endif
-  pos.setNodesSearched(0);
 
 #if defined LEARN
   threads[0]->searching = true;
 #else
-  tt.resize(USI::Options[OptionNames::USI_HASH]); // operator int() 呼び出し。
-  //if (outputInfo) {
-  //  SYNCCOUT << "info string book_ply " << book_ply << SYNCENDL;
-  //}
+
   // 定跡データベース
-  if (USI::Options[OptionNames::OWNBOOK] && pos.gamePly() <= book_ply) {
-    int numberOfRootMoves = rootMoves.size();
-    std::vector<std::pair<Move, int> > movesInBook =
-      book.enumerateMoves(pos, USI::Options[OptionNames::BOOK_FILE]);
-
-    // 合法手以外を取り除く
-    std::vector<RootMove> rootMovesInBook;
-    for (const auto& move : movesInBook) {
-      if (move.first.isNone()) {
-        continue;
-      }
-      if (std::find(rootMoves.begin(), rootMoves.end(), move.first) == rootMoves.end()) {
-        continue;
-      }
-      rootMovesInBook.push_back(RootMove(move.first));
-    }
-
-    // 定跡データベースにヒットした場合は、
-    // それらの手の中かから次の一手を探索する
-    if (!rootMovesInBook.empty()) {
-      rootMoves = rootMovesInBook;
-
-      // 持ち時間節約のため、持ち時間が残っている場合は思考時間を短くする
-      if (Limits.time[pos.turn()] != 0) {
-        Limits.time[Black] = 0;
-        Limits.time[White] = 0;
-        Limits.byoyomi = USI::Options[OptionNames::BOOK_THINKING_TIME];
-        // TODO(nodchip): 定跡データベースルーチンを書き直す
-      }
-
-      if (USI::Options[OptionNames::OUTPUT_INFO]) {
-        SYNCCOUT << "info string Reduced root moves " << numberOfRootMoves << " -> " << rootMovesInBook.size() << SYNCENDL;
-      }
-    }
+  if (!bookMoveScore.first.isNone()
+    && std::count(rootMoves.begin(), rootMoves.end(), bookMoveScore.first))
+  {
+    std::swap(rootMoves[0], *std::find(rootMoves.begin(), rootMoves.end(), bookMoveScore.first));
+    SYNCCOUT << "info score " << scoreToUSI(bookMoveScore.second)
+      << " pv " << bookMoveScore.first.toUSI() << SYNCENDL;
+    goto finalize;
   }
 
   threads.wakeUp(thisptr);
@@ -2038,7 +2008,7 @@ finalize:
     << " ponder " << rootMove.pv_[1].toUSI()
     << SYNCENDL;
 #endif
-  }
+}
 
 void Searcher::checkTime() {
 
