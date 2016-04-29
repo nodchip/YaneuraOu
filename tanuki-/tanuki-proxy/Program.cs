@@ -24,7 +24,8 @@ namespace tanuki_proxy
         public static object upstreamLockObject = new object();
         public static UpstreamState upstreamState = UpstreamState.Stopped;
         public static int depth = 0;
-        public static string bestmoveBestMove = "None";
+        public const string bestmoveNone = "None";
+        public static string bestmoveBestMove = bestmoveNone;
         public static string bestmovePonder = null;
         public static int upstreamGoIndex = 0;
         public static int numberOfReadyoks = 0;
@@ -397,9 +398,13 @@ namespace tanuki_proxy
                     return false;
                 }
 
-                if (split[1] == "resign" || split[1] == "win")
+                if (split[1] == "resign" || split[1] == "win" || bestmoveBestMove == bestmoveNone)
                 {
                     bestmoveBestMove = split[1];
+                    if (split.Length == 4 && split[2] == "ponder")
+                    {
+                        bestmovePonder = split[3];
+                    }
                 }
 
                 // 手番かつ他の思考エンジンがbestmoveを返していない時のみ
@@ -438,7 +443,7 @@ namespace tanuki_proxy
 
                     TransitUpstreamState(UpstreamState.Stopped);
                     depth = 0;
-                    bestmoveBestMove = "None";
+                    bestmoveBestMove = bestmoveNone;
                     bestmovePonder = null;
                     WriteToEachEngine("stop");
                 }
@@ -494,7 +499,7 @@ namespace tanuki_proxy
                         // 思考開始の合図です。エンジンはこれを受信すると思考を開始します。
                         lock (upstreamLockObject)
                         {
-                            bestmoveBestMove = "None";
+                            bestmoveBestMove = bestmoveNone;
                             bestmovePonder = null;
                             depth = 0;
                             ++upstreamGoIndex;
