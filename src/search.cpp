@@ -410,7 +410,7 @@ void Thread::search() {
         if (Signals.stop)
           break;
 
-        {
+        if (!mainThread) {
           // broadcastされてきたdepth以下はスキップする
           std::lock_guard<std::mutex> lock(Search::BroadcastMutex);
           if (rootDepth <= Search::BroadcastPvDepth) {
@@ -478,7 +478,7 @@ void Thread::search() {
         }
       }
 
-      {
+      if (!mainThread) {
         // broadcastされてきたdepth以下はスキップする
         std::lock_guard<std::mutex> lock(Search::BroadcastMutex);
         if (rootDepth <= Search::BroadcastPvDepth) {
