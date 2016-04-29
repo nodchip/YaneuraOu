@@ -30,7 +30,6 @@ StateStackPtr Searcher::setUpStates;
 std::vector<RootMove> Searcher::rootMoves;
 size_t Searcher::pvSize;
 size_t Searcher::pvIdx;
-Ply Searcher::bestMoveChanges;
 History Searcher::history;
 Gains Searcher::gains;
 TranspositionTable Searcher::tt;
@@ -700,7 +699,6 @@ void Searcher::idLoop(Position& pos) {
 
   SearchStack ss[MaxPlyPlus2];
   Ply depth;
-  Ply prevBestMoveChanges;
   Score bestScore = -ScoreInfinite;
   Score delta = -ScoreInfinite;
   Score alpha = -ScoreInfinite;
@@ -710,10 +708,9 @@ void Searcher::idLoop(Position& pos) {
   // 将棋所のコンソールが詰まる問題への対処用
   int lastTimeToOutputInfoMs = -1;
   int mateCount = 0;
-  bestMoveChanges = 0.0;
 
   memset(ss, 0, 4 * sizeof(SearchStack));
-  bestMoveChanges = 0;
+  bestMoveChanges = 0.0;
 #if defined LEARN
   // 高速化の為に浅い探索は反復深化しないようにする。学習時は浅い探索をひたすら繰り返す為。
   depth = std::max<Ply>(0, limits.depth - 1);
@@ -786,9 +783,6 @@ void Searcher::idLoop(Position& pos) {
     for (size_t i = 0; i < rootMoves.size(); ++i) {
       rootMoves[i].prevScore_ = rootMoves[i].score_;
     }
-
-    prevBestMoveChanges = bestMoveChanges;
-    bestMoveChanges = 0;
 
     // Multi PV loop
     for (pvIdx = 0; pvIdx < pvSize && !signals.stop && !signals.skipMainThreadCurrentDepth; ++pvIdx) {

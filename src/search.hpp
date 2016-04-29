@@ -131,7 +131,6 @@ struct Searcher {
 
   STATIC size_t pvSize;
   STATIC size_t pvIdx;
-  STATIC double bestMoveChanges;
   STATIC History history;
   STATIC Gains gains;
   STATIC TranspositionTable tt;
