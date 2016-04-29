@@ -7,6 +7,7 @@
 #include "thread.hpp"
 #include "time_util.hpp"
 #include "usi.hpp"
+#include "generateMoves.hpp"
 
 std::mt19937_64 Book::mt64bit_; // 定跡のhash生成用なので、seedは固定でデフォルト値を使う。
 BookKey Book::ZobPiece[PieceNone][SquareNum];
@@ -76,6 +77,30 @@ BookKey Book::bookKey(const Position& pos) {
   return key;
 }
 
+namespace
+{
+  // moveの上位16bitを補完する
+  Move complementMove(u16 fromToPro, const Position& pos) {
+    Move raw = Move(fromToPro);
+    Square to = raw.to();
+    Move move = Move::moveNone();
+    if (raw.isDrop()) {
+      PieceType ptDropped = raw.pieceTypeDropped();
+      return makeDropMove(ptDropped, to);
+    }
+
+    Square from = raw.from();
+    PieceType ptFrom = pieceToPieceType(pos.piece(from));
+    bool promo = raw.isPromotion() != 0;
+    if (promo) {
+      return makeCapturePromoteMove(ptFrom, from, to, pos);
+    }
+    else {
+      return makeCaptureMove(ptFrom, from, to, pos);
+    }
+  }
+}
+
 std::pair<Move, Score> Book::probe(const Position& pos) {
   std::string bookFilePath = USI::Options[OptionNames::BOOK_FILE];
   bool bestBookMove = USI::Options[OptionNames::BEST_BOOK_MOVE] != 0;
@@ -128,6 +153,9 @@ std::pair<Move, Score> Book::probe(const Position& pos) {
     if (entry.score < minBookSscore) {
       continue;
     }
+    if (!MoveList<LegalAll>(pos).contains(complementMove(entry.fromToPro, pos))) {
+      continue;
+    }
     entries.push_back(entry);
     bestScore = std::max(bestScore, entry.score);
   }
@@ -156,28 +184,7 @@ std::pair<Move, Score> Book::probe(const Position& pos) {
   }
   assert(selectedEntry);
 
-  // moveの上位16bitをposから補完する
-  Move raw = Move(selectedEntry->fromToPro);
-  Square to = raw.to();
-  Move move = Move::moveNone();
-  if (raw.isDrop()) {
-    PieceType ptDropped = raw.pieceTypeDropped();
-    move = makeDropMove(ptDropped, to);
-  }
-  else {
-    Square from = raw.from();
-    PieceType ptFrom = pieceToPieceType(pos.piece(from));
-    bool promo = raw.isPromotion() != 0;
-    if (promo) {
-      move = makeCapturePromoteMove(ptFrom, from, to, pos);
-    }
-    else {
-      move = makeCaptureMove(ptFrom, from, to, pos);
-    }
-  }
-  assert(move != Move::moveNone());
-
-  return std::make_pair(move, selectedEntry->score);
+  return std::make_pair(complementMove(selectedEntry->fromToPro, pos), selectedEntry->score);
 }
 
 std::vector<std::pair<Move, int> > Book::enumerateMoves(const Position& pos, const std::string& fName)
