@@ -111,6 +111,7 @@ void ThreadPool::startThinking(
   const LimitsType& limits,
   const std::vector<Move>& searchMoves)
 {
+  assert(limits.startTime != 0);
 #if defined LEARN
 #else
   waitForThinkFinished();
