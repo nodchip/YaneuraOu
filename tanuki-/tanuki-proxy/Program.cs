@@ -504,6 +504,8 @@ namespace tanuki_proxy
                             depth = 0;
                             ++upstreamGoIndex;
                             TransitUpstreamState(UpstreamState.Thinking);
+                            Console.WriteLine("info string started");
+                            Console.Out.Flush();
                         }
                     }
                     else if (split[0] == "isready")
