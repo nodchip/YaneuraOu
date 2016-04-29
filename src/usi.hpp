@@ -39,6 +39,8 @@ namespace OptionNames
   constexpr const char* BOOK_THINKING_TIME = "Book_Thinking_Time";
   constexpr const char* OUTPUT_INFO = "Output_Info";
   constexpr const char* SEARCH_WINDOW_OFFSET = "Search_Window_Offset";
+  constexpr const char* MOVE_OVERHEAD = "Move_Overhead";
+  constexpr const char* NODESTIME = "nodestime";
 }
 
 class USIOption {

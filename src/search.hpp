@@ -119,9 +119,7 @@ struct Searcher {
   // static じゃないときは this を入れることにする。
   STATIC Searcher* thisptr;
   STATIC SignalsType signals;
-  STATIC LimitsType limits;
   STATIC std::vector<Move> searchMoves;
-  STATIC Time searchTimer;
   STATIC u64 lastSearchedNodes;
   STATIC StateStackPtr setUpStates;
   STATIC std::vector<RootMove> rootMoves;
@@ -133,7 +131,6 @@ struct Searcher {
 
   STATIC size_t pvSize;
   STATIC size_t pvIdx;
-  STATIC std::unique_ptr<TimeManager> timeManager;
   STATIC Ply bestMoveChanges;
   STATIC History history;
   STATIC Gains gains;

@@ -431,4 +431,11 @@ inline u64 msb(u64 b) {
 
 #  endif
 
+typedef std::chrono::milliseconds::rep TimePoint; // A value in milliseconds
+
+inline TimePoint now() {
+    return std::chrono::duration_cast<std::chrono::milliseconds>
+        (std::chrono::steady_clock::now().time_since_epoch()).count();
+}
+
 #endif // #ifndef APERY_COMMON_HPP

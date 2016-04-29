@@ -24,15 +24,12 @@ FORCE_INLINE void ThreadPool::sleep() {
 
 #if defined USE_GLOBAL
 SignalsType Searcher::signals;
-LimitsType Searcher::limits;
 std::vector<Move> Searcher::searchMoves;
-Time Searcher::searchTimer;
 u64 Searcher::lastSearchedNodes;
 StateStackPtr Searcher::setUpStates;
 std::vector<RootMove> Searcher::rootMoves;
 size_t Searcher::pvSize;
 size_t Searcher::pvIdx;
-std::unique_ptr<TimeManager> Searcher::timeManager;
 Ply Searcher::bestMoveChanges;
 History Searcher::history;
 Gains Searcher::gains;
@@ -72,6 +69,7 @@ namespace {
   static constexpr Score SECOND_ASPIRATION_WINDOW_WIDTH = (Score)64;
   // true にすると、シングルスレッドで動作する。デバッグ用。
   constexpr bool FakeSplit = false;
+  double bestMoveChanges = 0.0;
 
   inline Score razorMargin(const Depth d) {
     return static_cast<Score>((SEARCH_RAZORING_MARGIN_SLOPE * d
@@ -349,7 +347,7 @@ namespace {
 }
 
 std::string Searcher::pvInfoToUSI(Position& pos, const Ply depth, const Score alpha, const Score beta) {
-  const int t = searchTimer.elapsed();
+  const int t = Time.elapsed();
   const size_t usiPVSize = pvSize;
   Ply selDepth = 0; // 選択的に読んでいる部分の探索深さ。
   std::stringstream ss;
@@ -712,6 +710,7 @@ void Searcher::idLoop(Position& pos) {
   // 将棋所のコンソールが詰まる問題への対処用
   int lastTimeToOutputInfoMs = -1;
   int mateCount = 0;
+  bestMoveChanges = 0.0;
 
   memset(ss, 0, 4 * sizeof(SearchStack));
   bestMoveChanges = 0;
@@ -771,7 +770,7 @@ void Searcher::idLoop(Position& pos) {
 #endif
 
   // 反復深化で探索を行う。
-  while (++depth <= MaxPly && !signals.stop && (!limits.depth || depth <= limits.depth)) {
+  while (++depth <= MaxPly && !signals.stop && (!Limits.depth || depth <= Limits.depth)) {
     mainThreadCurrentSearchDepth = depth;
 
     // Lazy Parallel Aspiration Windows Search
@@ -780,6 +779,8 @@ void Searcher::idLoop(Position& pos) {
     if (signals.skipMainThreadCurrentDepth) {
       skipCurrentDepth(pos, depth);
     }
+
+    bestMoveChanges *= 0.505;
 
     // 前回の iteration の結果を全てコピー
     for (size_t i = 0; i < rootMoves.size(); ++i) {
@@ -835,13 +836,13 @@ void Searcher::idLoop(Position& pos) {
         break;
 #endif
 
-        if (lastTimeToOutputInfoMs + THROTTLE_TO_OUTPUT_INFO_MS < searchTimer.elapsed() ||
-          (OUTPUT_COMPLETE_SCORE_FROM_MS < searchTimer.elapsed() &&
+        if (lastTimeToOutputInfoMs + THROTTLE_TO_OUTPUT_INFO_MS < Time.elapsed() ||
+          (OUTPUT_COMPLETE_SCORE_FROM_MS < Time.elapsed() &&
           (alpha < bestScore && bestScore < beta))) {
           if (USI::Options[OptionNames::OUTPUT_INFO]) {
             SYNCCOUT << pvInfoToUSI(pos, depth, alpha, beta) << SYNCENDL;
           }
-          lastTimeToOutputInfoMs = searchTimer.elapsed();
+          lastTimeToOutputInfoMs = Time.elapsed();
         }
 
         if (signals.stop) {
@@ -893,15 +894,15 @@ void Searcher::idLoop(Position& pos) {
     // 以下の条件下で反復深化を打ち切る
     // - 持ち時間が残っている
     // - 最善手がしばらく変わっていない
-    if (timeManager->isTimeLeft() && !signals.stopOnPonderHit) {
+    if (Limits.use_time_management() && !signals.stopOnPonderHit) {
       bool stop = false;
 
       if (4 < depth && depth < 50 && pvSize == 1) {
-        timeManager->setSearchStatus(bestMoveChanges, prevBestMoveChanges, bestScore);
+        Time.pv_instability(bestMoveChanges);
       }
 
       // 次のイテレーションを回す時間が無いなら、ストップ
-      if ((timeManager->getSoftTimeLimitMs() * 62) / 100 < searchTimer.elapsed()) {
+      if ((Time.available() * 62) / 100 < Time.elapsed()) {
         stop = true;
       }
 
@@ -917,7 +918,7 @@ void Searcher::idLoop(Position& pos) {
         // ここは確実にバグらせないようにする。
         && -ScoreInfinite + 2 * CapturePawnScore <= bestScore
         && (rootMoves.size() == 1
-          || timeManager->getSoftTimeLimitMs() * 40 / 100 < searchTimer.elapsed()))
+          || Time.available() * 40 / 100 < Time.elapsed()))
       {
         const Score rBeta = bestScore - 2 * CapturePawnScore;
         (ss + 1)->staticEvalRaw.p[0][0] = ScoreNotEvaluated;
@@ -934,7 +935,7 @@ void Searcher::idLoop(Position& pos) {
       }
 
       if (stop) {
-        if (limits.ponder) {
+        if (Limits.ponder) {
           signals.stopOnPonderHit = true;
         }
         else {
@@ -1108,6 +1109,20 @@ Score Searcher::search(Position& pos, SearchStack* ss, Score alpha, Score beta, 
   (ss + 1)->skipNullMove = false;
   (ss + 1)->reduction = Depth0;
   (ss + 2)->killers[0] = (ss + 2)->killers[1] = Move::moveNone();
+
+  // Check for available remaining time
+  if (thisThread->resetCalls.load(std::memory_order_relaxed))
+  {
+    thisThread->resetCalls = false;
+    thisThread->callsCnt = 0;
+  }
+  if (++thisThread->callsCnt > 4096)
+  {
+    for (Thread* th : pos.searcher()->threads)
+      th->resetCalls = true;
+
+    checkTime();
+  }
 
   if (PVNode && thisThread->maxPly < ss->ply) {
     thisThread->maxPly = ss->ply;
@@ -1917,7 +1932,7 @@ namespace
 
 void Searcher::think() {
   Position& pos = rootPosition;
-  timeManager.reset(new TimeManager(limits, pos.gamePly(), pos.turn(), thisptr));
+  Time.init(Limits, pos.turn(), pos.gamePly());
   std::uniform_int_distribution<int> dist(USI::Options[OptionNames::MIN_BOOK_PLY], USI::Options[OptionNames::MAX_BOOK_PLY]);
   const Ply book_ply = dist(g_randomTimeSeed);
 
@@ -1964,11 +1979,11 @@ void Searcher::think() {
       rootMoves = rootMovesInBook;
 
       // 持ち時間節約のため、持ち時間が残っている場合は思考時間を短くする
-      if (limits.time[pos.turn()] != 0) {
-        limits.time[Black] = 0;
-        limits.time[White] = 0;
-        limits.byoyomi = USI::Options[OptionNames::BOOK_THINKING_TIME];
-        timeManager->update();
+      if (Limits.time[pos.turn()] != 0) {
+        Limits.time[Black] = 0;
+        Limits.time[White] = 0;
+        Limits.byoyomi = USI::Options[OptionNames::BOOK_THINKING_TIME];
+        // TODO(nodchip): 定跡データベースルーチンを書き直す
       }
 
       if (USI::Options[OptionNames::OUTPUT_INFO]) {
@@ -1978,27 +1993,6 @@ void Searcher::think() {
   }
 
   threads.wakeUp(thisptr);
-
-  int timerPeriodFirstMs;
-  int timerPeriodAfterMs;
-  if (limits.nodes) {
-    timerPeriodFirstMs = MIN_TIMER_PERIOD_MS;
-    timerPeriodAfterMs = MIN_TIMER_PERIOD_MS;
-  }
-  else if (timeManager->isTimeLeft() || timeManager->isInByoyomi()) {
-    // なるべく思考スレッドに処理時間を渡すため
-    // 初回思考時間チェックは maximumTime の直前から行う
-    timerPeriodFirstMs = timeManager->getHardTimeLimitMs() - MAX_TIMER_PERIOD_MS * 2;
-    timerPeriodFirstMs = std::max(timerPeriodFirstMs, MIN_TIMER_PERIOD_MS);
-    timerPeriodAfterMs = MAX_TIMER_PERIOD_MS;
-    //SYNCCOUT << "info string *** think() : other" << SYNCENDL;
-  }
-  else {
-    timerPeriodFirstMs = TimerThread::FOREVER;
-    timerPeriodAfterMs = TimerThread::FOREVER;
-  }
-
-  threads.timerThread()->restartTimer(timerPeriodFirstMs, timerPeriodAfterMs);
 
 #if defined INANIWA_SHIFT
   detectInaniwa(pos);
@@ -2011,19 +2005,16 @@ void Searcher::think() {
 
 #if defined LEARN
 #else
-  // timer を止める。
-  threads.timerThread()->restartTimer(TimerThread::FOREVER, TimerThread::FOREVER);
-  threads.sleep();
 
 finalize:
 
   if (USI::Options[OptionNames::OUTPUT_INFO]) {
     SYNCCOUT << "info nodes " << pos.nodesSearched()
-      << " time " << searchTimer.elapsed() << SYNCENDL;
+      << " time " << Time.elapsed() << SYNCENDL;
   }
   lastSearchedNodes = pos.nodesSearched();
 
-  if (!signals.stop && (limits.ponder || limits.infinite)) {
+  if (!signals.stop && (Limits.ponder || Limits.infinite)) {
     signals.stopOnPonderHit = true;
     pos.thisThread()->waitFor(signals.stop);
   }
@@ -2050,11 +2041,24 @@ finalize:
   }
 
 void Searcher::checkTime() {
-  if (limits.ponder)
+
+  static TimePoint lastInfoTime = now();
+
+  int elapsed = Time.elapsed();
+  TimePoint tick = Limits.startTime + elapsed;
+
+  if (tick - lastInfoTime >= 1000)
+  {
+    lastInfoTime = tick;
+    //dbg_print();
+  }
+
+  // An engine may not stop pondering until told so by the GUI
+  if (Limits.ponder)
     return;
 
   s64 nodes = 0;
-  if (limits.nodes) {
+  if (Limits.nodes) {
     std::unique_lock<Mutex> lock(threads.mutex_);
 
     nodes = rootPosition.nodesSearched();
@@ -2076,20 +2080,10 @@ void Searcher::checkTime() {
     }
   }
 
-  const int elapsed = searchTimer.elapsed();
-  const bool stillAtFirstMove =
-    signals.firstRootMove
-    && !signals.failedLowAtRoot
-    && timeManager->getSoftTimeLimitMs() < elapsed;
-
-  const bool noMoreTime =
-    timeManager->getHardTimeLimitMs() - 2 * MIN_TIMER_PERIOD_MS < elapsed
-    || stillAtFirstMove;
-
-  if (noMoreTime || (limits.nodes != 0 && limits.nodes < nodes))
-  {
+  if ((Limits.use_time_management() && elapsed > Time.maximum() - 10)
+    || (Limits.movetime && elapsed >= Limits.movetime)
+    || (Limits.nodes && nodes >= Limits.nodes))
     signals.stop = true;
-  }
 }
 
 void Thread::idleLoop() {

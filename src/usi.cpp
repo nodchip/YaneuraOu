@@ -106,6 +106,8 @@ void OptionsMap::init(Searcher* s) {
   (*this)[OptionNames::BOOK_THINKING_TIME] = USIOption(1500, 0, INT_MAX);
   (*this)[OptionNames::OUTPUT_INFO] = USIOption(true);
   (*this)[OptionNames::SEARCH_WINDOW_OFFSET] = USIOption(0, -1024, 1024);
+  (*this)[OptionNames::MOVE_OVERHEAD] = USIOption(30, 0, 5000);
+  (*this)[OptionNames::NODESTIME] = USIOption(0, 0, 10000);
 #if defined BISHOP_IN_DANGER
   (*this)[OptionNames::DANGER_DEMERIT_SCORE] = USIOption(700, SHRT_MIN, SHRT_MAX);
 #endif
@@ -176,9 +178,8 @@ void go(const Position& pos, const std::string& cmd) {
 }
 
 void go(const Position& pos, std::istringstream& ssCmd) {
-  std::chrono::time_point<std::chrono::system_clock> goReceivedTime =
-    std::chrono::system_clock::now();
   LimitsType limits;
+  limits.startTime = now();
   std::vector<Move> moves;
   std::string token;
 
@@ -217,7 +218,7 @@ void go(const Position& pos, std::istringstream& ssCmd) {
     }
   }
   pos.searcher()->searchMoves = moves;
-  pos.searcher()->threads.startThinking(pos, limits, moves, goReceivedTime);
+  pos.searcher()->threads.startThinking(pos, limits, moves);
 }
 
 #if defined LEARN
@@ -468,25 +469,15 @@ void Searcher::doUSICommandLoop(int argc, char* argv[]) {
 
     ssCmd >> std::skipws >> token;
 
-    if (token == "quit" || token == "stop" || token == "ponderhit" || token == "gameover") {
-      if (token != "ponderhit" || signals.stopOnPonderHit) {
-        signals.stop = true;
-        threads.mainThread()->notifyOne();
-      }
-      else {
-        limits.ponder = false;
-      }
-      if (token == "ponderhit" && limits.byoyomi != 0) {
-        // ponder した時間だけ制限時間が伸びたので limits に追加する
-        int elapsed = searchTimer.elapsed();
-        limits.ponderTime = elapsed;
-        Searcher::timeManager->update();
-
-        int firstMs = Searcher::timeManager->getHardTimeLimitMs() - elapsed - MAX_TIMER_PERIOD_MS * 2;
-        firstMs = std::max(firstMs, MIN_TIMER_PERIOD_MS);
-        int afterMs = MAX_TIMER_PERIOD_MS;
-        threads.timerThread()->restartTimer(firstMs, afterMs);
-      }
+    if (token == "quit" ||
+      token == "stop" ||
+      (token == "ponderhit" && signals.stopOnPonderHit) ||
+      token == "gameover") {
+      signals.stop = true;
+      threads.mainThread()->notifyOne();
+    }
+    else if (token == "ponderhit") {
+      Limits.ponder = false;
     }
     else if (token == "usinewgame") {
       tt.clear();
@@ -700,7 +691,8 @@ void Searcher::doUSICommandLoop(int argc, char* argv[]) {
         gameRecords);
       csa::writeCsa1("C:\\home\\develop\\shogi-kifu\\tanuki-lose.csa1", gameRecords);
       std::cout << "Finished..." << std::endl;
-    } else if (token == "convert_to_sfen") {
+    }
+    else if (token == "convert_to_sfen") {
       std::vector<GameRecord> gameRecords;
       csa::readCsa1("C:\\home\\develop\\shogi-kifu\\2chkifu_csa\\2chkifu.csa1", pos, gameRecords);
       std::ofstream ofs("C:\\home\\develop\\shogi-kifu\\2chkifu.sfen");
