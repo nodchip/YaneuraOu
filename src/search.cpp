@@ -91,6 +91,53 @@ namespace {
     return static_cast<Depth>(Reductions[PVNode][std::min(Depth(depth / OnePly), Depth(63))][std::min(moveCount, 63)]);
   }
 
+  // EasyMoveManager struct is used to detect a so called 'easy move'; when PV is
+  // stable across multiple search iterations we can fast return the best move.
+  struct EasyMoveManager {
+
+    void clear() {
+      stableCnt = 0;
+      expectedPosKey = Key();
+      pv[0] = pv[1] = pv[2] = Move::moveNone();
+      //if (USI::Options[OptionNames::OUTPUT_INFO]) {
+      //  SYNCCOUT << "info string EasyMoveManager::clear()" << SYNCENDL;
+      //}
+    }
+
+    Move get(Key key) const {
+      return expectedPosKey == key ? pv[2] : Move::moveNone();
+    }
+
+    void update(Position& pos, const std::vector<Move>& newPv) {
+
+      assert(newPv.size() >= 3);
+
+      // Keep track of how many times in a row 3rd ply remains stable
+      stableCnt = (newPv[2] == pv[2]) ? stableCnt + 1 : 0;
+
+      if (!std::equal(newPv.begin(), newPv.begin() + 3, pv))
+      {
+        std::copy(newPv.begin(), newPv.begin() + 3, pv);
+
+        StateInfo st[2];
+        pos.doMove(newPv[0], st[0]);
+        pos.doMove(newPv[1], st[1]);
+        expectedPosKey = pos.getKey();
+        pos.undoMove(newPv[1]);
+        pos.undoMove(newPv[0]);
+      }
+    }
+
+    int stableCnt;
+    Key expectedPosKey;
+    Move pv[3];
+  };
+
+  EasyMoveManager EasyMove;
+
+  static bool easyMovePlayed = false;
+  static bool failedLow = false;
+
   struct Skill {
     Skill(const int l, const int mr)
       : level(l),
@@ -729,6 +776,9 @@ void Searcher::idLoop(Position& pos) {
   // 将棋所のコンソールが詰まる問題への対処用
   int lastTimeToOutputInfoMs = -1;
   int mateCount = 0;
+  Move easyMove = EasyMove.get(pos.getKey());
+  EasyMove.clear();
+  easyMovePlayed = failedLow = false;
 
   memset(ss, 0, 4 * sizeof(SearchStack));
   bestMoveChanges = 0.0;
@@ -799,6 +849,7 @@ void Searcher::idLoop(Position& pos) {
     }
 
     bestMoveChanges *= 0.505;
+    failedLow = false;
 
     // 前回の iteration の結果を全てコピー
     for (size_t i = 0; i < rootMoves.size(); ++i) {
@@ -889,6 +940,7 @@ void Searcher::idLoop(Position& pos) {
         }
         else {
           signals.failedLowAtRoot = true;
+          failedLow = false;
           signals.stopOnPonderHit = false;
 
           beta = (alpha + beta) / 2;
@@ -906,56 +958,45 @@ void Searcher::idLoop(Position& pos) {
     //	skill.pickMove();
     //}
 
-    // 以下の条件下で反復深化を打ち切る
-    // - 持ち時間が残っている
-    // - 最善手がしばらく変わっていない
-    if (Limits.use_time_management() && !signals.stopOnPonderHit) {
-      bool stop = false;
-
-      if (4 < depth && depth < 50 && pvSize == 1) {
-        Time.pv_instability(bestMoveChanges);
-      }
-
-      // 次のイテレーションを回す時間が無いなら、ストップ
-      if ((Time.available() * 62) / 100 < Time.elapsed()) {
-        stop = true;
-      }
-
-      if (2 < depth && bestMoveChanges)
-        bestMoveNeverChanged = false;
-
-      // 最善手が、ある程度の深さまで同じであれば、
-      // その手が突出して良い手なのだろう。
-      if (12 <= depth
-        && !stop
-        && bestMoveNeverChanged
-        && pvSize == 1
-        // ここは確実にバグらせないようにする。
-        && -ScoreInfinite + 2 * CapturePawnScore <= bestScore
-        && (rootMoves.size() == 1
-          || Time.available() * 40 / 100 < Time.elapsed()))
+    // Do we have time for the next iteration? Can we stop searching now?
+    if (Limits.use_time_management())
+    {
+      if (!signals.stop && !signals.stopOnPonderHit)
       {
-        const Score rBeta = bestScore - 2 * CapturePawnScore;
-        (ss + 1)->staticEvalRaw.p[0][0] = ScoreNotEvaluated;
-        (ss + 1)->excludedMove = rootMoves[0].pv_[0];
-        (ss + 1)->skipNullMove = true;
-        assert(Depth0 < (depth - 3) * OnePly);
-        const Score s = search<NonPV>(pos, ss + 1, rBeta - 1, rBeta, (depth - 3) * OnePly, true);
-        (ss + 1)->skipNullMove = false;
-        (ss + 1)->excludedMove = Move::moveNone();
+        // Take some extra time if the best move has changed
+        if (depth > 4 * OnePly && pvSize == 1)
+          Time.pv_instability(bestMoveChanges);
 
-        if (s < rBeta) {
-          stop = true;
-        }
-      }
+        // Stop the search if only one legal move is available or all
+        // of the available time has been used or we matched an easyMove
+        // from the previous search and just did a fast verification.
+        //SYNCCOUT << "info string elapsed=" << Time.elapsed()
+        //  << " available=" << Time.available()
+        //  << " maximum=" << Time.maximum() << SYNCENDL;
+        if (rootMoves.size() == 1
+          || Time.elapsed() > Time.available() * (failedLow ? 641 : 315) / 640
+          || (easyMovePlayed = (rootMoves[0].pv_[0] == easyMove
+            && bestMoveChanges < 0.03
+            && Time.elapsed() > Time.available() / 8)))
+        {
+          //if (USI::Options[OptionNames::OUTPUT_INFO]) {
+          //  if (easyMovePlayed) {
+          //    SYNCCOUT << "info string easy move played" << SYNCENDL;
+          //  }
+          //}
 
-      if (stop) {
-        if (Limits.ponder) {
-          signals.stopOnPonderHit = true;
+          // If we are allowed to ponder do not stop the search now but
+          // keep pondering until the GUI sends "ponderhit" or "stop".
+          if (Limits.ponder)
+            signals.stopOnPonderHit = true;
+          else
+            signals.stop = true;
         }
-        else {
-          signals.stop = true;
-        }
+
+        if (rootMoves[0].pv_.size() >= 3)
+          EasyMove.update(pos, rootMoves[0].pv_);
+        else
+          EasyMove.clear();
       }
     }
   }
@@ -965,6 +1006,10 @@ void Searcher::idLoop(Position& pos) {
     SYNCCOUT << pvInfoToUSI(pos, depth, alpha, beta) << SYNCENDL;
   }
 
+  // Clear any candidate easy move that wasn't stable for the last search
+  // iterations; the second condition prevents consecutive fast moves.
+  if (EasyMove.stableCnt < 6 || easyMovePlayed)
+    EasyMove.clear();
 }
 
 #if defined INANIWA_SHIFT
@@ -1695,6 +1740,14 @@ split_point_start:
       if (isPVMove || alpha < score) {
         // PV move or new best move
         rm.score_ = score;
+
+
+        // We record how often the best move has been changed in each
+        // iteration. This information is used for time management: When
+        // the best move changes frequently, we allocate some more time.
+        if (moveCount > 1)
+          ++bestMoveChanges;
+
 #if defined BISHOP_IN_DANGER
         if ((bishopInDangerFlag == BlackBishopInDangerIn28 && move.toCSA() == "0082KA")
           || (bishopInDangerFlag == WhiteBishopInDangerIn28 && move.toCSA() == "0028KA")
@@ -1706,9 +1759,9 @@ split_point_start:
 #endif
         rm.extractPvFromTT(pos);
 
-        if (!isPVMove) {
-          ++bestMoveChanges;
-        }
+        //if (!isPVMove) {
+        //  ++bestMoveChanges;
+        //}
       }
       else {
         rm.score_ = -ScoreInfinite;
@@ -1719,6 +1772,11 @@ split_point_start:
       bestScore = (SPNode ? splitPoint->bestScore = score : score);
 
       if (alpha < score) {
+        if (PVNode
+          && EasyMove.get(pos.getKey()) != Move::moveNone()
+          && (move != EasyMove.get(pos.getKey()) || moveCount > 1))
+          EasyMove.clear();
+
         bestMove = (SPNode ? splitPoint->bestMove = move : move);
 
         if (PVNode && score < beta) {
