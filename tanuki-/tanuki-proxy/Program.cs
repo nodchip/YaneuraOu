@@ -628,13 +628,32 @@ namespace tanuki_proxy
             }
         }
 
+        static string ExeDir()
+        {
+            using (Process process = Process.GetCurrentProcess())
+            {
+                return Path.GetDirectoryName(process.MainModule.FileName);
+            }
+        }
+
         static ProxySetting loadSetting()
         {
             DataContractJsonSerializer serializer = new DataContractJsonSerializer(typeof(ProxySetting));
-            using (FileStream f = new FileStream("proxy-setting.json", FileMode.Open, FileAccess.Read, FileShare.Read))
+            // 1. まずはexeディレクトリに設定ファイルがあれば使う(複数Proxy設定をexeごとディレクトリに分け、カレントディレクトリは制御できない場合)
+            // 2. それが無ければ、カレントディレクトリの設定を使う
+            string[] search_dirs = { ExeDir(), "." };
+            foreach (string search_dir in search_dirs)
             {
-                return (ProxySetting)serializer.ReadObject(f);
+                string path = Path.Combine(search_dir, "proxy-setting.json");
+                if (File.Exists(path))
+                {
+                    using (FileStream f = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read))
+                    {
+                        return (ProxySetting)serializer.ReadObject(f);
+                    }
+                }
             }
+            return null;
         }
     }
 }
