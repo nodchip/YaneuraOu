@@ -11,7 +11,8 @@ enum Depth {
   DepthQChecks = -1 * OnePly,
   DepthQNoChecks = -2 * OnePly,
   DepthQRecaptures = -8 * OnePly,
-  DepthNone = -127 * OnePly
+  DepthNone = -127 * OnePly,
+  DepthMax = MaxPly,
 };
 OverloadEnumOperators(Depth);
 

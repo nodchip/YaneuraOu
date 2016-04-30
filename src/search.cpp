@@ -48,6 +48,8 @@ std::string Searcher::broadcastedPvInfo;
 std::atomic<int> Searcher::mainThreadCurrentSearchDepth;
 #endif
 
+bool nyugyoku(const Position& pos);
+
 void Searcher::init() {
 #if defined USE_GLOBAL
 #else
@@ -473,6 +475,20 @@ Score Searcher::qsearch(Position& pos, SearchStack* ss, Score alpha, Score beta,
   }
 
   pos.setNodesSearched(pos.nodesSearched() + 1);
+
+  // 宣言勝ち
+  {
+    // 王手がかかってようがかかってまいが、宣言勝ちの判定は正しい。
+    // (トライルールのとき王手を回避しながら入玉することはありうるので)
+    bool nyugyokuWin = nyugyoku(pos);
+    if (nyugyokuWin)
+    {
+      bestScore = mateIn(ss->ply + 1); // 1手詰めなのでこの次のnodeで(指し手がなくなって)詰むという解釈
+      tte->save(posKey, scoreToTT(bestScore, ss->ply), BoundExact,
+        DepthMax, Move::moveNone(), ss->staticEval, pos.searcher()->tt.generation());
+      return bestScore;
+    }
+  }
 
   if (INCHECK) {
     ss->staticEval = ScoreNone;
@@ -1197,6 +1213,20 @@ Score Searcher::search(Position& pos, SearchStack* ss, Score alpha, Score beta, 
     }
     //assert(-ScoreInfinite < ttScore && ttScore < ScoreInfinite);
     return ttScore;
+  }
+
+  // 宣言勝ち
+  {
+    // 王手がかかってようがかかってまいが、宣言勝ちの判定は正しい。
+    // (トライルールのとき王手を回避しながら入玉することはありうるので)
+    bool nyugyokuWin = nyugyoku(pos);
+    if (nyugyokuWin)
+    {
+      bestScore = mateIn(ss->ply + 1); // 1手詰めなのでこの次のnodeで(指し手がなくなって)詰むという解釈
+      tte->save(posKey, scoreToTT(bestScore, ss->ply), BoundExact,
+        DepthMax, Move::moveNone(), ss->staticEval, pos.searcher()->tt.generation());
+      return bestScore;
+    }
   }
 
 #if 1
