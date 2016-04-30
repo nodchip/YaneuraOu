@@ -90,15 +90,11 @@ void OptionsMap::init(Searcher* s) {
   (*this)[OptionNames::WRITE_SYNTHESIZED_EVAL] = USIOption(false);
   (*this)[OptionNames::USI_PONDER] = USIOption(true);
   (*this)[OptionNames::BYOYOMI_MARGIN] = USIOption(500, 0, INT_MAX);
-  (*this)[OptionNames::PONDER_TIME_MARGIN] = USIOption(500, 0, INT_MAX);
   (*this)[OptionNames::MULTIPV] = USIOption(1, 1, MaxLegalMoves);
   (*this)[OptionNames::SKILL_LEVEL] = USIOption(20, 0, 20);
   (*this)[OptionNames::MAX_RANDOM_SCORE_DIFF] = USIOption(0, 0, ScoreMate0Ply);
   (*this)[OptionNames::MAX_RANDOM_SCORE_DIFF_PLY] = USIOption(0, 0, SHRT_MAX);
-  (*this)[OptionNames::EMERGENCY_MOVE_HORIZON] = USIOption(40, 0, 50);
-  (*this)[OptionNames::EMERGENCY_BASE_TIME] = USIOption(200, 0, 30000);
-  (*this)[OptionNames::EMERGENCY_MOVE_TIME] = USIOption(70, 0, 5000);
-  (*this)[OptionNames::SLOW_MOVER] = USIOption(100, 10, 1000);
+  (*this)[OptionNames::SLOW_MOVER] = USIOption(50, 10, 1000);
   (*this)[OptionNames::MINIMUM_THINKING_TIME] = USIOption(1500, 0, INT_MAX);
   (*this)[OptionNames::MAX_THREADS_PER_SPLIT_POINT] = USIOption(5, 4, 8, onThreads, s);
   (*this)[OptionNames::THREADS] = USIOption(cpuCoreCount(), 1, MaxThreads, onThreads, s);
