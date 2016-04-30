@@ -462,12 +462,17 @@ Score Searcher::qsearch(Position& pos, SearchStack* ss, Score alpha, Score beta,
     assert(false);
   }
 
-  if (ttHit
-    && ttDepth <= tte->depth()
-    && ttScore != ScoreNone // アクセス競合が起きたときのみ、ここに引っかかる。
-    && (PVNode ? tte->bound() == BoundExact
-      : (beta <= ttScore ? (tte->bound() & BoundLower)
-        : (tte->bound() & BoundUpper))))
+  if (!PVNode // PV nodeでは置換表の指し手では枝刈りしない(PV nodeはごくわずかしかないので..)
+    && ttHit // 置換表の指し手がhitして
+    && tte->depth() >= depth // 置換表に登録されている探索深さのほうが深くて
+    && ttScore != ScoreNone // (VALUE_NONEだとすると他スレッドからTTEntryが読みだす直前に破壊された可能性がある)
+    && (ttScore >= beta ? (tte->bound() & BoundLower)
+      : (tte->bound() & BoundUpper))
+    // ttValueが下界(真の評価値はこれより大きい)もしくはジャストな値で、かつttValue >= beta超えならbeta cutされる
+    // ttValueが上界(真の評価値はこれより小さい)だが、tte->depth()のほうがdepthより深いということは、
+    // 今回の探索よりたくさん探索した結果のはずなので、今回よりは枝刈りが甘いはずだから、その値を信頼して
+    // このままこの値でreturnして良い。
+    )
   {
     ss->currentMove = ttMove;
     assert(-ScoreInfinite < ttScore && ttScore < ScoreInfinite);
@@ -848,7 +853,7 @@ void Searcher::idLoop(Position& pos) {
 
         if (lastTimeToOutputInfoMs + THROTTLE_TO_OUTPUT_INFO_MS < Time.elapsed() ||
           (OUTPUT_COMPLETE_SCORE_FROM_MS < Time.elapsed() &&
-          (alpha < bestScore && bestScore < beta))) {
+            (alpha < bestScore && bestScore < beta))) {
           if (USI::Options[OptionNames::OUTPUT_INFO]) {
             SYNCCOUT << pvInfoToUSI(pos, depth, alpha, beta) << SYNCENDL;
           }
@@ -1185,13 +1190,17 @@ Score Searcher::search(Position& pos, SearchStack* ss, Score alpha, Score beta, 
     assert(false);
   }
 
-  if (!RootNode
-    && ttHit
-    && depth <= tte->depth()
-    && ttScore != ScoreNone // アクセス競合が起きたときのみ、ここに引っかかる。
-    && (PVNode ? tte->bound() == BoundExact
-      : (beta <= ttScore ? (tte->bound() & BoundLower)
-        : (tte->bound() & BoundUpper))))
+  if (!PVNode // PV nodeでは置換表の指し手では枝刈りしない(PV nodeはごくわずかしかないので..)
+    && ttHit // 置換表の指し手がhitして
+    && tte->depth() >= depth // 置換表に登録されている探索深さのほうが深くて
+    && ttScore != ScoreNone // (VALUE_NONEだとすると他スレッドからTTEntryが読みだす直前に破壊された可能性がある)
+    && (ttScore >= beta ? (tte->bound() & BoundLower)
+      : (tte->bound() & BoundUpper))
+    // ttValueが下界(真の評価値はこれより大きい)もしくはジャストな値で、かつttValue >= beta超えならbeta cutされる
+    // ttValueが上界(真の評価値はこれより小さい)だが、tte->depth()のほうがdepthより深いということは、
+    // 今回の探索よりたくさん探索した結果のはずなので、今回よりは枝刈りが甘いはずだから、その値を信頼して
+    // このままこの値でreturnして良い。
+    )
   {
     //tt.refresh(tte);
     ss->currentMove = ttMove; // Move::moveNone() もありえる。
