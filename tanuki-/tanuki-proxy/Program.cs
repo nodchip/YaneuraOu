@@ -468,12 +468,20 @@ namespace tanuki_proxy
             return result;
         }
 
+        static int GetProcessId()
+        {
+            using (Process process = Process.GetCurrentProcess())
+            {
+                return process.Id;
+            }
+        }
+
         static void Main(string[] args)
         {
             //writeSampleSetting();
             ProxySetting setting = loadSetting();
             Debug.Listeners.Add(new TextWriterTraceListener(Console.Error));
-            string logFileFormat = setting.logDirectory + "\\" + DateTime.Now.ToString("yyyy-MM-dd-HH-mm-ss") + ".txt";
+            string logFileFormat = setting.logDirectory + "\\" + DateTime.Now.ToString("yyyy-MM-dd-HH-mm-ss") + string.Format("_pid={0}", GetProcessId()) + ".txt";
             Debug.Listeners.Add(new TextWriterTraceListener(new StreamWriter(logFileFormat, false, Encoding.UTF8)));
 
             foreach (var item in setting.engines)
