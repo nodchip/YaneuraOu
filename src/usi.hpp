@@ -27,11 +27,14 @@ namespace USI
     constexpr const char* USI_PONDER = "USI_Ponder";
     constexpr const char* BYOYOMI_MARGIN = "Byoyomi_Margin";
     constexpr const char* MULTIPV = "MultiPV";
+    constexpr const char* SKILL_LEVEL = "Skill_Level";
     constexpr const char* MAX_RANDOM_SCORE_DIFF = "Max_Random_Score_Diff";
     constexpr const char* MAX_RANDOM_SCORE_DIFF_PLY = "Max_Random_Score_Diff_Ply";
     constexpr const char* SLOW_MOVER = "Slow_Mover";
     constexpr const char* MINIMUM_THINKING_TIME = "Minimum_Thinking_Time";
+    constexpr const char* MAX_THREADS_PER_SPLIT_POINT = "Max_Threads_per_Split_Point";
     constexpr const char* THREADS = "Threads";
+    constexpr const char* USE_SLEEPING_THREADS = "Use_Sleeping_Threads";
     constexpr const char* DANGER_DEMERIT_SCORE = "Danger_Demerit_Score";
     constexpr const char* OUTPUT_INFO = "Output_Info";
     constexpr const char* SEARCH_WINDOW_OFFSET = "Search_Window_Offset";
