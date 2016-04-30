@@ -190,6 +190,18 @@ void go(const Position& pos, std::istringstream& ssCmd) {
       ssCmd >> wtime;
       limits.time[White] = wtime;
     }
+    else if (token == "binc") {
+      int binc;
+      ssCmd >> binc;
+      binc = std::max(0, binc - USI::Options[OptionNames::BYOYOMI_MARGIN]);
+      limits.inc[Black] = binc;
+    }
+    else if (token == "winc") {
+      int winc;
+      ssCmd >> winc;
+      winc = std::max(0, winc - USI::Options[OptionNames::BYOYOMI_MARGIN]);
+      limits.inc[White] = winc;
+    }
     else if (token == "infinite") { limits.infinite = true; }
     else if (token == "byoyomi" || token == "movetime") {
       // btime wtime の後に byoyomi が来る前提になっているので良くない。
