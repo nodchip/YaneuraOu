@@ -2050,6 +2050,8 @@ void Searcher::think() {
     std::swap(rootMoves[0], *std::find(rootMoves.begin(), rootMoves.end(), bookMoveScore.first));
     SYNCCOUT << "info score " << scoreToUSI(bookMoveScore.second)
       << " pv " << bookMoveScore.first.toUSI() << SYNCENDL;
+    std::chrono::milliseconds dura(1500);
+    std::this_thread::sleep_for(dura);
     goto finalize;
   }
 
