@@ -455,6 +455,7 @@ void Searcher::doUSICommandLoop(int argc, char* argv[]) {
 
   std::string cmd;
   std::string token;
+  std::string lastPositionCmd;
 
 #if defined MPI_LEARN
   boost::mpi::environment  env(argc, argv);
@@ -505,10 +506,13 @@ void Searcher::doUSICommandLoop(int argc, char* argv[]) {
     }
     else if (token == "go") {
       go(pos, ssCmd);
-      SYNCCOUT << "info string started" << SYNCENDL;
+      SYNCCOUT << "info string " << lastPositionCmd << SYNCENDL;
     }
     else if (token == "isready") { SYNCCOUT << "readyok" << SYNCENDL; }
-    else if (token == "position") { setPosition(pos, ssCmd); }
+    else if (token == "position") {
+      lastPositionCmd = cmd;
+      setPosition(pos, ssCmd);
+    }
     else if (token == "setoption") { setOption(ssCmd); }
     else if (token == "broadcast") {
       std::getline(ssCmd, pos.searcher()->broadcastedPvInfo);
