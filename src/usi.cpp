@@ -209,6 +209,7 @@ void go(const Position& pos, std::istringstream& ssCmd) {
       // btime wtime の後に byoyomi が来る前提になっているので良くない。
       int byoyomi;
       ssCmd >> byoyomi;
+      byoyomi = std::max(0, byoyomi - USI::Options[OptionNames::BYOYOMI_MARGIN]);
       limits.byoyomi = byoyomi;
     }
     else if (token == "depth") {
