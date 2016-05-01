@@ -104,6 +104,7 @@ void OptionsMap::init(Searcher* s) {
   (*this)[OptionNames::SEARCH_WINDOW_OFFSET] = USIOption(0, -1024, 1024);
   (*this)[OptionNames::MOVE_OVERHEAD] = USIOption(30, 0, 5000);
   (*this)[OptionNames::NODESTIME] = USIOption(0, 0, 10000);
+  (*this)[OptionNames::BOOK_SLEEP_TIME] = USIOption(1500, 0, INT_MAX);
 #if defined BISHOP_IN_DANGER
   (*this)[OptionNames::DANGER_DEMERIT_SCORE] = USIOption(700, SHRT_MIN, SHRT_MAX);
 #endif
