@@ -211,7 +211,7 @@ void MainThread::search() {
       }
 
       if (Options[USI::OptionNames::OUTPUT_INFO]) {
-        SYNCCOUT << "info"
+        SYNCCOUT << "info depth 24"
           << " score " << USI::score(score)
           << " pv " << move.toUSI()
           << SYNCENDL;
