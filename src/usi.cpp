@@ -459,6 +459,7 @@ void USI::doUSICommandLoop(int argc, char* argv[]) {
 
   std::string cmd;
   std::string token;
+  std::string lastPositionCmd;
 
 #if defined MPI_LEARN
   boost::mpi::environment  env(argc, argv);
@@ -509,10 +510,13 @@ void USI::doUSICommandLoop(int argc, char* argv[]) {
     }
     else if (token == "go") {
       USI::go(pos, ssCmd);
-      SYNCCOUT << "info string started" << SYNCENDL;
+      SYNCCOUT << "info string " << lastPositionCmd << SYNCENDL;
     }
     else if (token == "isready") { SYNCCOUT << "readyok" << SYNCENDL; }
-    else if (token == "position") { USI::setPosition(pos, ssCmd); }
+    else if (token == "position") {
+      lastPositionCmd = cmd;
+      USI::setPosition(pos, ssCmd);
+    }
     else if (token == "setoption") { USI::setOption(ssCmd); }
     else if (token == "broadcast") {
       std::getline(ssCmd, Search::BroadcastPvInfo);
