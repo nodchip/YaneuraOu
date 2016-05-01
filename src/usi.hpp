@@ -29,6 +29,7 @@ namespace OptionNames
     constexpr const char* SLOW_MOVER = "Slow_Mover";
     constexpr const char* MINIMUM_THINKING_TIME = "Minimum_Thinking_Time";
     constexpr const char* MAX_THREADS_PER_SPLIT_POINT = "Max_Threads_per_Split_Point";
+    constexpr const char* MINIMUM_SPLIT_DEPTH = "Minimum_Split_Depth";
     constexpr const char* THREADS = "Threads";
     constexpr const char* USE_SLEEPING_THREADS = "Use_Sleeping_Threads";
     constexpr const char* DANGER_DEMERIT_SCORE = "Danger_Demerit_Score";

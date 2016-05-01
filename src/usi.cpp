@@ -96,7 +96,8 @@ void OptionsMap::init(Searcher* s) {
   (*this)[OptionNames::MAX_RANDOM_SCORE_DIFF_PLY] = USIOption(0, 0, SHRT_MAX);
   (*this)[OptionNames::SLOW_MOVER] = USIOption(50, 10, 1000);
   (*this)[OptionNames::MINIMUM_THINKING_TIME] = USIOption(1500, 0, INT_MAX);
-  (*this)[OptionNames::MAX_THREADS_PER_SPLIT_POINT] = USIOption(5, 4, 8, onThreads, s);
+  (*this)[OptionNames::MAX_THREADS_PER_SPLIT_POINT] = USIOption(5, 4, MaxThreads, onThreads, s);
+  (*this)[OptionNames::MINIMUM_SPLIT_DEPTH] = USIOption(7, 4, 20);
   (*this)[OptionNames::THREADS] = USIOption(cpuCoreCount(), 1, MaxThreads, onThreads, s);
   (*this)[OptionNames::USE_SLEEPING_THREADS] = USIOption(true);
   (*this)[OptionNames::OUTPUT_INFO] = USIOption(true);
