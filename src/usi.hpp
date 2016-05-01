@@ -40,6 +40,7 @@ namespace USI
     constexpr const char* SEARCH_WINDOW_OFFSET = "Search_Window_Offset";
     constexpr const char* MOVE_OVERHEAD = "Move_Overhead";
     constexpr const char* NODESTIME = "nodestime";
+    constexpr const char* BOOK_SLEEP_TIME = "Book_Sleep_Time";
   }
 
   class USIOption {

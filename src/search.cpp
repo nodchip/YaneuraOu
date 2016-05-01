@@ -217,7 +217,8 @@ void MainThread::search() {
           << SYNCENDL;
       }
 
-      std::chrono::milliseconds dura(1500);
+      int bookSleepTime = Options[USI::OptionNames::BOOK_SLEEP_TIME];
+      std::chrono::milliseconds dura(bookSleepTime);
       std::this_thread::sleep_for(dura);
     }
     else {
