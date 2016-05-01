@@ -27,7 +27,7 @@ namespace tanuki_proxy
         public const string bestmoveNone = "None";
         public static string bestmoveBestMove = bestmoveNone;
         public static string bestmovePonder = null;
-        public static int upstreamGoIndex = 0;
+        public static string upstreamPosition = "";
         public static int numberOfReadyoks = 0;
 
         [DataContract]
@@ -87,7 +87,7 @@ namespace tanuki_proxy
         {
             private Process process = new Process();
             private Option[] optionOverrides;
-            private int downstreamGoIndex = 0;
+            private string downstreamPosition = "";
             private object downstreamLockObject = new object();
             private BlockingCollection<string> commandQueue = new BlockingCollection<string>();
             private Thread thread;
@@ -232,7 +232,7 @@ namespace tanuki_proxy
                     return;
                 }
 
-                if (HandleStarted(e.Data))
+                if (HandlePosition(e.Data))
                 {
                     return;
                 }
@@ -305,10 +305,10 @@ namespace tanuki_proxy
             /// </summary>
             /// <param name="output">思考エンジンの出力文字列</param>
             /// <returns>コマンドをこの関数で処理した場合はtrue、そうでない場合はfalse</returns>
-            private bool HandleStarted(string output)
+            private bool HandlePosition(string output)
             {
                 string[] split = Split(output);
-                if (!Contains(split, "started"))
+                if (!Contains(split, "position"))
                 {
                     return false;
                 }
@@ -316,7 +316,8 @@ namespace tanuki_proxy
                 // goコマンドが受理されたのでpvの受信を開始する
                 lock (downstreamLockObject)
                 {
-                    ++downstreamGoIndex;
+                    downstreamPosition = output.Substring(output.IndexOf("position"));
+                    Debug.WriteLine("downstreamPosition=" + downstreamPosition);
                 }
 
                 return true;
@@ -346,10 +347,10 @@ namespace tanuki_proxy
 
                     lock (downstreamLockObject)
                     {
-
-                        if (upstreamGoIndex != downstreamGoIndex)
+                        // 思考中の局面が違う場合は処理しない
+                        if (upstreamPosition != downstreamPosition)
                         {
-                            //Debug.WriteLine("     ## process={0} upstreamGoIndex != downstreamGoIndex", process);
+                            Debug.WriteLine("     ## process={0} upstreamGoIndex != downstreamGoIndex", process);
                             return true;
                         }
                     }
@@ -419,9 +420,10 @@ namespace tanuki_proxy
 
                     lock (downstreamLockObject)
                     {
-                        if (upstreamGoIndex != downstreamGoIndex)
+                        // 思考中の局面が違う場合は処理しない
+                        if (upstreamPosition != downstreamPosition)
                         {
-                            //Debug.WriteLine("     ## process={0} upstreamGoIndex != downstreamGoIndex", process);
+                            Debug.WriteLine("     ## process={0} upstreamGoIndex != downstreamGoIndex", process);
                             return true;
                         }
                     }
@@ -510,9 +512,8 @@ namespace tanuki_proxy
                             bestmoveBestMove = bestmoveNone;
                             bestmovePonder = null;
                             depth = 0;
-                            ++upstreamGoIndex;
                             TransitUpstreamState(UpstreamState.Thinking);
-                            Console.WriteLine("info string started");
+                            Console.WriteLine("info string " + upstreamPosition);
                             Console.Out.Flush();
                         }
                     }
@@ -521,6 +522,14 @@ namespace tanuki_proxy
                         lock (upstreamLockObject)
                         {
                             numberOfReadyoks = 0;
+                        }
+                    }
+                    else if (split[0] == "position")
+                    {
+                        lock (upstreamLockObject)
+                        {
+                            upstreamPosition = input;
+                            Debug.WriteLine("upstreamPosition=" + upstreamPosition);
                         }
                     }
 
