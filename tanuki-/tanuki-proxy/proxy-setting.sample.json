@@ -1,0 +1,101 @@
+{
+    "engines": [
+        {
+            "engineName": "doutanuki",
+            "optionOverrides": [
+                {
+                    "name": "USI_Hash",
+                    "value": "1024"
+                },
+                {
+                    "name": "Book_File",
+                    "value": "../bin/book-2016-02-01.bin"
+                },
+                {
+                    "name": "Best_Book_Move",
+                    "value": "true"
+                },
+                {
+                    "name": "Max_Random_Score_Diff",
+                    "value": "0"
+                },
+                {
+                    "name": "Max_Random_Score_Diff_Ply",
+                    "value": "0"
+                },
+                {
+                    "name": "Threads",
+                    "value": "1"
+                }
+            ],
+            "arguments": "",
+            "workingDirectory": "C:\\home\\develop\\tanuki-\\bin",
+            "fileName": "C:\\home\\develop\\tanuki-\\tanuki-\\x64\\Release\\tanuki-.exe"
+        },
+        {
+            "engineName": "nighthawk",
+            "optionOverrides": [
+                {
+                    "name": "USI_Hash",
+                    "value": "1024"
+                },
+                {
+                    "name": "Book_File",
+                    "value": "../bin/book-2016-02-01.bin"
+                },
+                {
+                    "name": "Best_Book_Move",
+                    "value": "true"
+                },
+                {
+                    "name": "Max_Random_Score_Diff",
+                    "value": "0"
+                },
+                {
+                    "name": "Max_Random_Score_Diff_Ply",
+                    "value": "0"
+                },
+                {
+                    "name": "Threads",
+                    "value": "4"
+                }
+            ],
+            "arguments": "-vvv nighthawk tanuki-.bat",
+            "workingDirectory": "C:\\home\\develop\\tanuki-\\bin",
+            "fileName": "ssh"
+        },
+        {
+            "engineName": "doutanuki",
+            "optionOverrides": [
+                {
+                    "name": "USI_Hash",
+                    "value": "1024"
+                },
+                {
+                    "name": "Book_File",
+                    "value": "../bin/book-2016-02-01.bin"
+                },
+                {
+                    "name": "Best_Book_Move",
+                    "value": "true"
+                },
+                {
+                    "name": "Max_Random_Score_Diff",
+                    "value": "0"
+                },
+                {
+                    "name": "Max_Random_Score_Diff_Ply",
+                    "value": "0"
+                },
+                {
+                    "name": "Threads",
+                    "value": "1"
+                }
+            ],
+            "arguments": "",
+            "workingDirectory": "C:\\home\\develop\\tanuki-\\bin",
+            "fileName": "C:\\home\\develop\\tanuki-\\tanuki-\\x64\\Release\\tanuki-.exe"
+        }
+    ],
+    "logDirectory": "C:\\home\\develop\\tanuki-"
+}

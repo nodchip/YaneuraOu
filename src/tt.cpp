@@ -1,7 +1,7 @@
 ﻿#include "tt.hpp"
 
 // Our global transposition table
-//TranspositionTable TT;
+TranspositionTable TT;
 
 
 /// TranspositionTable::resize() sets the size of the transposition table,
@@ -17,17 +17,26 @@ void TranspositionTable::resize(size_t mbSize) {
 
   clusterCount = newClusterCount;
 
-  free(mem);
-  mem = calloc(clusterCount * sizeof(Cluster) + CacheLineSize - 1, 1);
+  if (table) {
+    ALIGNED_FREE(table);
+    table = nullptr;
+  }
+  table = (Cluster*)ALIGNED_ALLOC(
+    sizeof(Cluster), clusterCount * sizeof(Cluster));
 
-  if (!mem)
+  if (!table)
   {
-    std::cerr << "Failed to allocate " << mbSize
-      << "MB for transposition table." << std::endl;
+    SYNCCOUT << "info string Failed to allocate " << mbSize
+      << "MB for transposition table." << SYNCENDL;
     exit(EXIT_FAILURE);
   }
+}
 
-  table = (Cluster*)((uintptr_t(mem) + CacheLineSize - 1) & ~(CacheLineSize - 1));
+TranspositionTable::~TranspositionTable() {
+  if (table) {
+    ALIGNED_FREE(table);
+    table = nullptr;
+  }
 }
 
 
@@ -36,7 +45,6 @@ void TranspositionTable::resize(size_t mbSize) {
 /// user asks the program to clear the table (from the UCI interface).
 
 void TranspositionTable::clear() {
-
   std::memset(table, 0, clusterCount * sizeof(Cluster));
 }
 
@@ -48,18 +56,17 @@ void TranspositionTable::clear() {
 /// minus 8 times its relative age. TTEntry t1 is considered more valuable than
 /// TTEntry t2 if its replace value is greater than that of t2.
 
-TTEntry* TranspositionTable::probe(const Key key, bool& found) const {
+TTEntry* TranspositionTable::probe(const Key& key, bool& found) const {
 
   TTEntry* const tte = first_entry(key);
-  const uint16_t key16 = key >> 48;  // Use the high 16 bits as key inside the cluster
 
   for (int i = 0; i < ClusterSize; ++i)
-    if (!tte[i].key16 || tte[i].key16 == key16)
+    if (!tte[i].key64 || tte[i].key64 == key.p[1])
     {
-      if ((tte[i].genBound8 & 0xFC) != generation8 && tte[i].key16)
+      if ((tte[i].genBound8 & 0xFC) != generation8 && tte[i].key64)
         tte[i].genBound8 = uint8_t(generation8 | tte[i].bound()); // Refresh
 
-      return found = tte[i].key16 != 0, &tte[i];
+      return found = tte[i].key64 != 0, &tte[i];
     }
 
   // Find an entry to be replaced according to the replacement strategy
