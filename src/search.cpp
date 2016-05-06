@@ -1184,7 +1184,7 @@ namespace {
 
       // 相手王を取って手駒にしてしまうバグに対するハック
       if (move.cap() == King) {
-        SYNCCOUT << "info string Searcher::search() Tried to capture the opponent's king." << SYNCENDL;
+        //SYNCCOUT << "info string Searcher::search() Tried to capture the opponent's king." << SYNCENDL;
         return mateIn(ss->ply);
       }
 
@@ -1583,7 +1583,7 @@ namespace {
 
       // 王を手駒に加えようとして落ちるバグに対するハック
       if (move.cap() == King) {
-        SYNCCOUT << "info string Searcher::qsearch() Tried to capture the opponent's king." << SYNCENDL;
+        //SYNCCOUT << "info string Searcher::qsearch() Tried to capture the opponent's king." << SYNCENDL;
         // TODO(nodchip): 置換表に保存しなくていよいのか？
         // 上にあるmateMoveIn1Ply()では保存していない。
         score = mateIn(ss->ply);
