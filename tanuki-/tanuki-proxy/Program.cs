@@ -25,10 +25,11 @@ namespace tanuki_proxy
         public static UpstreamState upstreamState = UpstreamState.Stopped;
         public static int depth = 0;
         public const string bestmoveNone = "None";
-        public static string bestmoveBestMove = bestmoveNone;
-        public static string bestmovePonder = null;
+        public static string[] bestmoveBestMoves = null;
+        public static string[] bestmovePonders = null;
         public static string upstreamPosition = "";
         public static int numberOfReadyoks = 0;
+        public static System.Random random = new System.Random();
 
         [DataContract]
         public struct Option
@@ -92,8 +93,9 @@ namespace tanuki_proxy
             private BlockingCollection<string> commandQueue = new BlockingCollection<string>();
             private Thread thread;
             public string name { get; }
+            private int id;
 
-            public Engine(string engineName, string fileName, string arguments, string workingDirectory, Option[] optionOverrides)
+            public Engine(string engineName, string fileName, string arguments, string workingDirectory, Option[] optionOverrides, int id)
             {
                 this.name = engineName;
                 this.process.StartInfo.FileName = fileName;
@@ -106,11 +108,11 @@ namespace tanuki_proxy
                 this.process.OutputDataReceived += HandleStdout;
                 this.process.ErrorDataReceived += HandleStderr;
                 this.optionOverrides = optionOverrides;
+                this.id = id;
             }
 
-            public Engine(EngineOption opt) : this(opt.engineName, opt.fileName, opt.arguments, opt.workingDirectory, opt.optionOverrides)
+            public Engine(EngineOption opt, int id) : this(opt.engineName, opt.fileName, opt.arguments, opt.workingDirectory, opt.optionOverrides, id)
             {
-
             }
 
             public void RunAsync()
@@ -366,26 +368,52 @@ namespace tanuki_proxy
 
                     int tempDepth = int.Parse(split[depthIndex + 1]);
 
-                    // 既に保持している深さ以下の場合は保持しない
-                    if (depth >= tempDepth)
-                    {
-                        return true;
-                    }
 
-                    depth = tempDepth;
                     Debug.Assert(pvIndex + 1 < split.Length);
-                    bestmoveBestMove = split[pvIndex + 1];
-                    bestmovePonder = null;
+                    bestmoveBestMoves[id] = split[pvIndex + 1];
                     if (pvIndex + 2 < split.Length)
                     {
-                        bestmovePonder = split[pvIndex + 2];
+                        bestmovePonders[id] = split[pvIndex + 2];
                     }
 
                     Debug.WriteLine("  <<    engine={0} command={1}", name, output);
-                    Console.WriteLine("info string " + name);
 
-                    Console.WriteLine(output);
-                    WriteToEachEngine("broadcast " + output);
+                    if (depth < tempDepth)
+                    {
+                        // voteの表示
+                        Dictionary<string, int> bestmoveToCount = new Dictionary<string, int>();
+                        for (int i = 0; i < bestmoveBestMoves.Length; ++i)
+                        {
+                            if (bestmoveBestMoves[i] == null)
+                            {
+                                continue;
+                            }
+                            if (!bestmoveToCount.ContainsKey(bestmoveBestMoves[i]))
+                            {
+                                bestmoveToCount.Add(bestmoveBestMoves[i], 0);
+                            }
+                            ++bestmoveToCount[bestmoveBestMoves[i]];
+                        }
+                        List<KeyValuePair<string, int>> bestmoveAndCount = new List<KeyValuePair<string, int>>(bestmoveToCount);
+                        bestmoveAndCount.Sort((KeyValuePair<string, int>  lh, KeyValuePair<string, int>  rh) => { return -(lh.Value - rh.Value); });
+                           
+                        string vote = "info string";
+                        foreach (var p in bestmoveAndCount)
+                        {
+                            vote += " ";
+                            vote += p.Key;
+                            vote += "=";
+                            vote += p.Value;
+                        }
+                        Console.WriteLine(vote);
+                        Console.Out.Flush();
+
+                        // info pvの表示
+                        Console.WriteLine(output);
+                        Console.Out.Flush();
+                        //WriteToEachEngine("broadcast " + output);
+                        depth = tempDepth;
+                    }
                 }
 
                 return true;
@@ -399,12 +427,19 @@ namespace tanuki_proxy
                     return false;
                 }
 
-                if (split[1] == "resign" || split[1] == "win" || bestmoveBestMove == bestmoveNone)
+                if (split[1] == "resign" || split[1] == "win")
                 {
-                    bestmoveBestMove = split[1];
+                    for (int i = 0; i < bestmoveBestMoves.Length; ++i)
+                    {
+                        bestmoveBestMoves[i] = split[1];
+                        bestmovePonders[i] = null;
+                    }
                     if (split.Length == 4 && split[2] == "ponder")
                     {
-                        bestmovePonder = split[3];
+                        for (int i = 0; i < bestmoveBestMoves.Length; ++i)
+                        {
+                            bestmovePonders[i] = split[3];
+                        }
                     }
                 }
 
@@ -428,16 +463,68 @@ namespace tanuki_proxy
                         }
                     }
 
-                    Debug.Assert(!string.IsNullOrEmpty(bestmoveBestMove));
+                    if (bestmoveBestMoves == null)
+                    {
+                        return true;
+                    }
+
+                    if (bestmovePonders == null)
+                    {
+                        return true;
+                    }
+
+                    Dictionary<string, int> bestmoveToCount = new Dictionary<string, int>();
+                    for (int i = 0; i < bestmoveBestMoves.Length; ++i)
+                    {
+                        if (bestmoveBestMoves[i] == null)
+                        {
+                            continue;
+                        }
+                        if (!bestmoveToCount.ContainsKey(bestmoveBestMoves[i]))
+                        {
+                            bestmoveToCount.Add(bestmoveBestMoves[i], 0);
+                        }
+                        ++bestmoveToCount[bestmoveBestMoves[i]];
+                    }
+
+                    int bestCount = -1;
+                    string bestmove = "resign";
+                    foreach (var p in bestmoveToCount)
+                    {
+                        if (p.Value > bestCount)
+                        {
+                            bestCount = p.Value;
+                            bestmove = p.Key;
+                        }
+                    }
+
+                    int ponderCount = 0;
+                    string ponder = null;
+                    for (int i = 0; i < bestmoveBestMoves.Length; ++i)
+                        {
+                            if (bestmoveBestMoves[i] != bestmove)
+                            {
+                                continue;
+                            }
+                            if(bestmovePonders[i] == null)
+                        {
+                            continue;
+                        }
+                        ++ponderCount;
+                        if (random.Next(ponderCount) == 0)
+                        {
+                            ponder = bestmovePonders[i];
+                        }
+                    }
 
                     string command = null;
-                    if (!string.IsNullOrEmpty(bestmovePonder))
+                    if (!string.IsNullOrEmpty(ponder))
                     {
-                        command = string.Format("bestmove {0} ponder {1}", bestmoveBestMove, bestmovePonder);
+                        command = string.Format("bestmove {0} ponder {1}", bestmove, ponder);
                     }
                     else
                     {
-                        command = string.Format("bestmove {0}", bestmoveBestMove);
+                        command = string.Format("bestmove {0}", bestmove);
                     }
 
                     Debug.WriteLine("  <<    engine={0} command={1}", name, command);
@@ -445,8 +532,8 @@ namespace tanuki_proxy
 
                     TransitUpstreamState(UpstreamState.Stopped);
                     depth = 0;
-                    bestmoveBestMove = bestmoveNone;
-                    bestmovePonder = null;
+                    bestmoveBestMoves = null;
+                    bestmovePonders = null;
                     WriteToEachEngine("stop");
                 }
 
@@ -486,9 +573,10 @@ namespace tanuki_proxy
             string logFileFormat = setting.logDirectory + "\\" + DateTime.Now.ToString("yyyy-MM-dd-HH-mm-ss") + string.Format("_pid={0}", GetProcessId()) + ".txt";
             Debug.Listeners.Add(new TextWriterTraceListener(new StreamWriter(logFileFormat, false, Encoding.UTF8)));
 
-            foreach (var item in setting.engines)
+            
+            for (int id = 0; id < setting.engines.Length; ++id)
             {
-                engines.Add(new Engine(item));
+                engines.Add(new Engine(setting.engines[id], id));
             }
 
             // 子プロセスの標準入出力 (System.Diagnostics.Process) - Programming/.NET Framework/標準入出力 - 総武ソフトウェア推進所 http://smdn.jp/programming/netfx/standard_streams/1_process/
@@ -509,8 +597,8 @@ namespace tanuki_proxy
                         // 思考開始の合図です。エンジンはこれを受信すると思考を開始します。
                         lock (upstreamLockObject)
                         {
-                            bestmoveBestMove = bestmoveNone;
-                            bestmovePonder = null;
+                            bestmoveBestMoves = new string[engines.Count];
+                            bestmovePonders = new string[engines.Count];
                             depth = 0;
                             TransitUpstreamState(UpstreamState.Thinking);
                             Console.WriteLine("info string " + upstreamPosition);
