@@ -1844,7 +1844,7 @@ RepetitionType Position::isDraw(const int checkMaxPly) const {
     // floodgateで対戦中にstpがnullptrとなるバグが確認されたので
     // nullptrチェック
     if (!st_ || !st_->previous || !st_->previous->previous) {
-      SYNCCOUT << "info string Position::isDraw() Found nullptr in a repetition check." << SYNCENDL;
+      //SYNCCOUT << "info string Position::isDraw() Found nullptr in a repetition check." << SYNCENDL;
       return NotRepetition;
     }
     StateInfo* stp = st_->previous->previous;
@@ -1855,7 +1855,7 @@ RepetitionType Position::isDraw(const int checkMaxPly) const {
       // TODO(nodchip) ここでbreakするとsearch()のループ中で王を取る手が
       // 生成される可能性があるのでチェックする
       if (!stp || !stp->previous || !stp->previous->previous) {
-        SYNCCOUT << "info string Position::isDraw() Found nullptr in a repetition check." << SYNCENDL;
+        //SYNCCOUT << "info string Position::isDraw() Found nullptr in a repetition check." << SYNCENDL;
         return NotRepetition;
       }
 
