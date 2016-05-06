@@ -96,7 +96,8 @@ void OptionsMap::init(Searcher* s) {
   (*this)[OptionNames::MAX_RANDOM_SCORE_DIFF_PLY] = USIOption(0, 0, SHRT_MAX);
   (*this)[OptionNames::SLOW_MOVER] = USIOption(50, 10, 1000);
   (*this)[OptionNames::MINIMUM_THINKING_TIME] = USIOption(1500, 0, INT_MAX);
-  (*this)[OptionNames::MAX_THREADS_PER_SPLIT_POINT] = USIOption(5, 4, 8, onThreads, s);
+  (*this)[OptionNames::MAX_THREADS_PER_SPLIT_POINT] = USIOption(5, 4, MaxThreads, onThreads, s);
+  (*this)[OptionNames::MINIMUM_SPLIT_DEPTH] = USIOption(7, 4, 20);
   (*this)[OptionNames::THREADS] = USIOption(cpuCoreCount(), 1, MaxThreads, onThreads, s);
   (*this)[OptionNames::USE_SLEEPING_THREADS] = USIOption(true);
   (*this)[OptionNames::OUTPUT_INFO] = USIOption(true);
@@ -208,6 +209,7 @@ void go(const Position& pos, std::istringstream& ssCmd) {
       // btime wtime の後に byoyomi が来る前提になっているので良くない。
       int byoyomi;
       ssCmd >> byoyomi;
+      byoyomi = std::max(0, byoyomi - USI::Options[OptionNames::BYOYOMI_MARGIN]);
       limits.byoyomi = byoyomi;
     }
     else if (token == "depth") {
@@ -456,6 +458,7 @@ void Searcher::doUSICommandLoop(int argc, char* argv[]) {
 
   std::string cmd;
   std::string token;
+  std::string lastPositionCmd;
 
 #if defined MPI_LEARN
   boost::mpi::environment  env(argc, argv);
@@ -506,10 +509,13 @@ void Searcher::doUSICommandLoop(int argc, char* argv[]) {
     }
     else if (token == "go") {
       go(pos, ssCmd);
-      SYNCCOUT << "info string started" << SYNCENDL;
+      SYNCCOUT << "info string " << lastPositionCmd << SYNCENDL;
     }
     else if (token == "isready") { SYNCCOUT << "readyok" << SYNCENDL; }
-    else if (token == "position") { setPosition(pos, ssCmd); }
+    else if (token == "position") {
+      lastPositionCmd = cmd;
+      setPosition(pos, ssCmd);
+    }
     else if (token == "setoption") { setOption(ssCmd); }
     else if (token == "broadcast") {
       std::getline(ssCmd, pos.searcher()->broadcastedPvInfo);
