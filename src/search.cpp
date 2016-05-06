@@ -2048,8 +2048,11 @@ void Searcher::think() {
     && std::count(rootMoves.begin(), rootMoves.end(), bookMoveScore.first))
   {
     std::swap(rootMoves[0], *std::find(rootMoves.begin(), rootMoves.end(), bookMoveScore.first));
-    SYNCCOUT << "info score " << scoreToUSI(bookMoveScore.second)
+    SYNCCOUT << "info depth 24 score " << scoreToUSI(bookMoveScore.second)
       << " pv " << bookMoveScore.first.toUSI() << SYNCENDL;
+    int bookSleepTime = USI::Options[OptionNames::BOOK_SLEEP_TIME];
+    std::chrono::milliseconds dura(bookSleepTime);
+    std::this_thread::sleep_for(dura);
     goto finalize;
   }
 
