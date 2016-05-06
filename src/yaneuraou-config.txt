@@ -1,0 +1,2 @@
+setoption name Threads value 2
+go btime 50

@@ -1,4 +1,5 @@
-﻿#include "common.hpp"
+﻿#include "timeManager.hpp"
+#include "common.hpp"
 #include "init.hpp"
 #include "evaluate.hpp"
 #include "book.hpp"
@@ -42,7 +43,7 @@ namespace {
   // Rook or Bishop の利きの範囲を調べて bitboard で返す。
   // occupied  障害物があるマスが 1 の bitboard
   Bitboard attackCalc(const Square square, const Bitboard& occupied, const bool isBishop) {
-    const SquareDelta deltaArray[2][4] = { {DeltaN, DeltaS, DeltaE, DeltaW}, {DeltaNE, DeltaSE, DeltaSW, DeltaNW} };
+    constexpr SquareDelta deltaArray[2][4] = { {DeltaN, DeltaS, DeltaE, DeltaW}, {DeltaNE, DeltaSE, DeltaSW, DeltaNW} };
     Bitboard result = allZeroBB();
     for (SquareDelta delta : deltaArray[isBishop]) {
       for (Square sq = square + delta;
@@ -330,7 +331,7 @@ void initTable() {
   initSquareDistance();
 
   Book::init();
-  initSearchTable();
+  Search::init();
 }
 
 #if defined FIND_MAGIC

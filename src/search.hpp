@@ -1,176 +1,102 @@
 ﻿#ifndef APERY_SEARCH_HPP
 #define APERY_SEARCH_HPP
 
-#include <atomic>
 #include "book.hpp"
+#include "evaluate.hpp"
 #include "move.hpp"
-#include "pieceScore.hpp"
-#include "thread.hpp"
 #include "timeManager.hpp"
 #include "tt.hpp"
 
-class Position;
-struct SplitPoint;
+namespace Search {
 
-struct SearchStack {
-  SplitPoint* splitPoint;
-  Ply ply;
-  Move currentMove;
-  Move excludedMove; // todo: これは必要？
-  Move killers[2];
-  Depth reduction;
-  Score staticEval;
-  bool skipNullMove;
-  // 評価関数の差分計算用、値が入っていないときは [0] を ScoreNotEvaluated にしておく。
-  // 常に Black 側から見た評価値を入れておく。
-  // 0: 双玉に対する評価値, 1: 先手玉に対する評価値, 2: 後手玉に対する評価値
-  EvalSum staticEvalRaw;
-};
+  struct SearchStack {
+    Move* pv;
+    Ply ply;
+    Move currentMove;
+    Move excludedMove;
+    Move killers[2];
+    Depth reduction;
+    Score staticEval;
+    bool skipNullMove;
+    // 評価関数の差分計算用、値が入っていないときは [0] を ScoreNotEvaluated にしておく。
+    // 常に Black 側から見た評価値を入れておく。
+    // 0: 双玉に対する評価値, 1: 先手玉に対する評価値, 2: 後手玉に対する評価値
+    EvalSum staticEvalRaw;
+    int moveCount;
+  };
 
-struct SignalsType {
-  std::atomic<bool> stopOnPonderHit;
-  std::atomic<bool> firstRootMove;
-  std::atomic<bool> stop;
-  std::atomic<bool> failedLowAtRoot;
-};
+  /// RootMove struct is used for moves at the root of the tree. For each root move
+  /// we store a score and a PV (really a refutation in the case of moves which
+  /// fail low). Score is normally set at -VALUE_INFINITE for all non-pv moves.
 
-enum InaniwaFlag {
-  NotInaniwa,
-  InaniwaIsBlack,
-  InaniwaIsWhite,
-  InaniwaFlagNum
-};
+  struct RootMove {
 
-enum BishopInDangerFlag {
-  NotBishopInDanger,
-  BlackBishopInDangerIn28,
-  WhiteBishopInDangerIn28,
-  BlackBishopInDangerIn78,
-  WhiteBishopInDangerIn78,
-  BishopInDangerFlagNum
-};
+    explicit RootMove(Move m) : pv(1, m) {}
 
-class RootMove {
-public:
-  RootMove() {}
-  explicit RootMove(const Move m) : score_(-ScoreInfinite), prevScore_(-ScoreInfinite) {
-    pv_.push_back(m);
-    pv_.push_back(Move::moveNone());
-  }
-  explicit RootMove(const std::tuple<Move, Score> m) : score_(std::get<1>(m)), prevScore_(-ScoreInfinite) {
-    pv_.push_back(std::get<0>(m));
-    pv_.push_back(Move::moveNone());
-  }
+    bool operator<(const RootMove& m) const { return m.score < score; } // Descending sort
+    bool operator==(const Move& m) const { return pv[0] == m; }
+    void insert_pv_in_tt(Position& pos);
+    bool extract_ponder_from_tt(Position& pos, Move ponderCandidate);
 
-  bool operator < (const RootMove& m) const {
-    return score_ < m.score_;
-  }
-  bool operator == (const Move& m) const {
-    return pv_[0] == m;
-  }
+    Score score = -ScoreInfinite;
+    Score previousScore = -ScoreInfinite;
+    std::vector<Move> pv;
+  };
 
-  void extractPvFromTT(Position& pos);
-  void insertPvInTT(Position& pos);
+  typedef std::vector<RootMove> RootMoveVector;
 
-public:
-  Score score_;
-  Score prevScore_;
-  std::vector<Move> pv_;
-};
+  struct LimitsType {
 
-template <bool Gain>
-class Stats {
-public:
-  static constexpr Score MaxScore = static_cast<Score>(2000);
-
-  void clear() { memset(table_, 0, sizeof(table_)); }
-  Score value(const bool isDrop, const Piece pc, const Square to) const {
-    assert(0 < pc && pc < PieceNone);
-    assert(isInSquare(to));
-    return table_[isDrop][pc][to];
-  }
-  void update(const bool isDrop, const Piece pc, const Square to, const Score s) {
-    if (Gain) {
-      table_[isDrop][pc][to] = std::max(s, value(isDrop, pc, to) - 1);
+    LimitsType() { // Init explicitly due to broken value-initialization of non POD in MSVC
+      nodes = time[White] = time[Black] = inc[White] = inc[Black] = npmsec = movestogo =
+        depth = movetime = mate = infinite = ponder = byoyomi = 0;
+      startTime = static_cast<TimePoint>(0);
     }
-    else if (abs(value(isDrop, pc, to) + s) < MaxScore) {
-      table_[isDrop][pc][to] += s;
+
+    bool use_time_management() const {
+      return !(mate | movetime | depth | nodes | infinite);
     }
-  }
 
-private:
-  // [isDrop][piece][square] とする。
-  Score table_[2][PieceNone][SquareNum];
-};
+    std::vector<Move> searchmoves;
+    int time[ColorNum], inc[ColorNum], npmsec, movestogo, depth, movetime, mate, infinite, ponder, byoyomi;
+    int64_t nodes;
+    TimePoint startTime;
+  };
 
-using History = Stats<false>;
-using Gains = Stats<true>;
+  struct SignalsType {
+    std::atomic_bool stop, stopOnPonderhit;
+  };
 
-class TranspositionTable;
+  using StateStackPtr = std::unique_ptr<std::stack<StateInfo> >;
 
-// 思考スレッドの監視スレッドの実行周期の最小値
-constexpr int MIN_TIMER_PERIOD_MS = 5;
-// 思考スレッドの監視スレッドの実行周期の最大値
-constexpr int MAX_TIMER_PERIOD_MS = 100;
+  extern SignalsType Signals;
+  extern LimitsType Limits;
+  extern StateStackPtr SetupStates;
+  extern std::mutex BroadcastMutex;
+  extern int BroadcastPvDepth;
+  extern std::string BroadcastPvInfo;
 
-struct Searcher {
-  // static メンバ関数からだとthis呼べないので代わりに thisptr を使う。
-  // static じゃないときは this を入れることにする。
-  STATIC Searcher* thisptr;
-  STATIC SignalsType signals;
-  STATIC LimitsType limits;
-  STATIC std::vector<Move> searchMoves;
-  STATIC Time searchTimer;
-  STATIC u64 lastSearchedNodes;
-  STATIC StateStackPtr setUpStates;
-  STATIC std::vector<RootMove> rootMoves;
+  void init();
+  void clear();
 
-#if defined LEARN
-  STATIC Score alpha;
-  STATIC Score beta;
-#endif
+  enum InaniwaFlag {
+    NotInaniwa,
+    InaniwaIsBlack,
+    InaniwaIsWhite,
+    InaniwaFlagNum
+  };
 
-  STATIC size_t pvSize;
-  STATIC size_t pvIdx;
-  STATIC std::unique_ptr<TimeManager> timeManager;
-  STATIC Ply bestMoveChanges;
-  STATIC History history;
-  STATIC Gains gains;
-  STATIC TranspositionTable tt;
+  enum BishopInDangerFlag {
+    NotBishopInDanger,
+    BlackBishopInDangerIn28,
+    WhiteBishopInDangerIn28,
+    BlackBishopInDangerIn78,
+    WhiteBishopInDangerIn78,
+    BishopInDangerFlagNum
+  };
 
-#if defined INANIWA_SHIFT
-  STATIC InaniwaFlag inaniwaFlag;
-#endif
-#if defined BISHOP_IN_DANGER
-  STATIC BishopInDangerFlag bishopInDangerFlag;
-#endif
-  STATIC Position rootPosition;
-  STATIC ThreadPool threads;
-  STATIC OptionsMap options;
-  static bool outputInfo;
-  STATIC Book book;
+  extern Book book;
 
-  STATIC void init();
-  STATIC void idLoop(Position& pos);
-  STATIC std::string pvInfoToUSI(Position& pos, const Ply depth, const Score alpha, const Score beta);
-  template <NodeType NT, bool INCHECK>
-  STATIC Score qsearch(Position& pos, SearchStack* ss, Score alpha, Score beta, const Depth depth);
-#if defined INANIWA_SHIFT
-  STATIC void detectInaniwa(const Position& pos);
-#endif
-#if defined BISHOP_IN_DANGER
-  STATIC void detectBishopInDanger(const Position& pos);
-#endif
-  template <NodeType NT>
-  STATIC Score search(Position& pos, SearchStack* ss, Score alpha, Score beta, const Depth depth, const bool cutNode);
-  STATIC void think();
-  STATIC void checkTime();
-
-  STATIC void doUSICommandLoop(int argc, char* argv[]);
-  STATIC void setOption(const std::string& cmd);
-  STATIC void setOption(std::istringstream& ssCmd);
-};
-
-void initSearchTable();
+}
 
 #endif // #ifndef APERY_SEARCH_HPP

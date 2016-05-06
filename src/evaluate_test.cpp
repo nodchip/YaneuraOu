@@ -1,3 +1,4 @@
+#include "timeManager.hpp"
 #include <gtest/gtest.h>
 #include "position.hpp"
 #include "search.hpp"
@@ -27,9 +28,9 @@ TEST_F(EvaluateTest, evaluate_withoutDiff) {
     string subSfen = string_util::concat(vector<string>(sfen.begin(), sfen.begin() + i));
     std::istringstream ss_sfen(subSfen);
     Position pos;
-    setPosition(pos, ss_sfen);
+    USI::setPosition(pos, ss_sfen);
 
-    SearchStack searchStack[MaxPlyPlus2];
+    Search::SearchStack searchStack[MaxPlyPlus2];
     memset(searchStack, 0, sizeof(searchStack));
     searchStack[0].currentMove = Move::moveNull(); // skip update gains
     searchStack[0].staticEvalRaw.p[0][0] = ScoreNotEvaluated;
@@ -49,9 +50,9 @@ TEST_F(EvaluateTest, evaluate_diff) {
   vector<StateInfo> stateInfos(sfen.size());
 
   Position pos;
-  setPosition(pos, std::istringstream("startpos"));
+  USI::setPosition(pos, std::istringstream("startpos"));
 
-  SearchStack searchStack[MaxPlyPlus2];
+  Search::SearchStack searchStack[MaxPlyPlus2];
   memset(searchStack, 0, sizeof(searchStack));
   for (auto& s : searchStack) {
     s.currentMove = Move::moveNull();
@@ -59,7 +60,7 @@ TEST_F(EvaluateTest, evaluate_diff) {
   }
 
   for (int i = 2; i < sfen.size(); ++i) {
-    Move move = usiToMove(pos, sfen[i]);
+    Move move = USI::usiToMove(pos, sfen[i]);
     pos.doMove(move, stateInfos[i]);
     searchStack[i - 1].currentMove = move;
     //fprintf(stderr, "play=%d move=%s\n", i - 1, move.toCSA().c_str());

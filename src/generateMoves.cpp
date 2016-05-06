@@ -1,7 +1,8 @@
 ﻿#include "generateMoves.hpp"
 #include "usi.hpp"
 
-namespace {
+namespace generate_moves
+{
   // 角, 飛車の場合
   template <MoveType MT, PieceType PT, Color US, bool ALL>
   FORCE_INLINE MoveStack* generateBishopOrRookMoves(MoveStack* moveStackList, const Position& pos,
@@ -32,7 +33,7 @@ namespace {
   // ループの展開はコードが膨れ上がる事によるキャッシュヒット率の低下と、演算回数のバランスを取って決める必要がある。
   // NPSに影響が出ないならシンプルにした方が良さそう。
   template <Color US>
-  MoveStack* generateDropMoves(MoveStack* moveStackList, const Position& pos, const Bitboard& target) {
+  MoveStack* generateDropMoves20151211(MoveStack* moveStackList, const Position& pos, const Bitboard& target) {
     const Hand hand = pos.hand(US);
     // まず、歩に対して指し手を生成
     if (hand.exists<HPawn>()) {
@@ -129,6 +130,183 @@ namespace {
       case 5: FOREACH_BB(toBB, to, { Unroller<5>()([&](const int i) { (*moveStackList++).move = makeDropMove(haveHand[i], to); }); }); break;
       case 6: FOREACH_BB(toBB, to, { Unroller<6>()([&](const int i) { (*moveStackList++).move = makeDropMove(haveHand[i], to); }); }); break;
       default: UNREACHABLE;
+      }
+    }
+
+    return moveStackList;
+  }
+
+  using xmm = __m128i;
+
+  // 歩以外の駒打ちを生成する。
+  // target: 空いているマスを表すビットボード
+  // haveHand: 駒打ちを生成する駒の種類の配列
+  // numberOfHaveHand: 駒打ちを生成する駒の種類の数
+  // moves: 生成した駒打ち
+  // numberOfMoves: 生成した駒打ちの総数
+  void generaateDropMovesNonPawn(
+    Bitboard target,
+    PieceType haveHands[8],
+    int numberOfHaveHands,
+    u16 moves[1024],
+    int& numberOfMoves)
+  {
+    // toだけを埋めたMove (下位16ビット)
+    alignas(32) u16 moveToTemplates[128];
+    // toの数
+    int numberOfTos = 0;
+    Square to;
+    FOREACH_BB(target, to, {
+      moveToTemplates[numberOfTos++] = static_cast<u16>(to2Move(to).value());
+    });
+    for (int haveHandIndex = 0; haveHandIndex < numberOfHaveHands; ++haveHandIndex) {
+      // PieceTypeだけを埋めたMove (下位16ビット)
+      u16 movePieceTypeTemplate = static_cast<u16>(makeDropMove(haveHands[haveHandIndex], (Square)0).value());
+      // PieceTypeだけを埋めたMove 16マス分
+      // _mm256_set1_epi16()を使うと上位128ビットがクリアされてしまうため
+      // このようにしている。
+      // TODO(hnoda): 上位128ビットがクリアされる原因の調査
+      xmm movePieceTypeTemplates = _mm_set1_epi16(movePieceTypeTemplate);
+      // 16マス分ずつ生成する
+      for (int i = 0; i < numberOfTos; i += 8) {
+        xmm moveTo = _mm_load_si128((const xmm*)&moveToTemplates[i]);
+        xmm moveMerged = _mm_or_si128(moveTo, movePieceTypeTemplates);
+        _mm_storeu_si128((xmm*)&moves[numberOfMoves], moveMerged);
+        numberOfMoves += std::min(numberOfTos - i, 8);
+      }
+    }
+  }
+
+  // 駒打ちの場合
+  // 歩以外の持ち駒は、loop の前に持ち駒の種類の数によって switch で展開している。
+  // ループの展開はコードが膨れ上がる事によるキャッシュヒット率の低下と、演算回数のバランスを取って決める必要がある。
+  // NPSに影響が出ないならシンプルにした方が良さそう。
+  template <Color US>
+  MoveStack* generateDropMoves(MoveStack* moveStackList, const Position& pos, const Bitboard& target) {
+    const Hand hand = pos.hand(US);
+    // まず、歩に対して指し手を生成
+    if (hand.exists<HPawn>()) {
+      Bitboard toBB = target;
+      // 一段目には打てない
+      const Rank TRank9 = (US == Black ? Rank9 : Rank1);
+      toBB.andEqualNot(rankMask<TRank9>());
+
+      // 二歩の回避
+      Bitboard pawnsBB = pos.bbOf(Pawn, US);
+      Square pawnsSquare;
+      foreachBB(pawnsBB, pawnsSquare, [&](const int part) {
+        toBB.set(part, toBB.p(part) & ~squareFileMask(pawnsSquare).p(part));
+      });
+
+      // 打ち歩詰めの回避
+      const Rank TRank1 = (US == Black ? Rank1 : Rank9);
+      const SquareDelta TDeltaS = (US == Black ? DeltaS : DeltaN);
+
+      const Square ksq = pos.kingSquare(oppositeColor(US));
+      // 相手玉が九段目なら、歩で王手出来ないので、打ち歩詰めを調べる必要はない。
+      if (makeRank(ksq) != TRank1) {
+        const Square pawnDropCheckSquare = ksq + TDeltaS;
+        assert(isInSquare(pawnDropCheckSquare));
+        if (toBB.isSet(pawnDropCheckSquare) && pos.piece(pawnDropCheckSquare) == Empty) {
+          if (!pos.isPawnDropCheckMate(US, pawnDropCheckSquare)) {
+            // ここで clearBit だけして MakeMove しないことも出来る。
+            // 指し手が生成される順番が変わり、王手が先に生成されるが、後で問題にならないか?
+            (*moveStackList++).move = makeDropMove(Pawn, pawnDropCheckSquare);
+          }
+          toBB.xorBit(pawnDropCheckSquare);
+        }
+      }
+
+      Square to;
+      FOREACH_BB(toBB, to, {
+        (*moveStackList++).move = makeDropMove(Pawn, to);
+      });
+    }
+
+    // 歩 以外の駒を持っているか
+    if (!hand.exceptPawnExists()) {
+      return moveStackList;
+    }
+
+    const Rank TRank8 = (US == Black ? Rank8 : Rank2);
+    const Rank TRank9 = (US == Black ? Rank9 : Rank1);
+    Bitboard TRank8BB = rankMask<TRank8>();
+    Bitboard TRank9BB = rankMask<TRank9>();
+    Bitboard TRank17BB = target;
+    TRank17BB.andEqualNot(TRank8BB);
+    TRank17BB.andEqualNot(TRank9BB);
+
+    alignas(32) u16 moves[1024];
+    int numberOfMoves = 0;
+
+    // 歩以外の持ち駒。vector 使いたいけど、速度を求めるので使わない。
+    PieceType haveHands[8];
+    // 持ち駒の駒の種類の数
+    int numberOfHaveHands = 0;
+
+    // 持ち駒の中で三～九段目に打てる駒を列挙する
+    if (hand.exists<HRook  >()) { haveHands[numberOfHaveHands++] = Rook; }
+    if (hand.exists<HBishop>()) { haveHands[numberOfHaveHands++] = Bishop; }
+    if (hand.exists<HGold  >()) { haveHands[numberOfHaveHands++] = Gold; }
+    if (hand.exists<HSilver>()) { haveHands[numberOfHaveHands++] = Silver; }
+    if (hand.exists<HKnight>()) { haveHands[numberOfHaveHands++] = Knight; }
+    if (hand.exists<HLance >()) { haveHands[numberOfHaveHands++] = Lance; }
+
+    // 高速化のため歩以外の手駒の種類が1種類の場合は単純なループを使用する
+    if (numberOfHaveHands == 1) {
+      Bitboard toBB = target;
+      if (haveHands[0] == Lance) {
+        toBB.andEqualNot(TRank9BB);
+      }
+      else if (haveHands[0] == Knight) {
+        toBB.andEqualNot(TRank9BB);
+        toBB.andEqualNot(TRank8BB);
+      }
+      Square to;
+      FOREACH_BB(toBB, to, { (*moveStackList++).move = makeDropMove(haveHands[0], to); });
+
+      return moveStackList;
+    }
+
+    // 三～九段目の駒打ちを生成する
+    generaateDropMovesNonPawn(
+      Bitboard(target).andEqualNot(TRank8BB).andEqualNot(TRank9BB), haveHands, numberOfHaveHands, moves, numberOfMoves);
+
+    // 持ち駒の中で二段目に打てる駒を列挙する
+    numberOfHaveHands = 0;
+    if (hand.exists<HRook  >()) { haveHands[numberOfHaveHands++] = Rook; }
+    if (hand.exists<HBishop>()) { haveHands[numberOfHaveHands++] = Bishop; }
+    if (hand.exists<HGold  >()) { haveHands[numberOfHaveHands++] = Gold; }
+    if (hand.exists<HSilver>()) { haveHands[numberOfHaveHands++] = Silver; }
+    if (hand.exists<HLance >()) { haveHands[numberOfHaveHands++] = Lance; }
+
+    // 二段目の駒打ちを生成する
+    generaateDropMovesNonPawn(
+      target & TRank8BB, haveHands, numberOfHaveHands, moves, numberOfMoves);
+
+    // 持ち駒の中で一段目に打てる駒を列挙する
+    numberOfHaveHands = 0;
+    if (hand.exists<HRook  >()) { haveHands[numberOfHaveHands++] = Rook; }
+    if (hand.exists<HBishop>()) { haveHands[numberOfHaveHands++] = Bishop; }
+    if (hand.exists<HGold  >()) { haveHands[numberOfHaveHands++] = Gold; }
+    if (hand.exists<HSilver>()) { haveHands[numberOfHaveHands++] = Silver; }
+
+    // 一段目の駒打ちを生成する
+    generaateDropMovesNonPawn(
+      target & TRank9BB, haveHands, numberOfHaveHands, moves, numberOfMoves);
+
+    // 2手分ずつ16ビット->64ビットに変換して
+    // moveStackListに格納していく
+    for (int i = 0; i < numberOfMoves; ) {
+      // 8手分ロードする
+      xmm moves16 = _mm_load_si128((const xmm*)&moves[i]);
+      int j = std::min(numberOfMoves, i + 8);
+      for (; i < j; i += 2) {
+        // 2手分ずつストアする
+        xmm moves64 = _mm_cvtepi16_epi64(moves16);
+        _mm_storeu_si128((xmm*)moveStackList, moves64);
+        moveStackList += std::min(numberOfMoves - i, 2);
+        moves16 = _mm_srli_si128(moves16, 4);
       }
     }
 
@@ -522,7 +700,7 @@ namespace {
 
       // 玉の移動による自殺手と、pinされている駒の移動による自殺手を削除
       while (curr != moveStackList) {
-        if (!pos.pseudoLegalMoveIsLegal<false, false>(curr->move, pinned)) {
+        if (!pos.pseudoLegalMoveIsLegal<false, false, false>(curr->move, pinned)) {
           curr->move = (--moveStackList)->move;
         }
         else {
@@ -546,7 +724,7 @@ namespace {
 
       // 玉の移動による自殺手と、pinされている駒の移動による自殺手を削除
       while (curr != moveStackList) {
-        if (!pos.pseudoLegalMoveIsLegal<false, false>(curr->move, pinned)) {
+        if (!pos.pseudoLegalMoveIsLegal<false, false, true>(curr->move, pinned)) {
           curr->move = (--moveStackList)->move;
         }
         else {
@@ -562,11 +740,11 @@ namespace {
 template <MoveType MT>
 MoveStack* generateMoves(MoveStack* moveStackList, const Position& pos) {
   return (pos.turn() == Black ?
-    GenerateMoves<MT, Black>()(moveStackList, pos) : GenerateMoves<MT, White>()(moveStackList, pos));
+    generate_moves::GenerateMoves<MT, Black>()(moveStackList, pos) : generate_moves::GenerateMoves<MT, White>()(moveStackList, pos));
 }
 template <MoveType MT>
 MoveStack* generateMoves(MoveStack* moveStackList, const Position& pos, const Square to) {
-  return generateRecaptureMoves(moveStackList, pos, to, pos.turn());
+  return generate_moves::generateRecaptureMoves(moveStackList, pos, to, pos.turn());
 }
 
 // 明示的なインスタンス化
@@ -582,7 +760,10 @@ template MoveStack* generateMoves<NonCaptureMinusPro>(MoveStack* moveStackList, 
 template MoveStack* generateMoves<Evasion           >(MoveStack* moveStackList, const Position& pos);
 template MoveStack* generateMoves<NonEvasion        >(MoveStack* moveStackList, const Position& pos);
 template MoveStack* generateMoves<Legal             >(MoveStack* moveStackList, const Position& pos);
-#if !defined NDEBUG || defined LEARN
 template MoveStack* generateMoves<LegalAll          >(MoveStack* moveStackList, const Position& pos);
-#endif
 template MoveStack* generateMoves<Recapture         >(MoveStack* moveStackList, const Position& pos, const Square to);
+
+template MoveStack* generate_moves::generateDropMoves20151211<Black>(MoveStack* moveStackList, const Position& pos, const Bitboard& target);
+template MoveStack* generate_moves::generateDropMoves20151211<White>(MoveStack* moveStackList, const Position& pos, const Bitboard& target);
+template MoveStack* generate_moves::generateDropMoves<Black>(MoveStack* moveStackList, const Position& pos, const Bitboard& target);
+template MoveStack* generate_moves::generateDropMoves<White>(MoveStack* moveStackList, const Position& pos, const Bitboard& target);

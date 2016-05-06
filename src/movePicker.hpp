@@ -4,6 +4,36 @@
 #include "move.hpp"
 #include "position.hpp"
 #include "search.hpp"
+#include "tt.hpp"
+
+template <bool Gain>
+class Stats {
+public:
+  static constexpr Score MaxScore = static_cast<Score>(2000);
+
+  void clear() { memset(table_, 0, sizeof(table_)); }
+  Score value(const bool isDrop, const Piece pc, const Square to) const {
+    assert(0 < pc && pc < PieceNone);
+    assert(isInSquare(to));
+    return table_[isDrop][pc][to];
+  }
+  void update(const bool isDrop, const Piece pc, const Square to, const Score s) {
+    if (Gain) {
+      table_[isDrop][pc][to] = std::max(s, value(isDrop, pc, to) - 1);
+    }
+    else if (abs(value(isDrop, pc, to) + s) < MaxScore) {
+      table_[isDrop][pc][to] += s;
+    }
+  }
+
+private:
+  // [isDrop][piece][square] とする。
+  Score table_[2][PieceNone][SquareNum];
+};
+
+using History = Stats<false>;
+using Gains = Stats<true>;
+
 
 enum GenerateMovePhase {
   MainSearch, PH_TacticalMoves0, PH_Killers, PH_NonTacticalMoves0, PH_NonTacticalMoves1, PH_BadCaptures,
@@ -19,10 +49,10 @@ OverloadEnumOperators(GenerateMovePhase); // ++phase_ の為。
 class MovePicker {
 public:
   MovePicker(const Position& pos, const Move ttm, const Depth depth,
-    const History& history, SearchStack* searchStack, const Score beta);
+    const History& history, Search::SearchStack* searchStack, const Score beta);
   MovePicker(const Position& pos, Move ttm, const Depth depth, const History& history, const Square sq);
   MovePicker(const Position& pos, const Move ttm, const History& history, const PieceType pt);
-  template <bool SPNODE> Move nextMove();
+  Move nextMove();
 
 private:
   void scoreCaptures();
@@ -42,7 +72,7 @@ private:
 
   const Position& pos_;
   const History& history_;
-  SearchStack* ss_;
+  Search::SearchStack* ss_;
   Depth depth_;
   Move ttMove_; // transposition table move
   MoveStack killerMoves_[2];

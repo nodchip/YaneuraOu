@@ -1,6 +1,9 @@
 ﻿#ifndef APERY_IFDEF_HPP
 #define APERY_IFDEF_HPP
 
+// MSVC向け自動ビルドのパラメタが書き込まれるヘッダファイル
+#include "builder_generated.hpp"
+
 #if 0
 // 機械学習を行う際に使う。
 #define LEARN
@@ -113,6 +116,17 @@
 #elif 0
 // 評価値キャッシュの破棄率を出力する
 #define OUTPUT_EVALUATE_HASH_EXPIRATION_RATE
+#endif
+
+// 例外(SEH/C++)発生時にMiniDumpを出力する(MSVCでのみ有効)
+#if 0
+#if defined(_MSC_VER)
+#define DUMP_MINIDUMP_ON_EXCEPTION
+#endif
+#endif
+
+#if 1
+#define NYUGYOKU_WIN
 #endif
 
 #endif // #ifndef APERY_IFDEF_HPP

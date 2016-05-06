@@ -79,4 +79,12 @@ inline Move makeNonPromoteMove(const PieceType pt, const Square from, const Squa
   return selectedMakeMove<MT, NonPromote>(pt, from, to, pos);
 }
 
+namespace generate_moves
+{
+  template <Color US>
+  MoveStack* generateDropMoves20151211(MoveStack* moveStackList, const Position& pos, const Bitboard& target);
+  template <Color US>
+  MoveStack* generateDropMoves(MoveStack* moveStackList, const Position& pos, const Bitboard& target);
+}
+
 #endif // #ifndef APERY_GENERATEMOVES_HPP
