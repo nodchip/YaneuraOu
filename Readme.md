@@ -56,7 +56,7 @@ tanuki-proxyには早押しクイズ方式と合議制の2種類の実装があ�
 * logDirectory …　ログを出力するフォルダを指定します
 スレーブとなる思考エンジンは、goコマンド受信時に、直前に渡されるpositionに"info string "を付けた文字列を出力しなければなりません。
 例) info string position startpos moves 7g7f 3c3d 2g2f
-実際にクラスタを作る場合は、sshdをインストールし、tanuki-proxy-***.exeからssh経由で各ノード内の思考エンジンを呼び出す形をおすすめします。
+実際にクラスタを作る場合は、各スレーブノードにsshdをインストールし、tanuki-proxy-***.exeからssh経由で各ノード内の思考エンジンを呼び出す形をおすすめします。
 
 
 # tanuki-optimizer
