@@ -27,6 +27,8 @@ Haswell マイクロアーキテクチャ以降の Intel 製 CPU
 『tanuki-』のバイナリを上書きして下さい。
 詳しくは Apery の Readme.txt を参照してください。
 
+使い方についての質問は https://twitter.com/nodchip で受け付けております。お気軽にお声がけください。
+
 
 # 開発者向け注意点
 Visual Studio 2015 Comunity Edition Update 2 を用いて開発しています。
@@ -40,8 +42,8 @@ Visual Studio 2015 Comunity Edition Update 2 を用いて開発しています�
 tanuki-proxyは第26回世界コンピュータ将棋選手権でたぬきのもりが使用したクラスタマスタープログラムです。
 tanuki-proxyの実行には.Net Framework 4.6.1が必要です。
 tanuki-proxyには早押しクイズ方式と合議制の2種類の実装があります。
-* tanuki-proxy-fastest-finger-first.exe … 早押しクイズ方式
-* tanuki-proxy-collegial-system.exe … 合議制
+* tanuki-proxy-wcsc26-fastest-finger-first.exe … 早押しクイズ方式
+* tanuki-proxy-wcsc26-collegial-system.exe … 合議制
 詳しくは「たぬきのもり 技術文書」をご覧ください。 https://twitter.com/nodchip/status/727878218917629953?lang=ja
 使用前にproxy-setting.sample.jsonをproxy-setting.jsonにコピーし、内容を編集して下さい。
 キーの意味は以下のとおりです。
@@ -57,6 +59,7 @@ tanuki-proxyには早押しクイズ方式と合議制の2種類の実装があ�
 スレーブとなる思考エンジンは、goコマンド受信時に、直前に渡されるpositionに"info string "を付けた文字列を出力しなければなりません。
 例) info string position startpos moves 7g7f 3c3d 2g2f
 実際にクラスタを作る場合は、各スレーブノードにsshdをインストールし、tanuki-proxy-***.exeからssh経由で各ノード内の思考エンジンを呼び出す形をおすすめします。
+tanuki-proxyを使用する際はBook_Sleep_Timeを1500程度に設定してからご使用ください。
 
 
 # tanuki-optimizer
