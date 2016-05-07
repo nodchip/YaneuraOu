@@ -93,12 +93,13 @@
       <PrecompiledHeader>Use</PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
-      <PreprocessorDefinitions>_DEBUG;_CRT_SECURE_NO_WARNINGS;HAVE_AVX2;HAVE_BMI2;HAVE_SSE42;HAVE_SSE4;HAVE_SSE2;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>HAVE_AVX2;HAVE_BMI2;HAVE_SSE42;HAVE_SSE4;HAVE_SSE2;_DEBUG;_CRT_SECURE_NO_WARNINGS;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <SDLCheck>true</SDLCheck>
       <ForcedIncludeFiles>stdafx.h;%(ForcedIncludeFiles)</ForcedIncludeFiles>
-      <EnableEnhancedInstructionSet>AdvancedVectorExtensions2</EnableEnhancedInstructionSet>
       <EnableParallelCodeGeneration>true</EnableParallelCodeGeneration>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <MinimalRebuild>false</MinimalRebuild>
+      <EnableEnhancedInstructionSet>AdvancedVectorExtensions2</EnableEnhancedInstructionSet>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -131,12 +132,12 @@
       <WarningLevel>Level3</WarningLevel>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <FunctionLevelLinking>true</FunctionLevelLinking>
-      <PreprocessorDefinitions>NDEBUG;_CRT_SECURE_NO_WARNINGS;HAVE_AVX2;HAVE_BMI2;HAVE_SSE42;HAVE_SSE4;HAVE_SSE2;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>HAVE_AVX2;HAVE_BMI2;HAVE_SSE42;HAVE_SSE4;HAVE_SSE2;NDEBUG;_CRT_SECURE_NO_WARNINGS;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ForcedIncludeFiles>stdafx.h;%(ForcedIncludeFiles)</ForcedIncludeFiles>
-      <EnableEnhancedInstructionSet>AdvancedVectorExtensions2</EnableEnhancedInstructionSet>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <UseProcessorExtensions>AVX2</UseProcessorExtensions>
       <EnableParallelCodeGeneration>true</EnableParallelCodeGeneration>
+      <EnableEnhancedInstructionSet>AdvancedVectorExtensions2</EnableEnhancedInstructionSet>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -152,6 +153,7 @@
     <ClInclude Include="..\..\src\color.hpp" />
     <ClInclude Include="..\..\src\common.hpp" />
     <ClInclude Include="..\..\src\csa.hpp" />
+    <ClInclude Include="..\..\src\csa1.hpp" />
     <ClInclude Include="..\..\src\evalList.hpp" />
     <ClInclude Include="..\..\src\evaluate.hpp" />
     <ClInclude Include="..\..\src\game_record.hpp" />
@@ -164,6 +166,7 @@
     <ClInclude Include="..\..\src\move.hpp" />
     <ClInclude Include="..\..\src\movePicker.hpp" />
     <ClInclude Include="..\..\src\overloadEnumOperators.hpp" />
+    <ClInclude Include="..\..\src\parameters.hpp" />
     <ClInclude Include="..\..\src\piece.hpp" />
     <ClInclude Include="..\..\src\pieceScore.hpp" />
     <ClInclude Include="..\..\src\position.hpp" />
@@ -174,6 +177,7 @@
     <ClInclude Include="..\..\src\string_util.hpp" />
     <ClInclude Include="..\..\src\thread.hpp" />
     <ClInclude Include="..\..\src\timeManager.hpp" />
+    <ClInclude Include="..\..\src\time_util.hpp" />
     <ClInclude Include="..\..\src\tt.hpp" />
     <ClInclude Include="..\..\src\usi.hpp" />
   </ItemGroup>
@@ -183,6 +187,7 @@
     <ClCompile Include="..\..\src\book.cpp" />
     <ClCompile Include="..\..\src\common.cpp" />
     <ClCompile Include="..\..\src\csa.cpp" />
+    <ClCompile Include="..\..\src\csa1.cpp" />
     <ClCompile Include="..\..\src\evalList.cpp" />
     <ClCompile Include="..\..\src\evaluate.cpp" />
     <ClCompile Include="..\..\src\generateMoves.cpp" />
@@ -204,6 +209,7 @@
     <ClCompile Include="..\..\src\string_util.cpp" />
     <ClCompile Include="..\..\src\thread.cpp" />
     <ClCompile Include="..\..\src\timeManager.cpp" />
+    <ClCompile Include="..\..\src\time_util.cpp" />
     <ClCompile Include="..\..\src\tt.cpp" />
     <ClCompile Include="..\..\src\usi.cpp" />
   </ItemGroup>

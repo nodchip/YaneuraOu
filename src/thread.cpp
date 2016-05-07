@@ -29,6 +29,8 @@ Thread::Thread(Searcher* s) /*: splitPoints()*/ {
   activeSplitPoint = nullptr;
   activePosition = nullptr;
   idx = s->threads.size();
+  resetCalls = false;
+  callsCnt = 0;
 }
 
 void Thread::notifyOne() {
@@ -63,29 +65,19 @@ void Thread::waitFor(const std::atomic<bool>& b) {
 
 void ThreadPool::init(Searcher* s) {
   sleepWhileIdle_ = true;
-#if defined LEARN
-#else
-  timer_ = newThread<TimerThread>(s);
-#endif
   push_back(newThread<MainThread>(s));
   readUSIOptions(s);
 }
 
 void ThreadPool::exit() {
-#if defined LEARN
-#else
-  // checkTime() がデータにアクセスしないよう、先に timer_ を delete
-  deleteThread(timer_);
-#endif
-
   for (auto elem : *this)
     deleteThread(elem);
 }
 
 void ThreadPool::readUSIOptions(Searcher* s) {
-  maxThreadsPerSplitPoint_ = s->options[OptionNames::MAX_THREADS_PER_SPLIT_POINT];
-  const size_t requested = s->options[OptionNames::THREADS];
-  minimumSplitDepth_ = (requested < 6 ? 4 : (requested < 8 ? 5 : 7)) * OnePly;
+  maxThreadsPerSplitPoint_ = USI::Options[OptionNames::MAX_THREADS_PER_SPLIT_POINT];
+  const size_t requested = USI::Options[OptionNames::THREADS];
+  minimumSplitDepth_ = USI::Options[OptionNames::MINIMUM_SPLIT_DEPTH] * OnePly;
 
   assert(0 < requested);
 
@@ -108,11 +100,6 @@ Thread* ThreadPool::availableSlave(Thread* master) const {
   return nullptr;
 }
 
-void ThreadPool::setTimer(const int msec) {
-  timer_->maxPly = msec;
-  timer_->notifyOne(); // Wake up and restart the timer
-}
-
 void ThreadPool::waitForThinkFinished() {
   MainThread* t = mainThread();
   std::unique_lock<Mutex> lock(t->sleepLock);
@@ -122,19 +109,22 @@ void ThreadPool::waitForThinkFinished() {
 void ThreadPool::startThinking(
   const Position& pos,
   const LimitsType& limits,
-  const std::vector<Move>& searchMoves,
-  const std::chrono::time_point<std::chrono::system_clock>& goReceivedTime)
+  const std::vector<Move>& searchMoves)
 {
+  assert(limits.startTime != 0);
 #if defined LEARN
 #else
   waitForThinkFinished();
 #endif
-  pos.searcher()->searchTimer.set(goReceivedTime);
   pos.searcher()->signals.stopOnPonderHit = pos.searcher()->signals.firstRootMove = false;
   pos.searcher()->signals.stop = pos.searcher()->signals.failedLowAtRoot = false;
+  pos.searcher()->signals.skipMainThreadCurrentDepth = false;
+  pos.searcher()->broadcastedPvDepth = -1;
+  pos.searcher()->broadcastedPvInfo.clear();
+  pos.searcher()->mainThreadCurrentSearchDepth = 0;
 
   pos.searcher()->rootPosition = pos;
-  pos.searcher()->limits.set(limits);
+  Limits = limits;
   pos.searcher()->rootMoves.clear();
 
 #if defined LEARN
@@ -241,42 +231,6 @@ template void Thread::split<true >(Position& pos, SearchStack* ss, const Score a
 template void Thread::split<false>(Position& pos, SearchStack* ss, const Score alpha, const Score beta, Score& bestScore,
   Move& bestMove, const Depth depth, const Move threatMove, const int moveCount,
   MovePicker& mp, const NodeType nodeType, const bool cutNode);
-
-///////////////////////////////////////////////////////////////////////////////
-// TimerThread
-///////////////////////////////////////////////////////////////////////////////
-TimerThread::TimerThread(Searcher* s) :
-  Thread(s),
-  timerPeriodFirstMs(FOREVER),
-  timerPeriodAfterMs(FOREVER),
-  first(true)
-{
-}
-
-void TimerThread::idleLoop() {
-  while (!exit) {
-    int timerPeriodMs = first ? timerPeriodFirstMs : timerPeriodAfterMs;
-    first = false;
-    {
-      std::unique_lock<Mutex> lock(sleepLock);
-      if (!exit) {
-        sleepCond.wait_for(lock, std::chrono::milliseconds(timerPeriodMs));
-      }
-    }
-    if (timerPeriodMs != FOREVER) {
-      searcher->checkTime();
-    }
-  }
-}
-
-void TimerThread::restartTimer(int firstMs, int afterMs)
-{
-  // TODO(nodchip): スレッド競合に対処する
-  this->timerPeriodFirstMs = firstMs;
-  this->timerPeriodAfterMs = afterMs;
-  first = true;
-  notifyOne();
-}
 
 ///////////////////////////////////////////////////////////////////////////////
 // MainThread

@@ -1188,6 +1188,7 @@ struct EvaluateHashTable : HashTable<EvaluateHashEntry, EvaluateTableSize / size
 extern EvaluateHashTable g_evalTable;
 
 Score evaluateUnUseDiff(const Position& pos);
+void debugOutputEvalSum(const Position& pos, const EvalSum& evalSum);
 Score evaluate(Position& pos, SearchStack* ss);
 
 #endif // #ifndef APERY_EVALUATE_HPP

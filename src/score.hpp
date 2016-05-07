@@ -32,18 +32,42 @@ enum Score {
   ScoreMate1Ply = 32599,
   ScoreMate0Ply = 32600,
   ScoreMateInMaxPly = ScoreMate0Ply - MaxPly,
+  ScoreMated0Ply = -ScoreMate0Ply,
   ScoreMatedInMaxPly = -ScoreMateInMaxPly,
+  ScoreSuperior0Ply = ScoreMateInMaxPly - 1,
+  ScoreSuperiorMaxPly = ScoreSuperior0Ply - MaxPly,
+  ScoreInferior0Ply = -ScoreSuperior0Ply,
+  ScoreInferiorMaxPly = -ScoreSuperiorMaxPly,
   ScoreInfinite = 32601,
   ScoreNotEvaluated = INT_MAX,
   ScoreNone = 32602
 };
 OverloadEnumOperators(Score);
 
-inline Score mateIn(const Ply ply) {
+inline Score mateIn(Ply ply) {
   return ScoreMate0Ply - static_cast<Score>(ply);
 }
-inline Score matedIn(const Ply ply) {
+inline Score matedIn(Ply ply) {
   return -ScoreMate0Ply + static_cast<Score>(ply);
 }
+inline Score superiorIn(Ply ply) {
+  return ScoreSuperior0Ply - static_cast<Score>(ply);
+}
+inline Score inferiorIn(Ply ply) {
+  return ScoreInferior0Ply + static_cast<Score>(ply);
+}
+inline bool isMate(Score score) {
+  return ScoreMateInMaxPly <= score && score <= ScoreMate0Ply;
+}
+inline bool isMated(Score score) {
+  return ScoreMated0Ply <= score && score <= ScoreMatedInMaxPly;
+}
+inline bool isSuperior(Score score) {
+  return ScoreSuperiorMaxPly <= score && score <= ScoreSuperior0Ply;
+}
+inline bool isInferior(Score score) {
+  return ScoreInferior0Ply <= score && score <= ScoreInferiorMaxPly;
+}
+
 
 #endif // #ifndef APERY_SCORE_HPP

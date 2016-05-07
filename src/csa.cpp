@@ -3,11 +3,9 @@
 #include "csa.hpp"
 #include "search.hpp"
 #include "string_util.hpp"
+#include "time_util.hpp"
 
-using namespace std;
 using namespace std::tr2::sys;
-
-#define RETURN_IF_FALSE(x) if (!(x)) { return false; }
 
 namespace
 {
@@ -19,7 +17,7 @@ namespace
       ++it)
     {
       if (++numberOfFiles % 100000 == 0) {
-        cout << numberOfFiles << endl;
+        std::cout << numberOfFiles << std::endl;
       }
     }
     return numberOfFiles;
@@ -37,21 +35,21 @@ bool csa::toSfen(const std::tr2::sys::path& filepath, std::vector<std::string>& 
   Position position;
   setPosition(position, string_util::concat(sfen));
 
-  ifstream ifs(filepath);
+  std::ifstream ifs(filepath);
   if (!ifs.is_open()) {
-    cout << "!!! Failed to open a CSA file." << endl;
+    std::cout << "!!! Failed to open a CSA file." << std::endl;
     return false;
   }
 
   // Position::doMove()は前回と違うアドレスに確保されたStateInfoを要求するため
   // listを使って過去のStateInfoを保持する。
-  list<StateInfo> stateInfos;
+  std::list<StateInfo> stateInfos;
 
-  string line;
-  while (getline(ifs, line)) {
+  std::string line;
+  while (std::getline(ifs, line)) {
     // 将棋所の出力するCSAの指し手の末尾に",T1"などとつくため
     // ","以降を削除する
-    if (line.find(',') != string::npos) {
+    if (line.find(',') != std::string::npos) {
       line = line.substr(0, line.find(','));
     }
 
@@ -59,12 +57,12 @@ bool csa::toSfen(const std::tr2::sys::path& filepath, std::vector<std::string>& 
       continue;
     }
 
-    string csaMove = line.substr(1);
+    std::string csaMove = line.substr(1);
     Move move = csaToMove(position, csaMove);
 
 #if !defined NDEBUG
     if (!position.moveIsLegal(move)) {
-      cout << "!!! Found an illegal move." << endl;
+      std::cout << "!!! Found an illegal move." << std::endl;
       break;
     }
 #endif
@@ -80,14 +78,14 @@ bool csa::toSfen(const std::tr2::sys::path& filepath, std::vector<std::string>& 
 }
 
 bool csa::isFinished(const std::tr2::sys::path& filepath) {
-  ifstream ifs(filepath);
+  std::ifstream ifs(filepath);
   if (!ifs.is_open()) {
-    cout << "!!! Failed to open a CSA file." << endl;
+    std::cout << "!!! Failed to open a CSA file." << std::endl;
     return false;
   }
 
-  string line;
-  while (getline(ifs, line)) {
+  std::string line;
+  while (std::getline(ifs, line)) {
     if (line.find("%TORYO") == 0) {
       return true;
     }
@@ -97,14 +95,14 @@ bool csa::isFinished(const std::tr2::sys::path& filepath) {
 }
 
 bool csa::isTanukiBlack(const std::tr2::sys::path& filepath) {
-  ifstream ifs(filepath);
+  std::ifstream ifs(filepath);
   if (!ifs.is_open()) {
-    cout << "!!! Failed to open a CSA file." << endl;
+    std::cout << "!!! Failed to open a CSA file." << std::endl;
     return false;
   }
 
-  string line;
-  while (getline(ifs, line)) {
+  std::string line;
+  while (std::getline(ifs, line)) {
     if (line.find("N+tanuki-") == 0) {
       return true;
     }
@@ -116,15 +114,15 @@ bool csa::isTanukiBlack(const std::tr2::sys::path& filepath) {
 Color csa::getWinner(const std::tr2::sys::path& filepath) {
   assert(isFinished(filepath));
 
-  ifstream ifs(filepath);
+  std::ifstream ifs(filepath);
   if (!ifs.is_open()) {
-    cout << "!!! Failed to open a CSA file." << endl;
+    std::cout << "!!! Failed to open a CSA file." << std::endl;
     return ColorNum;
   }
 
   char turn = 0;
-  string line;
-  while (getline(ifs, line)) {
+  std::string line;
+  while (std::getline(ifs, line)) {
     if (line.empty()) {
       continue;
     }
@@ -140,7 +138,7 @@ Color csa::getWinner(const std::tr2::sys::path& filepath) {
 }
 
 // 文字列の配列をスペース区切りで結合する
-static void concat(const vector<string>& words, string& out) {
+static void concat(const std::vector<std::string>& words, std::string& out) {
   out.clear();
   for (const auto& word : words) {
     if (!out.empty()) {
@@ -154,17 +152,17 @@ bool csa::convertCsaToSfen(
   const std::tr2::sys::path& inputDirectoryPath,
   const std::tr2::sys::path& outputFilePath) {
   if (!is_directory(inputDirectoryPath)) {
-    cout << "!!! Failed to open the input directory: inputDirectoryPath="
+    std::cout << "!!! Failed to open the input directory: inputDirectoryPath="
       << inputDirectoryPath
-      << endl;
+      << std::endl;
     return false;
   }
 
-  ofstream ofs(outputFilePath, std::ios::out);
+  std::ofstream ofs(outputFilePath, std::ios::out);
   if (!ofs.is_open()) {
-    cout << "!!! Failed to create the output file: outputTeacherFilePath="
+    std::cout << "!!! Failed to create the output file: outputTeacherFilePath="
       << outputFilePath
-      << endl;
+      << std::endl;
     return false;
   }
 
@@ -178,17 +176,17 @@ bool csa::convertCsaToSfen(
     }
 
     const auto& inputFilePath = *it;
-    vector<string> sfen;
+    std::vector<std::string> sfen;
     if (!toSfen(inputFilePath, sfen)) {
-      cout << "!!! Failed to convert the input csa file to SFEN: inputFilePath="
+      std::cout << "!!! Failed to convert the input csa file to SFEN: inputFilePath="
         << inputFilePath
-        << endl;
+        << std::endl;
       continue;
     }
 
-    string line;
+    std::string line;
     concat(sfen, line);
-    ofs << line << endl;
+    ofs << line << std::endl;
   }
 
   return true;
@@ -199,17 +197,17 @@ bool csa::convertCsa1LineToSfen(
   const std::tr2::sys::path& outputFilePath) {
   std::ifstream ifs(inputFilePath);
   if (!ifs.is_open()) {
-    cout << "!!! Failed to open the input file: inputFilePath="
+    std::cout << "!!! Failed to open the input file: inputFilePath="
       << inputFilePath
-      << endl;
+      << std::endl;
     return false;
   }
 
-  ofstream ofs(outputFilePath, std::ios::out);
+  std::ofstream ofs(outputFilePath, std::ios::out);
   if (!ofs.is_open()) {
-    cout << "!!! Failed to create the output file: outputTeacherFilePath="
+    std::cout << "!!! Failed to create the output file: outputTeacherFilePath="
       << outputFilePath
-      << endl;
+      << std::endl;
     return false;
   }
 
@@ -221,7 +219,7 @@ bool csa::convertCsa1LineToSfen(
 
     // 進捗状況表示
     if (kifuIndex % 1000 == 0) {
-      cout << kifuIndex << endl;
+      std::cout << kifuIndex << std::endl;
     }
 
     std::string elem;
@@ -258,7 +256,7 @@ bool csa::convertCsa1LineToSfen(
       pos.doMove(move, SetUpStates->top());
     }
 
-    ofs << endl;
+    ofs << std::endl;
   }
 
   return true;
@@ -277,22 +275,22 @@ bool csa::readCsa(const std::tr2::sys::path& filepath, GameRecord& gameRecord)
 
   std::ifstream ifs(filepath);
   if (!ifs.is_open()) {
-    cout << "!!! Failed to open the input file: filepath="
+    std::cout << "!!! Failed to open the input file: filepath="
       << filepath
-      << endl;
+      << std::endl;
     return false;
   }
 
   // Position::doMove()は前回と違うアドレスに確保されたStateInfoを要求するため
   // listを使って過去のStateInfoを保持する。
-  list<StateInfo> stateInfos;
+  std::list<StateInfo> stateInfos;
 
-  string line;
+  std::string line;
   bool toryo = false;
-  while (getline(ifs, line)) {
+  while (std::getline(ifs, line)) {
     // 将棋所の出力するCSAの指し手の末尾に",T1"などとつくため
     // ","以降を削除する
-    if (line.find(',') != string::npos) {
+    if (line.find(',') != std::string::npos) {
       line = line.substr(0, line.find(','));
     }
 
@@ -303,15 +301,13 @@ bool csa::readCsa(const std::tr2::sys::path& filepath, GameRecord& gameRecord)
       gameRecord.whitePlayerName = line.substr(2);
     }
     else if (line.size() == 7 && (line[0] == '+' || line[0] == '-')) {
-      string csaMove = line.substr(1);
+      std::string csaMove = line.substr(1);
       Move move = csaToMove(position, csaMove);
 
-#if !defined NDEBUG
-      if (!position.moveIsLegal(move)) {
-        cout << "!!! Found an illegal move." << endl;
-        break;
+      if (!position.moveIsPseudoLegal(move)) {
+        std::cout << "!!! Found an illegal move." << std::endl;
+        return false;
       }
-#endif
 
       stateInfos.push_back(StateInfo());
       position.doMove(move, stateInfos.back());
@@ -345,23 +341,18 @@ bool csa::readCsas(
   const std::function<bool(const GameRecord&)>& gameRecordFilter,
   std::vector<GameRecord>& gameRecords)
 {
-  cout << "Listing files ..." << endl;
+  std::cout << "Listing files ..." << std::endl;
   int numberOfFiles = getNumberOfFiles(directory);
 
-  double startSec = clock() / double(CLOCKS_PER_SEC);
+  double startClockSec = clock() / double(CLOCKS_PER_SEC);
   int fileIndex = 0;
   for (std::tr2::sys::recursive_directory_iterator it(directory);
   it != std::tr2::sys::recursive_directory_iterator();
     ++it)
   {
     if (++fileIndex % 10000 == 0) {
-      double currentSec = clock() / double(CLOCKS_PER_SEC);
-      double secPerFile = (currentSec - startSec) / fileIndex;
-      int remainedSec = (numberOfFiles - fileIndex) * secPerFile;
-      int second = remainedSec % 60;
-      int minute = remainedSec / 60 % 60;
-      int hour = remainedSec / 3600;
-      printf("%d/%d %d:%02d:%02d\n", fileIndex, numberOfFiles, hour, minute, second);
+      std::cout << time_util::formatRemainingTime(
+        startClockSec, fileIndex, numberOfFiles);
     }
 
     if (!pathFilter(it->path())) {
@@ -369,137 +360,16 @@ bool csa::readCsas(
     }
 
     GameRecord gameRecord;
-    RETURN_IF_FALSE(readCsa(it->path(), gameRecord));
+    if (!readCsa(it->path(), gameRecord)) {
+      std::cout << "Skipped" << std::endl;
+      continue;
+    }
+
     if (!gameRecordFilter(gameRecord)) {
       continue;
     }
 
     gameRecords.push_back(gameRecord);
-  }
-
-  return true;
-}
-
-bool csa::readCsa1(
-  const std::tr2::sys::path& filepath,
-  std::vector<GameRecord>& gameRecords)
-{
-  std::ifstream ifs(filepath);
-  if (!ifs.is_open()) {
-    cout
-      << "!!! Failed to open the input file: filepath="
-      << filepath
-      << endl;
-    return false;
-  }
-
-  int gameRecordIndex = 0;
-  std::string line;
-  while (std::getline(ifs, line)) {
-    ++gameRecordIndex;
-    GameRecord gameRecord;
-    istringstream iss0(line);
-
-    iss0
-      >> gameRecord.gameRecordIndex
-      >> gameRecord.date
-      >> gameRecord.blackPlayerName
-      >> gameRecord.whitePlayerName
-      >> gameRecord.winner
-      >> gameRecord.numberOfPlays
-      >> gameRecord.leagueName
-      >> gameRecord.strategy;
-
-    if (!getline(ifs, line)) {
-      cout
-        << "Failed to read the second line of a game: gameRecordIndex="
-        << gameRecordIndex
-        << endl;
-      return false;
-    }
-
-    if (line.size() != 6 * gameRecord.numberOfPlays) {
-      cout
-        << "Number of moves is not expected: gameRecordIndex=" << gameRecordIndex
-        << " expected=" << 6 * gameRecord.numberOfPlays
-        << " actual=" << line.size()
-        << endl;
-      continue;
-    }
-
-    Position pos;
-    pos.set(DefaultStartPositionSFEN, pos.searcher()->threads.mainThread());
-    StateStackPtr stateStack = make_unique<std::stack<StateInfo>>();
-    for (int play = 0; play < gameRecord.numberOfPlays; ++play) {
-      string moveStr = line.substr(play * 6, 6);
-      Move move = csaToMove(pos, moveStr);
-      if (move.isNone()) {
-        //pos.print();
-        //cout
-        //  << "Failed to parse a move: moveStr="
-        //  << moveStr
-        //  << endl;
-        break;
-        //return false;
-      }
-      gameRecord.moves.push_back(move);
-
-      stateStack->push(StateInfo());
-      pos.doMove(move, stateStack->top());
-    }
-
-    gameRecords.push_back(gameRecord);
-  }
-
-  return true;
-}
-
-bool csa::writeCsa1(
-  const std::tr2::sys::path& filepath,
-  const std::vector<GameRecord>& gameRecords)
-{
-  ofstream ofs(filepath);
-  if (!ofs.is_open()) {
-    cout << "!!! Failed to create the output file: filepath="
-      << filepath
-      << endl;
-    return false;
-  }
-
-  int gameRecordIndex = 0;
-  for (const auto& gameRecord : gameRecords) {
-    ofs
-      << ++gameRecordIndex << " "
-      << gameRecord.date << " "
-      << gameRecord.blackPlayerName << " "
-      << gameRecord.whitePlayerName << " "
-      << gameRecord.winner << " "
-      << gameRecord.numberOfPlays << " "
-      << gameRecord.leagueName << " "
-      << gameRecord.strategy << endl;
-    for (const auto& move : gameRecord.moves) {
-      ofs << move.toCSA();
-    }
-    ofs << endl;
-  }
-
-  return true;
-}
-
-bool csa::mergeCsa1s(
-  const std::vector<std::tr2::sys::path>& inputFilepaths,
-  const std::tr2::sys::path& outputFilepath)
-{
-  std::vector<GameRecord> gameRecords;
-  for (const auto& p : inputFilepaths) {
-    cout << p << endl;
-    if (!readCsa1(p, gameRecords)) {
-      return false;
-    }
-  }
-
-  if (!writeCsa1(outputFilepath, gameRecords)) {
-    return false;
   }
 
   return true;

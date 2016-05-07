@@ -204,7 +204,7 @@ public:
   // ・連続王手の千日手の手を指す
   // これらの反則手を含めた手の事と定義する。
   // よって、打ち歩詰めや二歩の手は pseudoLegal では無い。
-  template <bool MUSTNOTDROP, bool FROMMUSTNOTBEKING>
+  template <bool MUSTNOTDROP, bool FROMMUSTNOTBEKING, bool ALL>
   bool pseudoLegalMoveIsLegal(const Move move, const Bitboard& pinned) const;
   bool pseudoLegalMoveIsEvasion(const Move move, const Bitboard& pinned) const;
   // checkPawnDrop : 二歩と打ち歩詰めも調べるなら true
@@ -226,13 +226,12 @@ public:
 
   Ply gamePly() const { return gamePly_; }
 
-  Key getBoardKey() const { return st_->boardKey; }
-  Key getHandKey() const { return st_->handKey; }
+  const Key& getBoardKey() const { return st_->boardKey; }
+  const Key& getHandKey() const { return st_->handKey; }
   Key getKey() const { return st_->key(); }
   Key getExclusionKey() const { return st_->key() ^ zobExclusion_; }
-  Key getKeyExcludeTurn() const {
-    static_assert(zobTurn_ == 1, "");
-    return getKey() >> 1;
+  HashTableKey getKeyExcludeTurn() const {
+    return getKey().p[0] >> 1;
   }
   void print() const;
 
@@ -352,9 +351,9 @@ private:
 
   void printHand(const Color c) const;
 
-  static Key zobrist(const PieceType pt, const Square sq, const Color c) { return zobrist_[pt][sq][c]; }
-  static Key zobTurn() { return zobTurn_; }
-  static Key zobHand(const HandPiece hp, const Color c) { return zobHand_[hp][c]; }
+  static const Key& zobrist(const PieceType pt, const Square sq, const Color c) { return zobrist_[pt][sq][c]; }
+  static const Key& zobTurn() { return zobTurn_; }
+  static const Key& zobHand(const HandPiece hp, const Color c) { return zobHand_[hp][c]; }
 
   // byTypeBB は敵、味方の駒を区別しない。
   // byColorBB は駒の種類を区別しない。
@@ -382,7 +381,7 @@ private:
   Searcher* searcher_;
 
   static Key zobrist_[PieceTypeNum][SquareNum][ColorNum];
-  static constexpr Key zobTurn_ = 1;
+  static Key zobTurn_;
   static Key zobHand_[HandPieceNum][ColorNum];
   static Key zobExclusion_; // todo: これが必要か、要検討
 };

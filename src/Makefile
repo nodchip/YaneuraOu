@@ -1,12 +1,12 @@
 KPP_PADDING0 = 7
 KPP_PADDING1 = 5
-USI_HASH_FOR_BENCHMARK=\"8192\"
-EVALUATE_TABLE_SIZE = 0x80000000LL
+USI_HASH_FOR_BENCHMARK=\"1024\"
+EVALUATE_TABLE_SIZE = 0x40000000LL
 TARGET_PREFIX = tanuki-gcc
 
 COMPILER = g++
 CFLAGS   = -std=c++11 -fno-exceptions -fno-rtti -m64 -Wextra -Ofast -DKPP_PADDING0=$(KPP_PADDING0) -DKPP_PADDING1=$(KPP_PADDING1) -DUSI_HASH_FOR_BENCHMARK=$(USI_HASH_FOR_BENCHMARK) -DEVALUATE_TABLE_SIZE=$(EVALUATE_TABLE_SIZE) -DMY_NAME=\"$(TARGET_PREFIX)\" 
-LDFLAGS  = -flto -lpthread -lgcov
+LDFLAGS  = -flto -lpthread -lgcov -Wl,-stack,67108864
 LIBS     =
 INCLUDE  = #-I../include
 ifeq ($(OS),Windows_NT)
@@ -23,7 +23,7 @@ endif
 SOURCES  = main.cpp bitboard.cpp init.cpp position.cpp evalList.cpp \
            move.cpp movePicker.cpp square.cpp usi.cpp generateMoves.cpp evaluate.cpp \
            search.cpp hand.cpp tt.cpp timeManager.cpp book.cpp benchmark.cpp \
-           thread.cpp common.cpp pieceScore.cpp string_util.cpp limits_type.cpp
+           thread.cpp common.cpp pieceScore.cpp string_util.cpp limits_type.cpp csa1.cpp time_util.cpp
 OBJECTS  = $(addprefix $(OBJDIR)/, $(SOURCES:.cpp=.o))
 DEPENDS  = $(OBJECTS:.o=.d)
 PGO_TARGET = native

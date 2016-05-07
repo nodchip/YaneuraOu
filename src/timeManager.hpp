@@ -1,45 +1,28 @@
 ﻿#ifndef APERY_TIMEMANAGER_HPP
 #define APERY_TIMEMANAGER_HPP
 
-#include "evaluate.hpp"
 #include "limits_type.hpp"
-#include "thread.hpp"
 
-struct LimitsType;
+/// The TimeManagement class computes the optimal time to think depending on
+/// the maximum available time, the game move number and other parameters.
 
-class TimeManager {
+class TimeManagement {
 public:
-  TimeManager(const LimitsType& limits, Ply currentPly, Color us, Searcher* searcher);
-  void update();
-  int getSoftTimeLimitMs() const {
-    return std::min<int>(
-      softTimeLimitMs_ + unstablePVExtraTime_ + backfootExtraTime_,
-      hardTimeLimitMs_);
-  }
-  int getHardTimeLimitMs() const { return hardTimeLimitMs_; }
-  void setSearchStatus(int currentChanges, int previousChanges, Score score);
-  // 持ち時間が残っている場合は true
-  // そうでない場合は false
-  bool isTimeLeft() const {
-    return limits_.time[us_] != 0;
-  }
-  // 持ち時間を使いきって秒読みに入った場合は true
-  // そうでない場合は false
-  bool isInByoyomi() const {
-    return limits_.time[us_] == 0 &&
-      limits_.byoyomi != 0;
-  }
+    void init(LimitsType& limits, Color us, int ply);
+    void pv_instability(double bestMoveChanges) { unstablePvFactor = 1 + bestMoveChanges; }
+    int available() const { return int(optimumTime * unstablePvFactor * 1.016); }
+    int maximum() const { return maximumTime; }
+    int elapsed() const { return int(now() - startTime); }
+
+    int64_t availableNodes; // When in 'nodes as time' mode
 
 private:
-
-  const LimitsType& limits_;
-  const Ply currentPly_;
-  const Color us_;
-  const Searcher* searcher_;
-  std::atomic<int> softTimeLimitMs_;
-  std::atomic<int> hardTimeLimitMs_;
-  std::atomic<int> unstablePVExtraTime_;
-  std::atomic<int> backfootExtraTime_;
+    TimePoint startTime;
+    int optimumTime;
+    int maximumTime;
+    double unstablePvFactor;
 };
+
+extern TimeManagement Time;
 
 #endif // #ifndef APERY_TIMEMANAGER_HPP

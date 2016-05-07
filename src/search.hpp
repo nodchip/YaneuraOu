@@ -32,6 +32,7 @@ struct SignalsType {
   std::atomic<bool> firstRootMove;
   std::atomic<bool> stop;
   std::atomic<bool> failedLowAtRoot;
+  std::atomic<bool> skipMainThreadCurrentDepth;
 };
 
 enum InaniwaFlag {
@@ -118,9 +119,7 @@ struct Searcher {
   // static じゃないときは this を入れることにする。
   STATIC Searcher* thisptr;
   STATIC SignalsType signals;
-  STATIC LimitsType limits;
   STATIC std::vector<Move> searchMoves;
-  STATIC Time searchTimer;
   STATIC u64 lastSearchedNodes;
   STATIC StateStackPtr setUpStates;
   STATIC std::vector<RootMove> rootMoves;
@@ -132,8 +131,6 @@ struct Searcher {
 
   STATIC size_t pvSize;
   STATIC size_t pvIdx;
-  STATIC std::unique_ptr<TimeManager> timeManager;
-  STATIC Ply bestMoveChanges;
   STATIC History history;
   STATIC Gains gains;
   STATIC TranspositionTable tt;
@@ -146,12 +143,14 @@ struct Searcher {
 #endif
   STATIC Position rootPosition;
   STATIC ThreadPool threads;
-  STATIC OptionsMap options;
-  static bool outputInfo;
   STATIC Book book;
+  STATIC int broadcastedPvDepth;
+  STATIC std::string broadcastedPvInfo;
+  STATIC std::atomic<int> mainThreadCurrentSearchDepth;
 
   STATIC void init();
   STATIC void idLoop(Position& pos);
+  STATIC void skipCurrentDepth(Position& pos, Ply& depth);
   STATIC std::string pvInfoToUSI(Position& pos, const Ply depth, const Score alpha, const Score beta);
   template <NodeType NT, bool INCHECK>
   STATIC Score qsearch(Position& pos, SearchStack* ss, Score alpha, Score beta, const Depth depth);
