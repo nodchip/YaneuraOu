@@ -1,9 +1,10 @@
-﻿#include "movePicker.hpp"
+﻿#include "timeManager.hpp"
+#include "movePicker.hpp"
 #include "generateMoves.hpp"
 #include "thread.hpp"
 
 MovePicker::MovePicker(const Position& pos, const Move ttm, const Depth depth,
-  const History& history, SearchStack* searchStack, const Score beta)
+  const History& history, Search::SearchStack* searchStack, const Score beta)
   : pos_(pos), history_(history), depth_(depth)
 {
   assert(Depth0 < depth);
@@ -75,7 +76,7 @@ MovePicker::MovePicker(const Position& pos, const Move ttm, const History& histo
   lastMove_ += !ttMove_.isNone();
 }
 
-template <> Move MovePicker::nextMove<false>() {
+Move MovePicker::nextMove() {
   MoveStack* ms;
   Move move;
   do {
@@ -156,10 +157,6 @@ template <> Move MovePicker::nextMove<false>() {
       UNREACHABLE;
     }
   } while (true);
-}
-
-template <> Move MovePicker::nextMove<true>() {
-  return ss_->splitPoint->movePicker->nextMove<false>();
 }
 
 constexpr Score LVATable[PieceTypeNum] = {

@@ -1173,7 +1173,10 @@ struct EvalSum {
 };
 
 class Position;
-struct SearchStack;
+namespace Search
+{
+  struct SearchStack;
+}
 
 #ifdef EVALUATE_TABLE_SIZE
 // 134MB
@@ -1188,6 +1191,7 @@ struct EvaluateHashTable : HashTable<EvaluateHashEntry, EvaluateTableSize / size
 extern EvaluateHashTable g_evalTable;
 
 Score evaluateUnUseDiff(const Position& pos);
-Score evaluate(Position& pos, SearchStack* ss);
+void debugOutputEvalSum(const Position& pos, const EvalSum& evalSum);
+Score evaluate(Position& pos, Search::SearchStack* ss);
 
 #endif // #ifndef APERY_EVALUATE_HPP

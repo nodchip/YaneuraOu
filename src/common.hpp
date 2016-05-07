@@ -30,6 +30,7 @@
 #include <ctime>
 #include <cmath>
 #include <cstddef>
+#include <malloc.h>
 //#include <boost/align/aligned_alloc.hpp>
 
 #if defined HAVE_BMI2
@@ -106,15 +107,11 @@ template <> struct Binary<0> {
 
 #if defined(_MSC_VER) && !defined(__INTEL_COMPILER) && defined(_WIN64)
 #include <intrin.h>
-FORCE_INLINE int firstOneFromLSB(const u64 b) {
-  unsigned long index;
-  _BitScanForward64(&index, b);
-  return index;
+FORCE_INLINE int firstOneFromLSB(u64 b) {
+  return static_cast<int>(_tzcnt_u64(b));
 }
-FORCE_INLINE int firstOneFromMSB(const u64 b) {
-  unsigned long index;
-  _BitScanReverse64(&index, b);
-  return 63 - index;
+FORCE_INLINE int firstOneFromMSB(u64 b) {
+  return static_cast<int>(_lzcnt_u64(b));
 }
 #elif defined(__GNUC__) && ( defined(__i386__) || defined(__x86_64__) )
 FORCE_INLINE int firstOneFromLSB(const u64 b) {
@@ -188,7 +185,7 @@ enum SyncCout {
 };
 std::ostream& operator << (std::ostream& os, SyncCout sc);
 #define SYNCCOUT std::cout << IOLock
-#define SYNCENDL std::endl << IOUnlock
+#define SYNCENDL std::endl << std::flush << std::endl << std::flush << IOUnlock
 
 #if defined LEARN
 #undef SYNCCOUT
@@ -245,30 +242,103 @@ template <typename T> inline void prefetch(T* addr) {
 #endif
 }
 
-using Key = u64;
+#if defined _MSC_VER
+// VS2015
+#define ALIGNED_ALLOC(alignment, size) _aligned_malloc((size), (alignment))
+#define ALIGNED_FREE(memblock) _aligned_free(memblock)
+#elif defined _WIN32
+// GCC on Windows
+#define ALIGNED_ALLOC(alignment, size) _aligned_malloc((size), (alignment))
+#define ALIGNED_FREE(memblock) _aligned_free(memblock)
+#else
+// GCC on Linux
+#define ALIGNED_ALLOC(alignment, size) memalign(alignment, size)
+#define ALIGNED_FREE(memblock) free(memblock)
+#endif
+
+#if defined (HAVE_SSE42)
+using xmm = __m128i;
+#endif
+#if defined (HAVE_AVX2)
+using ymm = __m256i;
+#endif
+
+struct Key
+{
+  union
+  {
+    xmm m;
+    u64 p[2];
+  };
+
+  Key() {
+    m = _mm_setzero_si128();
+  }
+
+  Key(const Key& cp) {
+    m = cp.m;
+  }
+
+  Key& operator += (const Key& rh) {
+    m = _mm_add_epi64(m, rh.m);
+    return *this;
+  }
+
+  Key operator + (const Key& rh) const {
+    return Key(*this) += rh;
+  }
+
+  Key& operator -= (const Key& rh) {
+    m = _mm_sub_epi64(m, rh.m);
+    return *this;
+  }
+
+  Key operator - (const Key& rh) const {
+    return Key(*this) -= rh;
+  }
+
+  Key& operator ^= (const Key& rh) {
+    m = _mm_xor_si128(m, rh.m);
+    return *this;
+  }
+
+  Key operator ^ (const Key& rh) const {
+    return Key(*this) ^= rh;
+  }
+
+  bool operator == (const Key& rh) const {
+    __m128i neq = _mm_xor_si128(m, rh.m);
+    return _mm_test_all_zeros(neq, neq) != 0;
+  }
+
+  bool operator != (const Key& rh) const {
+    return !(*this == rh);
+  }
+
+  friend std::ostream& operator<<(std::ostream& os, const Key& key);
+};
+
+using HashTableKey = u64;
 
 // Size は 2のべき乗であること。
 template <typename T, size_t Size>
 struct HashTable {
   HashTable() {
-    entriesRaw_ = new T[Size + 1];
-    entries_ = (T*)(((u64)entriesRaw_ + sizeof(T) - 1) / sizeof(T) * sizeof(T));
+    entries_ = (T*)ALIGNED_ALLOC(32, Size * sizeof(T));
     clear();
   }
   virtual ~HashTable() {
-    if (entriesRaw_ && entries_) {
+    if (entries_) {
+      ALIGNED_FREE(entries_);
       entries_ = nullptr;
-      delete[] entriesRaw_;
-      entriesRaw_ = nullptr;
     }
   }
-  T* operator [] (const Key k) { return entries_ + (static_cast<size_t>(k) & (Size - 1)); }
+  T* operator [] (const HashTableKey k) { return entries_ + (static_cast<size_t>(k) & (Size - 1)); }
   void clear() { memset(entries_, 0, sizeof(T)*Size); }
   // Size が 2のべき乗であることのチェック
   static_assert((Size & (Size - 1)) == 0, "");
 
 private:
-  T* entriesRaw_;
   T* entries_;
 };
 
@@ -360,5 +430,12 @@ inline u64 msb(u64 b) {
 }
 
 #  endif
+
+typedef std::chrono::milliseconds::rep TimePoint; // A value in milliseconds
+
+inline TimePoint now() {
+  return std::chrono::duration_cast<std::chrono::milliseconds>
+    (std::chrono::steady_clock::now().time_since_epoch()).count();
+}
 
 #endif // #ifndef APERY_COMMON_HPP

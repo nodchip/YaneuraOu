@@ -1,0 +1,23 @@
+tanuki-modified.exe
+go btime 0 wtime 0 byoyomi 100
+setoption name Best_Book_Move value false
+setoption name Book_File value ../bin/book-2016-02-01.bin
+setoption name Byoyomi_Margin value 500
+setoption name Eval_Dir value ../bin/20151105
+setoption name Max_Book_Ply value 32767
+setoption name Max_Random_Score_Diff value 0
+setoption name Max_Random_Score_Diff_Ply value 0
+setoption name Min_Book_Ply value 32767
+setoption name Min_Book_Score value -180
+setoption name Minimum_Thinking_Time value 100
+setoption name Move_Overhead value 30
+setoption name MultiPV value 1
+setoption name nodestime value 0
+setoption name Output_Info value false
+setoption name OwnBook value true
+setoption name Search_Window_Offset value 0
+setoption name Slow_Mover value 100
+setoption name Threads value 4
+setoption name USI_Hash value 1024
+setoption name USI_Ponder value true
+setoption name Write_Synthesized_Eval value false

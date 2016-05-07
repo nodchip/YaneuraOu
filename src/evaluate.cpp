@@ -1,7 +1,11 @@
-﻿#include "evaluate.hpp"
+﻿#include "timeManager.hpp"
+#include "evaluate.hpp"
+
 #include "position.hpp"
 #include "search.hpp"
 #include "thread.hpp"
+
+using namespace Search;
 
 KPPBoardIndexStartToPiece g_kppBoardIndexStartToPiece;
 
@@ -34,6 +38,9 @@ const s32 Evaluater::K_Fix_Offset[SquareNum] = {
 
 EvaluateHashTable g_evalTable;
 
+using xmm = __m128i;
+using ymm = __m256i;
+
 namespace {
 #ifdef HAVE_AVX2
   static const __m256i MASK[9] = {
@@ -60,7 +67,33 @@ namespace {
     sum.p[2][1] = Evaluater::KKP[sq_bk][sq_wk][index0][1];
     const auto* pkppb = Evaluater::KPP[sq_bk][index0];
     const auto* pkppw = Evaluater::KPP[inverse(sq_wk)][index1];
-#if defined USE_AVX2_EVAL || defined USE_SSE_EVAL
+#if defined USE_AVX2_EVAL
+    ymm zero = _mm256_setzero_si256();
+    ymm sum0 = zero;
+    ymm sum1 = zero;
+    for (int i = 0; i < pos.nlist(); i += 8) {
+      ymm index0 = _mm256_load_si256((const ymm*)&list0[i]);
+      ymm index1 = _mm256_load_si256((const ymm*)&list1[i]);
+      ymm mask = MASK[std::min(pos.nlist() - i, 8)];
+      ymm kpp0 = _mm256_mask_i32gather_epi32(zero, (const int*)pkppb, index0, mask, 4);
+      ymm kpp1 = _mm256_mask_i32gather_epi32(zero, (const int*)pkppw, index1, mask, 4);
+
+      ymm kpp0lo = _mm256_cvtepi16_epi32(_mm256_extracti128_si256(kpp0, 0));
+      sum0 = _mm256_add_epi32(sum0, kpp0lo);
+      ymm kpp0hi = _mm256_cvtepi16_epi32(_mm256_extracti128_si256(kpp0, 1));
+      sum0 = _mm256_add_epi32(sum0, kpp0hi);
+
+      ymm kpp1lo = _mm256_cvtepi16_epi32(_mm256_extracti128_si256(kpp1, 0));
+      sum1 = _mm256_add_epi32(sum1, kpp1lo);
+      ymm kpp1hi = _mm256_cvtepi16_epi32(_mm256_extracti128_si256(kpp1, 1));
+      sum1 = _mm256_add_epi32(sum1, kpp1hi);
+    }
+    sum0 = _mm256_add_epi32(sum0, _mm256_srli_si256(sum0, 8));
+    sum1 = _mm256_add_epi32(sum1, _mm256_srli_si256(sum1, 8));
+    _mm_storel_epi64((xmm*)&sum.p[0], _mm_add_epi32(_mm256_extracti128_si256(sum0, 0), _mm256_extracti128_si256(sum0, 1)));
+    _mm_storel_epi64((xmm*)&sum.p[1], _mm_add_epi32(_mm256_extracti128_si256(sum1, 0), _mm256_extracti128_si256(sum1, 1)));
+
+#elif defined USE_SSE_EVAL
     sum.m[0] = _mm_set_epi32(0, 0, *reinterpret_cast<const s32*>(&pkppw[list1[0]][0]), *reinterpret_cast<const s32*>(&pkppb[list0[0]][0]));
     sum.m[0] = _mm_cvtepi16_epi32(sum.m[0]);
     for (int i = 1; i < pos.nlist(); ++i) {
@@ -149,7 +182,7 @@ namespace {
   }
 #endif
 
-  bool calcDifference(Position& pos, SearchStack* ss) {
+  bool calcDifference(Position& pos, Search::SearchStack* ss) {
 #if defined INANIWA_SHIFT
     if (pos.csearcher()->inaniwaFlag != NotInaniwa) return false;
 #endif
@@ -168,6 +201,28 @@ namespace {
       if (pos.turn() == Black) {
         const auto* ppkppw = Evaluater::KPP[inverse(sq_wk)];
         const int* list1 = pos.plist1();
+
+#if defined USE_AVX2_EVAL
+        ymm zero = _mm256_setzero_si256();
+        ymm sum1 = zero;
+        for (int i = 0; i < pos.nlist(); ++i) {
+          const int k1 = list1[i];
+          const auto* pkppw = ppkppw[k1];
+          for (int j = 0; j < i; j += 8) {
+            ymm index1 = _mm256_load_si256((const ymm*)&list1[j]);
+            ymm mask = MASK[std::min(i - j, 8)];
+            ymm kpp1 = _mm256_mask_i32gather_epi32(zero, (const int*)pkppw, index1, mask, 4);
+            ymm kpp1lo = _mm256_cvtepi16_epi32(_mm256_extracti128_si256(kpp1, 0));
+            sum1 = _mm256_add_epi32(sum1, kpp1lo);
+            ymm kpp1hi = _mm256_cvtepi16_epi32(_mm256_extracti128_si256(kpp1, 1));
+            sum1 = _mm256_add_epi32(sum1, kpp1hi);
+          }
+          diff.p[2][0] -= Evaluater::KKP[inverse(sq_wk)][inverse(sq_bk)][k1][0];
+          diff.p[2][1] += Evaluater::KKP[inverse(sq_wk)][inverse(sq_bk)][k1][1];
+        }
+        sum1 = _mm256_add_epi32(sum1, _mm256_srli_si256(sum1, 8));
+        _mm_storel_epi64((xmm*)&diff.p[1], _mm_add_epi32(_mm256_extracti128_si256(sum1, 0), _mm256_extracti128_si256(sum1, 1)));
+#else
         diff.p[1][0] = 0;
         diff.p[1][1] = 0;
         for (int i = 0; i < pos.nlist(); ++i) {
@@ -180,6 +235,7 @@ namespace {
           diff.p[2][0] -= Evaluater::KKP[inverse(sq_wk)][inverse(sq_bk)][k1][0];
           diff.p[2][1] += Evaluater::KKP[inverse(sq_wk)][inverse(sq_bk)][k1][1];
         }
+#endif
 
         if (pos.cl().size == 2) {
           const int listIndex_cap = pos.cl().listindex1;
@@ -192,6 +248,27 @@ namespace {
       else {
         const auto* ppkppb = Evaluater::KPP[sq_bk];
         const int* list0 = pos.plist0();
+
+#if defined USE_AVX2_EVAL
+        ymm zero = _mm256_setzero_si256();
+        ymm sum0 = zero;
+        for (int i = 0; i < pos.nlist(); ++i) {
+          const int k0 = list0[i];
+          const auto* pkppb = ppkppb[k0];
+          for (int j = 0; j < i; j += 8) {
+            ymm index1 = _mm256_load_si256((const ymm*)&list0[j]);
+            ymm mask = MASK[std::min(i - j, 8)];
+            ymm kpp0 = _mm256_mask_i32gather_epi32(zero, (const int*)pkppb, index1, mask, 4);
+            ymm kpp0lo = _mm256_cvtepi16_epi32(_mm256_extracti128_si256(kpp0, 0));
+            sum0 = _mm256_add_epi32(sum0, kpp0lo);
+            ymm kpp0hi = _mm256_cvtepi16_epi32(_mm256_extracti128_si256(kpp0, 1));
+            sum0 = _mm256_add_epi32(sum0, kpp0hi);
+          }
+          diff.p[2] += Evaluater::KKP[sq_bk][sq_wk][k0];
+        }
+        sum0 = _mm256_add_epi32(sum0, _mm256_srli_si256(sum0, 8));
+        _mm_storel_epi64((xmm*)&diff.p[0], _mm_add_epi32(_mm256_extracti128_si256(sum0, 0), _mm256_extracti128_si256(sum0, 1)));
+#else
         diff.p[0][0] = 0;
         diff.p[0][1] = 0;
         for (int i = 0; i < pos.nlist(); ++i) {
@@ -203,6 +280,7 @@ namespace {
           }
           diff.p[2] += Evaluater::KKP[sq_bk][sq_wk][k0];
         }
+#endif
 
         if (pos.cl().size == 2) {
           const int listIndex_cap = pos.cl().listindex1;
@@ -283,12 +361,15 @@ namespace {
     return nlist;
   }
 
-  void evaluateBody(Position& pos, SearchStack* ss) {
+  void evaluateBody(Position& pos, Search::SearchStack* ss) {
     if (calcDifference(pos, ss)) {
-      assert([&] {
-        const auto score = ss->staticEvalRaw.sum(pos.turn());
-        return (evaluateUnUseDiff(pos) == score);
-      }());
+#ifndef NDEBUG
+      const auto score = ss->staticEvalRaw.sum(pos.turn());
+      if (evaluateUnUseDiff(pos) != score) {
+        debugOutputEvalSum(pos, ss->staticEvalRaw);
+        assert(false);
+      }
+#endif
       return;
     }
 
@@ -347,7 +428,12 @@ namespace {
 #endif
     ss->staticEvalRaw = sum;
 
-    assert(evaluateUnUseDiff(pos) == sum.sum(pos.turn()));
+#ifndef NDEBUG
+    if (evaluateUnUseDiff(pos) != sum.sum(pos.turn())) {
+      debugOutputEvalSum(pos, sum);
+      assert(false);
+    }
+#endif
   }
 }
 
@@ -420,19 +506,116 @@ Score evaluateUnUseDiff(const Position& pos) {
   return static_cast<Score>(score.sum(pos.turn()));
 }
 
-Score evaluate(Position& pos, SearchStack* ss) {
+void debugOutputEvalSum(const Position& pos, const EvalSum& evalSum) {
+  int list0[EvalList::ListSize];
+  int list1[EvalList::ListSize];
+
+  const Hand handB = pos.hand(Black);
+  const Hand handW = pos.hand(White);
+
+  const Square sq_bk = pos.kingSquare(Black);
+  const Square sq_wk = pos.kingSquare(White);
+  int nlist = 0;
+
+  auto func = [&](const Hand hand, const HandPiece hp, const int list0_index, const int list1_index) {
+    for (u32 i = 1; i <= hand.numOf(hp); ++i) {
+      list0[nlist] = list0_index + i;
+      list1[nlist] = list1_index + i;
+      ++nlist;
+    }
+  };
+  func(handB, HPawn, f_hand_pawn, e_hand_pawn);
+  func(handW, HPawn, e_hand_pawn, f_hand_pawn);
+  func(handB, HLance, f_hand_lance, e_hand_lance);
+  func(handW, HLance, e_hand_lance, f_hand_lance);
+  func(handB, HKnight, f_hand_knight, e_hand_knight);
+  func(handW, HKnight, e_hand_knight, f_hand_knight);
+  func(handB, HSilver, f_hand_silver, e_hand_silver);
+  func(handW, HSilver, e_hand_silver, f_hand_silver);
+  func(handB, HGold, f_hand_gold, e_hand_gold);
+  func(handW, HGold, e_hand_gold, f_hand_gold);
+  func(handB, HBishop, f_hand_bishop, e_hand_bishop);
+  func(handW, HBishop, e_hand_bishop, f_hand_bishop);
+  func(handB, HRook, f_hand_rook, e_hand_rook);
+  func(handW, HRook, e_hand_rook, f_hand_rook);
+
+  nlist = make_list_unUseDiff(pos, list0, list1, nlist);
+
+  const auto* ppkppb = Evaluater::KPP[sq_bk];
+  const auto* ppkppw = Evaluater::KPP[inverse(sq_wk)];
+
+  EvalSum score;
+  score.p[2] = Evaluater::KK[sq_bk][sq_wk];
+
+  score.p[0][0] = 0;
+  score.p[0][1] = 0;
+  score.p[1][0] = 0;
+  score.p[1][1] = 0;
+  for (int i = 0; i < nlist; ++i) {
+    const int k0 = list0[i];
+    assert(0 <= k0);
+    assert(k0 < fe_end);
+    const int k1 = list1[i];
+    assert(0 <= k1);
+    assert(k1 < fe_end);
+    const auto* pkppb = ppkppb[k0];
+    const auto* pkppw = ppkppw[k1];
+    for (int j = 0; j < i; ++j) {
+      const int l0 = list0[j];
+      const int l1 = list1[j];
+      score.p[0] += pkppb[l0];
+      score.p[1] += pkppw[l1];
+    }
+    score.p[2] += Evaluater::KKP[sq_bk][sq_wk][k0];
+  }
+
+  score.p[2][0] += pos.material() * FVScale;
+
+#if defined INANIWA_SHIFT
+  score.p[2][0] += inaniwaScore(pos);
+#endif
+
+  std::cerr << "unuseDiff=" << std::endl;
+  for (int i = 0; i < 3; ++i) {
+    for (int j = 0; j < 2; ++j) {
+      std::cerr << "p[" << i << "][" << j << "]" << score.p[i][j] << std::endl;
+    }
+  }
+  std::cerr << "sum(pos.turn())=" << score.sum(pos.turn()) << std::endl;
+  std::cerr << std::endl;
+
+  std::cerr << "diff=" << std::endl;
+  for (int i = 0; i < 3; ++i) {
+    for (int j = 0; j < 2; ++j) {
+      std::cerr << "p[" << i << "][" << j << "]" << evalSum.p[i][j] << std::endl;
+    }
+  }
+  std::cerr << "sum(pos.turn())=" << evalSum.sum(pos.turn()) << std::endl;
+}
+
+Score evaluate(Position& pos, Search::SearchStack* ss) {
   if (ss->staticEvalRaw.p[0][0] != ScoreNotEvaluated) {
     const Score score = static_cast<Score>(ss->staticEvalRaw.sum(pos.turn()));
-    assert(score == evaluateUnUseDiff(pos));
+#ifndef NDEBUG
+    if (evaluateUnUseDiff(pos) != score) {
+      debugOutputEvalSum(pos, ss->staticEvalRaw);
+      assert(false);
+    }
+#endif
     return score / FVScale;
   }
 
-  const Key keyExcludeTurn = pos.getKeyExcludeTurn();
+  const HashTableKey keyExcludeTurn = pos.getKeyExcludeTurn();
   EvaluateHashEntry entry = *g_evalTable[keyExcludeTurn]; // atomic にデータを取得する必要がある。
   entry.decode();
   if (entry.key == keyExcludeTurn) {
     ss->staticEvalRaw = entry;
-    assert(static_cast<Score>(ss->staticEvalRaw.sum(pos.turn())) == evaluateUnUseDiff(pos));
+#ifndef NDEBUG
+    if (ss->staticEvalRaw.sum(pos.turn()) != evaluateUnUseDiff(pos)) {
+      debugOutputEvalSum(pos, ss->staticEvalRaw);
+      assert(false);
+    }
+#endif
     return static_cast<Score>(entry.sum(pos.turn())) / FVScale;
   }
 
@@ -457,3 +640,10 @@ int EvaluateHashTable::getUtilizationPerMill() const
   return numberOfUsed * 1000 / EvaluateTableSize;
 }
 #endif
+
+std::ostream& operator<<(std::ostream& os, const Key& key)
+{
+  char buffer[64];
+  sprintf(buffer, "%016llx%016llx", key.p[1], key.p[0]);
+  return os << buffer;
+}
