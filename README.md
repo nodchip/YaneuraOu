@@ -5,18 +5,12 @@ elmoは2017年の世界コンピュータ将棋選手権で優勝した将棋ソ
 対局用のプログラムはやねうら王を推奨していますが、旧Apery形式(2017年3月迄のApery)の評価関数を利用するプログラムであれば
 どのプログラムでも利用出来ます。2017年5月時点で以下プログラムで利用出来ることを確認しています。
 (利用できることを保証するものではありません)
-- [previousApery][]
-- [yane][]
-- [SM][] 
-- [yomita][]
-- [tanuki][]
-[previousApery]: https://github.com/HiraokaTakuya/apery/tree/8220c20fdcfd2c273b3a69c09e7daf80d9df2ddd Apery(浮かむ瀬以前)
-[yane]: https://github.com/yaneurao/YaneuraOu やねうら王
-[SM]: https://github.com/Jangja/silent_majority SILENT_MAJORITY
-[yomita]: https://github.com/TukamotoRyuzo/Yomita 読み太
-[tanuki]: https://github.com/nodchip/hakubishin- 蒼天幻想ナイツ・オブ・タヌキ(tanuki-)
+- [Apery 浮かむ瀬以前](https://github.com/HiraokaTakuya/apery/tree/8220c20fdcfd2c273b3a69c09e7daf80d9df2ddd)
+- [やねうら王](https://github.com/yaneurao/YaneuraOu)
+- [SILENT_MAJORITY](https://github.com/Jangja/silent_majority) 
+- [読み太](https://github.com/TukamotoRyuzo/Yomita)
+- [蒼天幻想ナイツ・オブ・タヌキ(tanuki-)](https://github.com/nodchip/hakubishin-)
 
-※ 読み太はgccでのコンパイル設定が無かった為、windowsのコンパイル済みバイナリで確認しています。
 
 ## 開発者の皆様へ
 
