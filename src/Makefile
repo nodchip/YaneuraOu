@@ -5,7 +5,7 @@ CFLAGS   = -std=c++11 -fno-exceptions -fno-rtti -Wextra -Ofast -MMD -MP -fopenmp
 LDFLAGS  = -lpthread #-lboost_mpi -lboost_serialization
 LIBS     =
 INCLUDE  = #-I../include
-TARGET   = apery
+TARGET   = elmo
 TARGET_BMI2  = $(TARGET)_bmi2
 TARGET_SSE42 = $(TARGET)_sse42
 TARGET_SSE41 = $(TARGET)_sse41

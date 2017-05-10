@@ -175,8 +175,14 @@ struct HuffmanCodedPosAndEval {
     HuffmanCodedPos hcp;
     s16 eval;
     u16 bestMove16; // 使うかは分からないが教師データ生成時についでに取得しておく。
+	bool isWin; // tkzw: 勝敗情報
 };
-static_assert(sizeof(HuffmanCodedPosAndEval) == 36, "");
+static_assert(sizeof(HuffmanCodedPosAndEval) == 38, "");
+
+struct HuffmanCodedPosAndEvalColor { // tkzw: 局面情報が確定するまでのテンポラリとして利用する
+	HuffmanCodedPosAndEval hcpe;
+	Color rootTurn;
+};
 
 class Move;
 struct Thread;

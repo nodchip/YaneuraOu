@@ -88,7 +88,7 @@ void OptionsMap::init(Searcher* s) {
     (*this)["USI_Hash"]                    = USIOption(256, 1, MaxHashMB, onHashSize, s);
     (*this)["Clear_Hash"]                  = USIOption(onClearHash, s);
     (*this)["Book_File"]                   = USIOption("book/20150503/book.bin");
-    (*this)["Eval_Dir"]                    = USIOption("20170329");
+    (*this)["Eval_Dir"]                    = USIOption("20161007");
     (*this)["Best_Book_Move"]              = USIOption(false);
     (*this)["OwnBook"]                     = USIOption(true);
     (*this)["Min_Book_Ply"]                = USIOption(SHRT_MAX, 0, SHRT_MAX);
@@ -109,9 +109,9 @@ void OptionsMap::init(Searcher* s) {
     (*this)["Minimum_Thinking_Time"]       = USIOption(20, 0, INT_MAX);
     (*this)["Threads"]                     = USIOption(cpuCoreCount(), 1, MaxThreads, onThreads, s);
 #ifdef NDEBUG
-    (*this)["Engine_Name"]                 = USIOption("Apery");
+    (*this)["Engine_Name"]                 = USIOption("elmo");
 #else
-    (*this)["Engine_Name"]                 = USIOption("Apery Debug Build");
+    (*this)["Engine_Name"]                 = USIOption("elmo Debug Build");
 #endif
 }
 
@@ -406,15 +406,15 @@ void make_teacher(std::istringstream& ssCmd) {
             }
             setPosition(pos, hcp);
             randomMove(pos, mt); // 教師局面を増やす為、取得した元局面からランダムに動かしておく。
-            double randomMoveRateThresh = 0.2;
+			for(int i=0; i< 5 ; ++i) // tkzw: N(6)回ランダムムーブ、もう少し大きい方が良いと考えています。
+				if (!pos.inCheck()) // tkzw: 「王手じゃないという条件」は不要かもしれません。
+					randomMove(pos, mt);
+				else
+					break;
             std::unordered_set<Key> keyHash;
             StateListPtr states = StateListPtr(new std::deque<StateInfo>(1));
+			std::vector<HuffmanCodedPosAndEvalColor> vhcpec; // tkzw: 勝ち負け判定まで局面情報をストックする。
             for (Ply ply = pos.gamePly(); ply < 400; ++ply, ++idx) { // 400 手くらいで終了しておく。
-                if (!pos.inCheck() && doRandomMoveDist(mt) <= randomMoveRateThresh) { // 王手が掛かっていない局面で、randomMoveRateThresh の確率でランダムに局面を動かす。
-                    randomMove(pos, mt);
-                    ply = 0;
-                    randomMoveRateThresh /= 2; // 局面を進めるごとに未知の局面になっていくので、ランダムに動かす確率を半分ずつ減らす。
-                }
                 const Key key = pos.getKey();
                 if (keyHash.find(key) == std::end(keyHash))
                     keyHash.insert(key);
@@ -425,12 +425,28 @@ void make_teacher(std::istringstream& ssCmd) {
                 go(pos, static_cast<Depth>(6));
                 const Score score = pos.searcher()->threads.main()->rootMoves[0].score;
                 const Move bestMove = pos.searcher()->threads.main()->rootMoves[0].pv[0];
-                if (3000 < abs(score)) // 差が付いたので投了した事にする。
+                if (3000 < abs(score)){ // 差が付いたので投了した事にする。
+					const Color lastTurn = pos.turn(); // tkzw: lastTurnのcolorが勝ち
+					bool lastTurnIsWin = ((score > 0) ? true : false); // tkzw: >3000 ならlastTurnが勝ってる
+					for(auto itr = vhcpec.begin(); itr != vhcpec.end(); ++itr) {
+						itr->hcpe.isWin = ((lastTurn == itr->rootTurn) ? lastTurnIsWin : !lastTurnIsWin);
+						std::unique_lock<Mutex> lock(omutex);
+						ofs.write(reinterpret_cast<char*>(&(itr->hcpe)), sizeof(itr->hcpe));
+					}
                     break;
-                else if (!bestMove) // 勝ち宣言など
+				}
+                else if (!bestMove){ // 勝ち宣言など tkzw: bestMove.isNone()
+					const Color lastTurn = pos.turn(); // lastTurnのcolorが勝ち
+					for(auto itr = vhcpec.begin(); itr != vhcpec.end(); ++itr) {
+						itr->hcpe.isWin = ((lastTurn == itr->rootTurn) ? true : false);
+						std::unique_lock<Mutex> lock(omutex);
+						ofs.write(reinterpret_cast<char*>(&(itr->hcpe)), sizeof(itr->hcpe));
+					}
                     break;
+				}
 
                 {
+					HuffmanCodedPosAndEvalColor hcpec; // tkzw: 対局終えるまで局面情報を保持する
                     HuffmanCodedPosAndEval hcpe;
                     hcpe.hcp = pos.toHuffmanCodedPos();
                     auto& pv = pos.searcher()->threads.main()->rootMoves[0].pv;
@@ -446,12 +462,12 @@ void make_teacher(std::istringstream& ssCmd) {
                     // root の手番から見た評価値に直す。
                     hcpe.eval = (rootTurn == pos.turn() ? eval : -eval);
                     hcpe.bestMove16 = static_cast<u16>(pv[0].value());
+					hcpec.rootTurn = rootTurn; // tkzw: hcpから取得可能だが面倒なので取っておく
+					hcpec.hcpe = hcpe;
 
                     for (size_t i = pv.size(); i > 0;)
                         pos.undoMove(pv[--i]);
-
-                    std::unique_lock<Mutex> lock(omutex);
-                    ofs.write(reinterpret_cast<char*>(&hcpe), sizeof(hcpe));
+					vhcpec.push_back( hcpec ); // tkzw
                 }
 
                 states->push_back(StateInfo());
@@ -574,7 +590,7 @@ namespace {
     template <typename T>
     void updateFV(std::array<T, 2>& v, const std::array<std::atomic<double>, 2>& grad, std::array<std::atomic<double>, 2>& msGrad, std::atomic<double>& max) {
         //constexpr double AttenuationRate = 0.99999;
-        constexpr double UpdateParam = 100.0; // 更新用のハイパーパラメータ。大きいと不安定になり、小さいと学習が遅くなる。
+        constexpr double UpdateParam = 30.0; // 更新用のハイパーパラメータ。大きいと不安定になり、小さいと学習が遅くなる。 tkzw:小さめが良い
         constexpr double epsilon = 0.000001; // 0除算防止の定数
 
         for (int i = 0; i < 2; ++i) {
@@ -686,17 +702,16 @@ void use_teacher(Position& pos, std::istringstream& ssCmd) {
             const Score eval = pvEval(pos);
             const Score teacherEval = static_cast<Score>(hcpe.eval); // root から見た評価値が入っている。
             const Color leafColor = pos.turn(); // pos は末端の局面になっている。
-            // x を浅い読みの評価値、y を深い読みの評価値として、
-            // 目的関数 f(x, y) は、勝率の誤差の最小化を目指す以下の式とする。
-            // また、** 2 は 2 乗を表すとする。
-            // f(x,y) = (sigmoidWinningRate(x) - sigmoidWinningRate(y)) ** 2
-            //        = sigmoidWinningRate(x)**2 - 2*sigmoidWinningRate(x)*sigmoidWinningRate(y) + sigmoidWinningRate(y)**2
-            // 浅い読みの点数を修正したいので、x について微分すると。
-            // df(x,y)/dx = 2*sigmoidWinningRate(x)*dsigmoidWinningRate(x)-2*sigmoidWinningRate(y)*dsigmoidWinningRate(x)
-            //            = 2*dsigmoidWinningRate(x)*(sigmoidWinningRate(x) - sigmoidWinningRate(y))
-            const double dsig = 2*dsigmoidWinningRate(eval)*(sigmoidWinningRate(eval) - sigmoidWinningRate(teacherEval));
-            const double tmp = sigmoidWinningRate(eval) - sigmoidWinningRate(teacherEval);
-            loss += tmp * tmp;
+
+			const double eval_winrate = sigmoidWinningRate(eval);
+			const double teacher_winrate = sigmoidWinningRate(teacherEval);
+			const double t = ( (hcpe.isWin) ? 1.0 : 0.0 ); // tkzw: 勝っていれば1, 負けていれば0
+
+			const double LAMBDA = 0.5; // tkzw: 適当に変えてください。
+            const double dsig = (eval_winrate -t) + LAMBDA * (eval_winrate - teacher_winrate);
+            const double tmp = -1 * ((hcpe.isWin) ? log(eval_winrate) : log(1-eval_winrate)) \
+				               + LAMBDA * (-teacher_winrate*log(eval_winrate) - (1-teacher_winrate)*log(1-eval_winrate));
+            loss += tmp; // tkzw: lossの計算は不要なので通常、上の行とこの行はコメントアウトして使っています。
             std::array<double, 2> dT = {{(rootColor == Black ? -dsig : dsig), (rootColor == leafColor ? -dsig : dsig)}};
             evaluatorGradient.incParam(pos, dT);
         }
@@ -752,9 +767,9 @@ void use_teacher(Position& pos, std::istringstream& ssCmd) {
 
         updateEval(*evalBase, *lowerDimensionedEvaluatorGradient, *meanSquareOfLowerDimensionedEvaluatorGradient);
         averageEval(*averagedEvalBase, *evalBase); // 平均化する。
-        if (iteration < 10) // 最初は値の変動が大きいので適当に変動させないでおく。
-            memset(&(*evalBase), 0, sizeof(EvalBaseType));
-        if (iteration % 100 == 0) {
+        // if (iteration < 10) // 最初は値の変動が大きいので適当に変動させないでおく。tkzw:追加学習前提なので不要
+        //    memset(&(*evalBase), 0, sizeof(EvalBaseType));
+        if (iteration % 100 == 0 && iteration > 0) { // tkzw: iteration==0を除外
             writeEval();
             writeSyn();
         }
