@@ -5,10 +5,11 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>2944d269-829b-4b9d-ab0e-f90a50204a21</ProjectGuid>
     <ProjectHome>.</ProjectHome>
-    <StartupFile>analyze_optimizer_log.py</StartupFile>
+    <StartupFile>parameters_generator.py</StartupFile>
     <SearchPath>
     </SearchPath>
-    <WorkingDirectory>C:\home\nodchip\hakubishin-private\exe</WorkingDirectory>
+    <WorkingDirectory>
+    </WorkingDirectory>
     <OutputPath>.</OutputPath>
     <Name>tanuki-optimizer</Name>
     <RootNamespace>tanuki-optimizer</RootNamespace>
@@ -16,8 +17,7 @@
     <LaunchProvider>Standard Python launcher</LaunchProvider>
     <CommandLineArguments>param\parameters.ending.csv optimize_parameters.hyperopt_state.20170401_170936_b10000_2ndpart.pickle</CommandLineArguments>
     <EnableNativeCodeDebugging>False</EnableNativeCodeDebugging>
-    <InterpreterId>{9a7a9026-48c1-4688-9d5d-e5699d47d074}</InterpreterId>
-    <InterpreterVersion>2.7</InterpreterVersion>
+    <InterpreterId>Global|PythonCore|2.7</InterpreterId>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
     <DebugSymbols>true</DebugSymbols>
@@ -29,7 +29,6 @@
   </PropertyGroup>
   <PropertyGroup>
     <VisualStudioVersion Condition="'$(VisualStudioVersion)' == ''">10.0</VisualStudioVersion>
-    <PtvsTargetsFile>$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Python Tools\Microsoft.PythonTools.targets</PtvsTargetsFile>
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="analyze_optimizer_log.py" />
@@ -38,10 +37,8 @@
     <Compile Include="parameters_generator.py" />
   </ItemGroup>
   <ItemGroup>
-    <InterpreterReference Include="{9a7a9026-48c1-4688-9d5d-e5699d47d074}\2.7" />
+    <InterpreterReference Include="Global|PythonCore|2.7" />
   </ItemGroup>
-  <Import Condition="Exists($(PtvsTargetsFile))" Project="$(PtvsTargetsFile)" />
-  <Import Condition="!Exists($(PtvsTargetsFile))" Project="$(MSBuildToolsPath)\Microsoft.Common.targets" />
   <!-- Uncomment the CoreCompile target to enable the Build command in
        Visual Studio and specify your pre- and post-build commands in
        the BeforeBuild and AfterBuild targets below. -->
@@ -50,4 +47,5 @@
   </Target>
   <Target Name="AfterBuild">
   </Target>
+  <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Python Tools\Microsoft.PythonTools.targets" />
 </Project>
