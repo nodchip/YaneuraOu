@@ -3,7 +3,7 @@
   Copyright (C) 2004-2008 Tord Romstad (Glaurung author)
   Copyright (C) 2008-2015 Marco Costalba, Joona Kiiski, Tord Romstad
   Copyright (C) 2015-2016 Marco Costalba, Joona Kiiski, Gary Linscott, Tord Romstad
-  Copyright (C) 2011-2016 Hiraoka Takuya
+  Copyright (C) 2011-2017 Hiraoka Takuya
 
   Apery is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -406,48 +406,43 @@ void make_teacher(std::istringstream& ssCmd) {
             }
             setPosition(pos, hcp);
             randomMove(pos, mt); // 教師局面を増やす為、取得した元局面からランダムに動かしておく。
-			for(int i=0; i< 5 ; ++i) // tkzw: N(6)回ランダムムーブ、もう少し大きい方が良いと考えています。
-				if (!pos.inCheck()) // tkzw: 「王手じゃないという条件」は不要かもしれません。
-					randomMove(pos, mt);
-				else
-					break;
+	    for(int i=0; i< 5 ; ++i) // tkzw: N(6)回ランダムムーブ、もう少し大きい方が良いと考えています。
+		if (!pos.inCheck()) // tkzw: 「王手じゃないという条件」は不要かもしれません。
+		    randomMove(pos, mt);
+		else break;
             std::unordered_set<Key> keyHash;
             StateListPtr states = StateListPtr(new std::deque<StateInfo>(1));
-			std::vector<HuffmanCodedPosAndEvalColor> vhcpec; // tkzw: 勝ち負け判定まで局面情報をストックする。
+            std::vector<HuffmanCodedPosAndEval> hcpevec;
+            GameResult gameResult = Draw;
             for (Ply ply = pos.gamePly(); ply < 400; ++ply, ++idx) { // 400 手くらいで終了しておく。
                 const Key key = pos.getKey();
                 if (keyHash.find(key) == std::end(keyHash))
                     keyHash.insert(key);
-                else // 同一局面 2 回目で千日手判定とする。
+                else { // 同一局面 2 回目で千日手判定とする。
+                    gameResult = Draw;
                     break;
+                }
                 pos.searcher()->alpha = -ScoreMaxEvaluate;
                 pos.searcher()->beta  =  ScoreMaxEvaluate;
                 go(pos, static_cast<Depth>(6));
                 const Score score = pos.searcher()->threads.main()->rootMoves[0].score;
                 const Move bestMove = pos.searcher()->threads.main()->rootMoves[0].pv[0];
-                if (3000 < abs(score)){ // 差が付いたので投了した事にする。
-					const Color lastTurn = pos.turn(); // tkzw: lastTurnのcolorが勝ち
-					bool lastTurnIsWin = ((score > 0) ? true : false); // tkzw: >3000 ならlastTurnが勝ってる
-					for(auto itr = vhcpec.begin(); itr != vhcpec.end(); ++itr) {
-						itr->hcpe.isWin = ((lastTurn == itr->rootTurn) ? lastTurnIsWin : !lastTurnIsWin);
-						std::unique_lock<Mutex> lock(omutex);
-						ofs.write(reinterpret_cast<char*>(&(itr->hcpe)), sizeof(itr->hcpe));
-					}
+                const int ScoreThresh = 3000; // 自己対局を決着がついたとして止める閾値
+                if (ScoreThresh < abs(score)) { // 差が付いたので投了した事にする。
+                    if (pos.turn() == Black)
+                        gameResult = (score < ScoreZero ? WhiteWin : BlackWin);
+                    else
+                        gameResult = (score < ScoreZero ? BlackWin : WhiteWin);
                     break;
-				}
-                else if (!bestMove){ // 勝ち宣言など tkzw: bestMove.isNone()
-					const Color lastTurn = pos.turn(); // lastTurnのcolorが勝ち
-					for(auto itr = vhcpec.begin(); itr != vhcpec.end(); ++itr) {
-						itr->hcpe.isWin = ((lastTurn == itr->rootTurn) ? true : false);
-						std::unique_lock<Mutex> lock(omutex);
-						ofs.write(reinterpret_cast<char*>(&(itr->hcpe)), sizeof(itr->hcpe));
-					}
+                }
+                else if (!bestMove) { // 勝ち宣言
+                    gameResult = (pos.turn() == Black ? BlackWin : WhiteWin);
                     break;
-				}
+                }
 
                 {
-					HuffmanCodedPosAndEvalColor hcpec; // tkzw: 対局終えるまで局面情報を保持する
-                    HuffmanCodedPosAndEval hcpe;
+                    hcpevec.emplace_back(HuffmanCodedPosAndEval());
+                    HuffmanCodedPosAndEval& hcpe = hcpevec.back();
                     hcpe.hcp = pos.toHuffmanCodedPos();
                     auto& pv = pos.searcher()->threads.main()->rootMoves[0].pv;
                     const Color rootTurn = pos.turn();
@@ -462,17 +457,19 @@ void make_teacher(std::istringstream& ssCmd) {
                     // root の手番から見た評価値に直す。
                     hcpe.eval = (rootTurn == pos.turn() ? eval : -eval);
                     hcpe.bestMove16 = static_cast<u16>(pv[0].value());
-					hcpec.rootTurn = rootTurn; // tkzw: hcpから取得可能だが面倒なので取っておく
-					hcpec.hcpe = hcpe;
 
                     for (size_t i = pv.size(); i > 0;)
                         pos.undoMove(pv[--i]);
-					vhcpec.push_back( hcpec ); // tkzw
                 }
 
                 states->push_back(StateInfo());
                 pos.doMove(bestMove, states->back());
             }
+            // 勝敗を1局全てに付ける。
+            for (auto& elem : hcpevec)
+                elem.gameResult = gameResult;
+            std::unique_lock<Mutex> lock(omutex);
+            ofs.write(reinterpret_cast<char*>(hcpevec.data()), sizeof(HuffmanCodedPosAndEval) * hcpevec.size());
         }
     };
     auto progressFunc = [&teacherNodes] (std::atomic<s64>& index, Timer& t) {
@@ -683,6 +680,7 @@ void use_teacher(Position& pos, std::istringstream& ssCmd) {
                 if (ifs.eof())
                     return;
             }
+	    if( hcpe.gameResult == Draw ) continue; // 引き分けは今のところ使わない
             auto setpos = [](HuffmanCodedPosAndEval& hcpe, Position& pos) {
                 setPosition(pos, hcpe.hcp);
             };
@@ -702,15 +700,25 @@ void use_teacher(Position& pos, std::istringstream& ssCmd) {
             const Score eval = pvEval(pos);
             const Score teacherEval = static_cast<Score>(hcpe.eval); // root から見た評価値が入っている。
             const Color leafColor = pos.turn(); // pos は末端の局面になっている。
-
-			const double eval_winrate = sigmoidWinningRate(eval);
-			const double teacher_winrate = sigmoidWinningRate(teacherEval);
-			const double t = ( (hcpe.isWin) ? 1.0 : 0.0 ); // tkzw: 勝っていれば1, 負けていれば0
-
-			const double LAMBDA = 0.5; // tkzw: 適当に変えてください。
+	    const double eval_winrate = sigmoidWinningRate(eval);
+	    const double teacher_winrate = sigmoidWinningRate(teacherEval);
+	    double t = -1; // tkzw: 勝っていれば1, 負けていれば0
+	    if( rootColor == Black ){
+		if( hcpe.gameResult == BlackWin )
+		    t = 1.0;
+		else if( hcpe.gameResult == WhiteWin )
+		    t = 0.0;
+	    }
+	    else{
+		if( hcpe.gameResult == BlackWin )
+		    t = 0.0;
+		else if( hcpe.gameResult == WhiteWin )
+		    t = 1.0;
+	    }
+	    const double LAMBDA = 0.5; // tkzw: 適当に変えてください。WCSC27は0.5で実行しています。
             const double dsig = (eval_winrate -t) + LAMBDA * (eval_winrate - teacher_winrate);
-            const double tmp = -1 * ((hcpe.isWin) ? log(eval_winrate) : log(1-eval_winrate)) \
-				               + LAMBDA * (-teacher_winrate*log(eval_winrate) - (1-teacher_winrate)*log(1-eval_winrate));
+            const double tmp = -1 * ( log( eval_winrate/(1-eval_winrate) ) ) \
+				+ LAMBDA * (-teacher_winrate*log(eval_winrate) - (1-teacher_winrate)*log(1-eval_winrate));
             loss += tmp; // tkzw: lossの計算は不要なので通常、上の行とこの行はコメントアウトして使っています。
             std::array<double, 2> dT = {{(rootColor == Black ? -dsig : dsig), (rootColor == leafColor ? -dsig : dsig)}};
             evaluatorGradient.incParam(pos, dT);

@@ -5,28 +5,22 @@ elmoは2017年の世界コンピュータ将棋選手権で優勝した将棋ソ
 対局用のプログラムはやねうら王を推奨していますが、旧Apery形式(2017年3月迄のApery)の評価関数を利用するプログラムであれば
 どのプログラムでも利用出来ます。2017年5月時点で以下プログラムで利用出来ることを確認しています。
 (利用できることを保証するものではありません)
-- [previousApery][]
-- [yane][]
-- [SM][] 
-- [yomita][]
-- [tanuki][]
-[previousApery]: https://github.com/HiraokaTakuya/apery/tree/8220c20fdcfd2c273b3a69c09e7daf80d9df2ddd Apery(浮かむ瀬以前)
-[yane]: https://github.com/yaneurao/YaneuraOu やねうら王
-[SM]: https://github.com/Jangja/silent_majority SILENT_MAJORITY
-[yomita]: https://github.com/TukamotoRyuzo/Yomita 読み太
-[tanuki]: https://github.com/nodchip/hakubishin- 蒼天幻想ナイツ・オブ・タヌキ(tanuki-)
+- [Apery 浮かむ瀬以前](https://github.com/HiraokaTakuya/apery/tree/8220c20fdcfd2c273b3a69c09e7daf80d9df2ddd)
+- [やねうら王](https://github.com/yaneurao/YaneuraOu)
+- [SILENT_MAJORITY](https://github.com/Jangja/silent_majority) 
+- [読み太](https://github.com/TukamotoRyuzo/Yomita)
+- [蒼天幻想ナイツ・オブ・タヌキ(tanuki-)](https://github.com/nodchip/hakubishin-)
 
-※ 読み太はgccでのコンパイル設定が無かった為、windowsのコンパイル済みバイナリで確認しています。
 
 ## 開発者の皆様へ
 
 評価関数生成時はメモリを非常に必要とします。1スレッドで7GB, その後1スレッド増える度に2GB必要とします。
-つまり、**4コアで4スレッド利用する場合、15GBを必要とします。**ご注意ください。
+つまり、4コアで4スレッド利用する場合、15GBを必要とします。ご注意ください。
 
 elmoの技術的特徴については、簡易なものですが以下をご参照ください。
 - [第27回世界コンピュータ将棋選手権 アピール文書](http://www2.computer-shogi.org/wcsc27/appeal/elmo/elmo_wcsc27_appeal_r2_0.txt)
 
-バグ等を発見されましたら、[瀧澤のtwitter](https://twitter.com/mktakizawa)へご報告いただけますと幸いです。
+バグ等を発見されましたら、[twitter](https://twitter.com/mktakizawa)へご報告いただけますと幸いです。
 
 ### コンパイルの方法
 
@@ -71,6 +65,7 @@ AVX2対応のCPUをご利用の場合は、sseをbmi2に置き換えてコンパ
 出力ファイル名は任意のものをご指定ください。
 実行スレッド数は論理CPUコア数と同程度を目安に設定してください。
 生成する局面数も任意ですが、100万程度(1000000)で実行してみてください。
+
 *最終的に50億局面程度必要となりますが、下記Step 2.でファイルサイズ分のメモリが必要となります。私(瀧澤)は1千万局面毎に生成し、メモリが許容出来るサイズ程度に結合(catコマンド)してStep 2.を適用しています。シャッフル後にそれらファイルを結合しています。*
 
 #### Step 2. 教師局面のシャッフル
@@ -94,7 +89,7 @@ Step 2.で生成した教師局面ファイル名を説明の為に以下、outp
 
 注意：実行スレッド数は*搭載メモリ量*および*CPUコア数*を考慮し、決定してください。
 必要なメモリ量の目安はページ上部の「開発者の皆様へ」の欄をご確認ください。
-**メモリが不足した場合、OSの動作が不安定となりますのでご注意ください。**
+***メモリが不足した場合、OSの動作が不安定となりますのでご注意ください。***
 
 ## 謝辞
 
