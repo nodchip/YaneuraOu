@@ -2670,7 +2670,7 @@ namespace {
         }
       }
     }
-    return move_list[prng.rand(move_list.size())];
+    return move_list[prng.rand(book_move_max)];
   };
 }
 
