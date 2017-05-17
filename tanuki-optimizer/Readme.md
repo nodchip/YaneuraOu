@@ -3,9 +3,9 @@ tanuki-optimizerはPythonで実装された、探索パラメーターの自動�
 HyperoptとGaussian Processを用いています。
 
 tanuki-optimizerは2段階で探索パラメーターを調整します。
-1段階目はoptimize_parameters.pyでHyperoptを用いて探索パラメーターセットと自己対戦の勝率のペアのリストを生成します。
-このときリストはpickleファイルとして保存されます。
-2段階目は生成したリストからGaussian Processを用いて最も良い探索パラメーターセットを選択します。
+1段階目ではoptimize_parameters.pyでHyperoptを用いて探索パラメーターセットと自己対戦の勝率をサンプリングします。
+このときサンプルはpickleファイルとして保存されます。
+2段階目では得られたサンプルからGaussian Processを用いて最も良い探索パラメーターセットを選択します。
 詳しくは[蒼天幻想ナイツ・オブ・タヌキアピール文書](http://www2.computer-shogi.org/wcsc27/appeal/tanuki-/appeal.pdf)をご覧ください
 
 以下のドキュメントは古い情報を元に書かれています。誤りがあればIssuesにてお知らせ下さい。

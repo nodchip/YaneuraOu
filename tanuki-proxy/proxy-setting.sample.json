@@ -1,101 +1,54 @@
 {
     "engines": [
         {
-            "engineName": "doutanuki",
+            "engineName": "local",
             "optionOverrides": [
-                {
-                    "name": "USI_Hash",
-                    "value": "1024"
-                },
-                {
-                    "name": "Book_File",
-                    "value": "../bin/book-2016-02-01.bin"
-                },
-                {
-                    "name": "Best_Book_Move",
-                    "value": "true"
-                },
-                {
-                    "name": "Max_Random_Score_Diff",
-                    "value": "0"
-                },
-                {
-                    "name": "Max_Random_Score_Diff_Ply",
-                    "value": "0"
-                },
                 {
                     "name": "Threads",
                     "value": "1"
+                },
+                {
+                    "name": "Hash",
+                    "value": "4096"
                 }
             ],
             "arguments": "",
-            "workingDirectory": "C:\\home\\develop\\tanuki-\\bin",
-            "fileName": "C:\\home\\develop\\tanuki-\\tanuki-\\x64\\Release\\tanuki-.exe"
+            "workingDirectory": "C:\\home\\nodchip\\hakubishin-private\\exe",
+            "fileName": "C:\\home\\nodchip\\hakubishin-private\\exe\\YaneuraOu-2017-early.exe",
+			"timeKeeper" : true
         },
         {
-            "engineName": "nighthawk",
+            "engineName": "mate",
             "optionOverrides": [
-                {
-                    "name": "USI_Hash",
-                    "value": "1024"
-                },
-                {
-                    "name": "Book_File",
-                    "value": "../bin/book-2016-02-01.bin"
-                },
-                {
-                    "name": "Best_Book_Move",
-                    "value": "true"
-                },
-                {
-                    "name": "Max_Random_Score_Diff",
-                    "value": "0"
-                },
-                {
-                    "name": "Max_Random_Score_Diff_Ply",
-                    "value": "0"
-                },
-                {
-                    "name": "Threads",
-                    "value": "4"
-                }
-            ],
-            "arguments": "-vvv nighthawk tanuki-.bat",
-            "workingDirectory": "C:\\home\\develop\\tanuki-\\bin",
-            "fileName": "ssh"
-        },
-        {
-            "engineName": "doutanuki",
-            "optionOverrides": [
-                {
-                    "name": "USI_Hash",
-                    "value": "1024"
-                },
-                {
-                    "name": "Book_File",
-                    "value": "../bin/book-2016-02-01.bin"
-                },
-                {
-                    "name": "Best_Book_Move",
-                    "value": "true"
-                },
-                {
-                    "name": "Max_Random_Score_Diff",
-                    "value": "0"
-                },
-                {
-                    "name": "Max_Random_Score_Diff_Ply",
-                    "value": "0"
-                },
                 {
                     "name": "Threads",
                     "value": "1"
+                },
+                {
+                    "name": "Hash",
+                    "value": "32768"
                 }
             ],
             "arguments": "",
-            "workingDirectory": "C:\\home\\develop\\tanuki-\\bin",
-            "fileName": "C:\\home\\develop\\tanuki-\\tanuki-\\x64\\Release\\tanuki-.exe"
+            "workingDirectory": "C:\\home\\nodchip\\hakubishin-private\\exe",
+            "fileName": "C:\\home\\nodchip\\hakubishin-private\\exe\\YaneuraOu-mate-engine.exe"
+        },
+        {
+            "engineName": "ec2-souel-01",
+            "optionOverrides": [
+                {
+                    "name": "Threads",
+                    "value": "2"
+                },
+                {
+                    "name": "Hash",
+                    "value": "1024"
+                }
+            ],
+            "arguments": "ubuntu@ec2-13-124-116-103.ap-northeast-2.compute.amazonaws.com ./tanuki-.sh",
+            "workingDirectory": "C:\\home\\nodchip",
+            "fileName": "C:\\msys64\\usr\\bin\\ssh.exe"
         }
     ],
-    "logDirectory": "C:\\home\\develop\\tanuki-"
+    "logDirectory": "C:\\home\\nodchip\\hakubishin-private\\exe\\log"
 }
