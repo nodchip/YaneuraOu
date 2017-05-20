@@ -19,6 +19,15 @@ namespace TanukiColiseum
 
             if (options.Interface == Options.UserInterface.Cli)
             {
+                try
+                {
+                    options.Validate();
+                }
+                catch (ArgumentException e)
+                {
+                    Environment.FailFast("Invalid argument(s).", e);
+                }
+
                 var cli = new Cli();
                 cli.Run(options);
             }

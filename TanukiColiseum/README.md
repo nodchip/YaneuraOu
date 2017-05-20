@@ -1,12 +1,10 @@
 # TanukiColiseum
 TanukiColiseumはC#で実装された自己対戦ツールです。
-コマンドライン経由で実行可能です。
 
 # 準備
 適切なフォルダにTanukiColiseum.exeを配置して下さい。
-続いて同じフォルダにbookフォルダを作成し、
-中に互角の局面集records2016_10818.sfenを配置して下さい。
-互角の局面集は [自己対局用に互角の局面集を公開しました | やねうら王 公式サイト](http://yaneuraou.yaneu.com/2016/08/24/%E8%87%AA%E5%B7%B1%E5%AF%BE%E5%B1%80%E7%94%A8%E3%81%AB%E4%BA%92%E8%A7%92%E3%81%AE%E5%B1%80%E9%9D%A2%E9%9B%86%E3%82%92%E5%85%AC%E9%96%8B%E3%81%97%E3%81%BE%E3%81%97%E3%81%9F/ "自己対局用に互角の局面集を公開しました | やねうら王 公式サイト") から入手できます
+続いて適切なフォルダに互角の局面集を配置して下さい。
+互角の局面集は [自己対局用に互角の局面集を公開しました | やねうら王 公式サイト](http://yaneuraou.yaneu.com/2016/08/24/%E8%87%AA%E5%B7%B1%E5%AF%BE%E5%B1%80%E7%94%A8%E3%81%AB%E4%BA%92%E8%A7%92%E3%81%AE%E5%B1%80%E9%9D%A2%E9%9B%86%E3%82%92%E5%85%AC%E9%96%8B%E3%81%97%E3%81%BE%E3%81%97%E3%81%9F/ "自己対局用に互角の局面集を公開しました | やねうら王 公式サイト") から入手できます。
 拙作の互角局面集も利用可能です。 [Release 互角局面集2017-05-19 · nodchip/hakubishin-](https://github.com/nodchip/hakubishin-/releases/tag/even-positions-2017-05-19 "Release 互角局面集2017-05-19 · nodchip/hakubishin-")
 
 # 利用方法

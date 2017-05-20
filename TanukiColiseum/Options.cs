@@ -89,7 +89,10 @@ namespace TanukiColiseum
                         throw new ArgumentException("Unexpected option: " + args[i]);
                 }
             }
+        }
 
+        public void Validate()
+        {
             if (Engine1FilePath == null)
             {
                 throw new ArgumentException("--engine1 is not specified.");
