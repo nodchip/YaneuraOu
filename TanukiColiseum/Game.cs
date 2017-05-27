@@ -13,27 +13,37 @@ namespace TanukiColiseum
         public List<Engine> Engines { get; } = new List<Engine>();
         private Random Random = new Random();
         private int TimeMs;
+        private string[] Openings;
+        private bool ChangeOpening = true;
+        private int OpeningIndex = 0;
 
-        public Game(int initialTurn, int timeMs, Engine engine1, Engine engine2, int numBookMoves)
+        public Game(int initialTurn, int timeMs, Engine engine1, Engine engine2, int numBookMoves, string[] openings)
         {
             this.TimeMs = timeMs;
             this.Engines.Add(engine1);
             this.Engines.Add(engine2);
             this.NumBookMoves = numBookMoves;
+            this.Openings = openings;
         }
 
-        public void OnNewGame(string sfen)
+        public void OnNewGame()
         {
+            // 2回に1回開始局面を変更する
+            if (ChangeOpening)
+            {
+                OpeningIndex = Random.Next(Openings.Length);
+            }
+            ChangeOpening = !ChangeOpening;
+
             Moves.Clear();
-            int numBookMoves = Random.Next(NumBookMoves);
-            foreach (var move in Util.Split(sfen))
+            foreach (var move in Util.Split(Openings[OpeningIndex]))
             {
                 if (move == "startpos" || move == "moves")
                 {
                     continue;
                 }
                 Moves.Add(move);
-                if (Moves.Count >= numBookMoves)
+                if (Moves.Count >= NumBookMoves)
                 {
                     break;
                 }

@@ -23,8 +23,8 @@ namespace TanukiColiseum
             Status.TimeMs = options.TimeMs;
             ProgressIntervalMs = options.ProgressIntervalMs;
 
-            // 定跡ファイルの読み込み
-            string[] book = File.ReadAllLines(options.SfenFilePath);
+            // 開始局面集を読み込む
+            string[] openings = File.ReadAllLines(options.SfenFilePath);
 
             Console.WriteLine("Initializing engines...");
             Console.Out.Flush();
@@ -69,7 +69,8 @@ namespace TanukiColiseum
 
                 // ゲーム初期化
                 // 偶数番目はengine1が先手、奇数番目はengine2が先手
-                Games.Add(new Game(gameIndex & 1, options.TimeMs, engine1, engine2, options.NumBookMoves));
+                Games.Add(new Game(gameIndex & 1, options.TimeMs, engine1, engine2,
+                    options.NumBookMoves, openings));
             }
 
             Console.WriteLine("Initialized engines...");
@@ -85,7 +86,7 @@ namespace TanukiColiseum
 
                 // 空いているゲームインスタンスを探す
                 Game game = Games.Find(x => !x.Running);
-                game.OnNewGame(book[random.Next(book.Length)]);
+                game.OnNewGame();
                 game.Go();
             }
 
