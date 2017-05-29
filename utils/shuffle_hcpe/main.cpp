@@ -32,7 +32,7 @@ struct HuffmanCodedPosAndEval {
     char c[32];
     int16_t e;
     uint16_t m;
-	bool w;
+	int8_t w;
 };
 static_assert(sizeof(HuffmanCodedPosAndEval) == 38, "");
 
