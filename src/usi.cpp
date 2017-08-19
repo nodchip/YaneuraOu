@@ -34,9 +34,9 @@
 #include "learner.hpp"
 
 namespace {
-    void onThreads(Searcher* s, const USIOption&)      { s->threads.readUSIOptions(s); }
+    void onThreads(Searcher* s, const USIOption&) { s->threads.readUSIOptions(s); }
     void onHashSize(Searcher* s, const USIOption& opt) { s->tt.resize(opt); }
-    void onClearHash(Searcher* s, const USIOption&)    { s->tt.clear(); }
+    void onClearHash(Searcher* s, const USIOption&) { s->tt.clear(); }
 }
 
 bool CaseInsensitiveLess::operator () (const std::string& s1, const std::string& s2) const {
@@ -87,33 +87,33 @@ namespace {
 
 void OptionsMap::init(Searcher* s) {
     const int MaxHashMB = 1024 * 1024;
-    (*this)["USI_Hash"]                    = USIOption(256, 1, MaxHashMB, onHashSize, s);
-    (*this)["Clear_Hash"]                  = USIOption(onClearHash, s);
-    (*this)["Book_File"]                   = USIOption("book/20150503/book.bin");
-    (*this)["Eval_Dir"]                    = USIOption("20161007");
-    (*this)["Best_Book_Move"]              = USIOption(false);
-    (*this)["OwnBook"]                     = USIOption(true);
-    (*this)["Min_Book_Ply"]                = USIOption(SHRT_MAX, 0, SHRT_MAX);
-    (*this)["Max_Book_Ply"]                = USIOption(SHRT_MAX, 0, SHRT_MAX);
-    (*this)["Min_Book_Score"]              = USIOption(-180, -ScoreInfinite, ScoreInfinite);
-    (*this)["USI_Ponder"]                  = USIOption(true);
-    (*this)["Byoyomi_Margin"]              = USIOption(500, 0, INT_MAX);
-    (*this)["Time_Margin"]                 = USIOption(4500, 0, INT_MAX);
-    (*this)["MultiPV"]                     = USIOption(1, 1, MaxLegalMoves);
-    (*this)["Max_Random_Score_Diff"]       = USIOption(0, 0, ScoreMate0Ply);
-    (*this)["Max_Random_Score_Diff_Ply"]   = USIOption(SHRT_MAX, 0, SHRT_MAX);
-    (*this)["Slow_Mover_10"]               = USIOption(10, 1, 1000); // 持ち時間15分, 秒読み10秒では10, 持ち時間2時間では3にした。(sdt4)
-    (*this)["Slow_Mover_16"]               = USIOption(20, 1, 1000); // 持ち時間15分, 秒読み10秒では50, 持ち時間2時間では20にした。(sdt4)
-    (*this)["Slow_Mover_20"]               = USIOption(40, 1, 1000); // 持ち時間15分, 秒読み10秒では50, 持ち時間2時間では40にした。(sdt4)
-    (*this)["Slow_Mover"]                  = USIOption(89, 1, 1000);
-    (*this)["Draw_Ply"]                    = USIOption(256, 1, INT_MAX);
-    (*this)["Move_Overhead"]               = USIOption(30, 0, 5000);
-    (*this)["Minimum_Thinking_Time"]       = USIOption(20, 0, INT_MAX);
-    (*this)["Threads"]                     = USIOption(cpuCoreCount(), 1, MaxThreads, onThreads, s);
+    (*this)["USI_Hash"] = USIOption(256, 1, MaxHashMB, onHashSize, s);
+    (*this)["Clear_Hash"] = USIOption(onClearHash, s);
+    (*this)["Book_File"] = USIOption("book/20150503/book.bin");
+    (*this)["Eval_Dir"] = USIOption("20161007");
+    (*this)["Best_Book_Move"] = USIOption(false);
+    (*this)["OwnBook"] = USIOption(true);
+    (*this)["Min_Book_Ply"] = USIOption(SHRT_MAX, 0, SHRT_MAX);
+    (*this)["Max_Book_Ply"] = USIOption(SHRT_MAX, 0, SHRT_MAX);
+    (*this)["Min_Book_Score"] = USIOption(-180, -ScoreInfinite, ScoreInfinite);
+    (*this)["USI_Ponder"] = USIOption(true);
+    (*this)["Byoyomi_Margin"] = USIOption(500, 0, INT_MAX);
+    (*this)["Time_Margin"] = USIOption(4500, 0, INT_MAX);
+    (*this)["MultiPV"] = USIOption(1, 1, MaxLegalMoves);
+    (*this)["Max_Random_Score_Diff"] = USIOption(0, 0, ScoreMate0Ply);
+    (*this)["Max_Random_Score_Diff_Ply"] = USIOption(SHRT_MAX, 0, SHRT_MAX);
+    (*this)["Slow_Mover_10"] = USIOption(10, 1, 1000); // 持ち時間15分, 秒読み10秒では10, 持ち時間2時間では3にした。(sdt4)
+    (*this)["Slow_Mover_16"] = USIOption(20, 1, 1000); // 持ち時間15分, 秒読み10秒では50, 持ち時間2時間では20にした。(sdt4)
+    (*this)["Slow_Mover_20"] = USIOption(40, 1, 1000); // 持ち時間15分, 秒読み10秒では50, 持ち時間2時間では40にした。(sdt4)
+    (*this)["Slow_Mover"] = USIOption(89, 1, 1000);
+    (*this)["Draw_Ply"] = USIOption(256, 1, INT_MAX);
+    (*this)["Move_Overhead"] = USIOption(30, 0, 5000);
+    (*this)["Minimum_Thinking_Time"] = USIOption(20, 0, INT_MAX);
+    (*this)["Threads"] = USIOption(cpuCoreCount(), 1, MaxThreads, onThreads, s);
 #ifdef NDEBUG
-    (*this)["Engine_Name"]                 = USIOption("elmo");
+    (*this)["Engine_Name"] = USIOption("elmo");
 #else
-    (*this)["Engine_Name"]                 = USIOption("elmo Debug Build");
+    (*this)["Engine_Name"] = USIOption("elmo Debug Build");
 #endif
 }
 
@@ -179,22 +179,22 @@ void go(const Position& pos, std::istringstream& ssCmd) {
     limits.startTime.restart();
 
     while (ssCmd >> token) {
-        if      (token == "ponder"     ) limits.ponder = true;
-        else if (token == "btime"      ) ssCmd >> limits.time[Black];
-        else if (token == "wtime"      ) ssCmd >> limits.time[White];
-        else if (token == "binc"       ) ssCmd >> limits.inc[Black];
-        else if (token == "winc"       ) ssCmd >> limits.inc[White];
-        else if (token == "infinite"   ) limits.infinite = true;
+        if (token == "ponder") limits.ponder = true;
+        else if (token == "btime") ssCmd >> limits.time[Black];
+        else if (token == "wtime") ssCmd >> limits.time[White];
+        else if (token == "binc") ssCmd >> limits.inc[Black];
+        else if (token == "winc") ssCmd >> limits.inc[White];
+        else if (token == "infinite") limits.infinite = true;
         else if (token == "byoyomi" || token == "movetime") ssCmd >> limits.moveTime;
-        else if (token == "mate"       ) ssCmd >> limits.mate;
-        else if (token == "depth"      ) ssCmd >> limits.depth;
-        else if (token == "nodes"      ) ssCmd >> limits.nodes;
+        else if (token == "mate") ssCmd >> limits.mate;
+        else if (token == "depth") ssCmd >> limits.depth;
+        else if (token == "nodes") ssCmd >> limits.nodes;
         else if (token == "searchmoves") {
             while (ssCmd >> token)
                 limits.searchmoves.push_back(usiToMove(pos, token));
         }
     }
-    if      (limits.moveTime != 0)
+    if (limits.moveTime != 0)
         limits.moveTime -= pos.searcher()->options["Byoyomi_Margin"];
     else if (pos.searcher()->options["Time_Margin"] != 0)
         limits.time[pos.turn()] -= pos.searcher()->options["Time_Margin"];
@@ -221,10 +221,10 @@ void go(const Position& pos, const Ply depth) {
 // 評価値 x を勝率にして返す。
 // 係数 600 は Ponanza で採用しているらしい値。
 inline double sigmoidWinningRate(const double x) {
-    return 1.0 / (1.0 + exp(-x/600.0));
+    return 1.0 / (1.0 + exp(-x / 600.0));
 }
 inline double dsigmoidWinningRate(const double x) {
-    const double a = 1.0/600;
+    const double a = 1.0 / 600;
     return a * sigmoidWinningRate(x) * (1 - sigmoidWinningRate(x));
 }
 
@@ -232,7 +232,7 @@ inline double dsigmoidWinningRate(const double x) {
 // RootMoves が存在しない為、別の関数とする。
 template <bool Undo> // 局面を戻し、moves に PV を書き込むなら true。末端の局面に移動したいだけなら false
 bool extractPVFromTT(Position& pos, Move* moves, const Move bestMove) {
-    StateInfo state[MaxPly+7];
+    StateInfo state[MaxPly + 7];
     StateInfo* st = state;
     TTEntry* tte;
     Ply ply = 0;
@@ -243,10 +243,10 @@ bool extractPVFromTT(Position& pos, Move* moves, const Move bestMove) {
     //if (ttHit && move16toMove(tte->move(), pos) != bestMove)
     //    return false; // 教師の手と異なる手の場合は学習しないので false。手が無い時は学習するので true
     while (ttHit
-           && pos.moveIsPseudoLegal(m = move16toMove(tte->move(), pos))
-           && pos.pseudoLegalMoveIsLegal<false, false>(m, pos.pinnedBB())
-           && ply < MaxPly
-           && (!pos.isDraw(20) || ply < 6))
+        && pos.moveIsPseudoLegal(m = move16toMove(tte->move(), pos))
+        && pos.pseudoLegalMoveIsLegal<false, false>(m, pos.pinnedBB())
+        && ply < MaxPly
+        && (!pos.isDraw(20) || ply < 6))
     {
         if (Undo)
             *moves++ = m;
@@ -266,12 +266,12 @@ template <bool Undo>
 bool qsearch(Position& pos, const u16 bestMove16) {
     //static std::atomic<int> i;
     //StateInfo st;
-    Move pv[MaxPly+1];
-    Move moves[MaxPly+1];
-    SearchStack stack[MaxPly+7];
+    Move pv[MaxPly + 1];
+    Move moves[MaxPly + 1];
+    SearchStack stack[MaxPly + 7];
     SearchStack* ss = stack + 5;
-    memset(ss-5, 0, 8 * sizeof(SearchStack));
-    (ss-1)->staticEvalRaw.p[0][0] = (ss+0)->staticEvalRaw.p[0][0] = ScoreNotEvaluated;
+    memset(ss - 5, 0, 8 * sizeof(SearchStack));
+    (ss - 1)->staticEvalRaw.p[0][0] = (ss + 0)->staticEvalRaw.p[0][0] = ScoreNotEvaluated;
     ss->pv = pv;
     // 探索の末端がrootと同じ手番に偏るのを防ぐ為に一手進めて探索してみる。
     //if ((i++ & 1) == 0) {
@@ -291,7 +291,7 @@ bool qsearch(Position& pos, const u16 bestMove16) {
 #else
 // 教師局面を増やす為、適当に駒を動かす。玉の移動を多めに。王手が掛かっている時は呼ばない事にする。
 void randomMove(Position& pos, std::mt19937& mt) {
-    StateInfo state[MaxPly+7];
+    StateInfo state[MaxPly + 7];
     StateInfo* st = state;
     const Color us = pos.turn();
     const Color them = oppositeColor(us);
@@ -317,7 +317,7 @@ void randomMove(Position& pos, std::mt19937& mt) {
             if (dist(mt)) { // 1/2 の確率で相手もランダムに指す事にする。
                 MoveList<LegalAll> ml(pos);
                 if (ml.size()) {
-                    std::uniform_int_distribution<int> moveDist(0, ml.size()-1);
+                    std::uniform_int_distribution<int> moveDist(0, ml.size() - 1);
                     pos.doMove((ml.begin() + moveDist(mt))->move, *st++);
                 }
             }
@@ -331,7 +331,7 @@ void randomMove(Position& pos, std::mt19937& mt) {
         for (int i = 0; i < dist(mt) + 1; ++i) { // 自分だけ、または両者ランダムに1手指してみる。
             MoveList<LegalAll> ml(pos);
             if (ml.size()) {
-                std::uniform_int_distribution<int> moveDist(0, ml.size()-1);
+                std::uniform_int_distribution<int> moveDist(0, ml.size() - 1);
                 pos.doMove((ml.begin() + moveDist(mt))->move, *st++);
                 moved = true;
             }
@@ -370,11 +370,11 @@ void make_teacher(std::istringstream& ssCmd) {
     std::vector<Position> positions;
     for (auto& s : searchers) {
         s.init();
-        const std::string options[] = {"name Threads value 1",
+        const std::string options[] = { "name Threads value 1",
                                        "name MultiPV value 1",
                                        "name USI_Hash value 256",
                                        "name OwnBook value false",
-                                       "name Max_Random_Score_Diff value 0"};
+                                       "name Max_Random_Score_Diff value 0" };
         for (auto& str : options) {
             std::istringstream is(str);
             s.setOption(is);
@@ -387,7 +387,7 @@ void make_teacher(std::istringstream& ssCmd) {
         exit(EXIT_FAILURE);
     }
     const size_t entryNum = ifs.tellg() / sizeof(HuffmanCodedPos);
-    std::uniform_int_distribution<s64> inputFileDist(0, entryNum-1);
+    std::uniform_int_distribution<s64> inputFileDist(0, entryNum - 1);
 
     Mutex imutex;
     Mutex omutex;
@@ -408,73 +408,73 @@ void make_teacher(std::istringstream& ssCmd) {
             }
             setPosition(pos, hcp);
             randomMove(pos, mt); // 教師局面を増やす為、取得した元局面からランダムに動かしておく。
-	    for(int i=0; i< 5 ; ++i) // tkzw: N(6)回ランダムムーブ、もう少し大きい方が良いと考えています。
-		if (!pos.inCheck()) // tkzw: 「王手じゃないという条件」は不要かもしれません。
-		    randomMove(pos, mt);
-		else break;
-            std::unordered_set<Key> keyHash;
-            StateListPtr states = StateListPtr(new std::deque<StateInfo>(1));
-            std::vector<HuffmanCodedPosAndEval> hcpevec;
-            GameResult gameResult = Draw;
-            for (Ply ply = pos.gamePly(); ply < 400; ++ply, ++idx) { // 400 手くらいで終了しておく。
-                const Key key = pos.getKey();
-                if (keyHash.find(key) == std::end(keyHash))
-                    keyHash.insert(key);
-                else { // 同一局面 2 回目で千日手判定とする。
-                    gameResult = Draw;
-                    break;
-                }
-                pos.searcher()->alpha = -ScoreMaxEvaluate;
-                pos.searcher()->beta  =  ScoreMaxEvaluate;
-                go(pos, static_cast<Depth>(6));
-                const Score score = pos.searcher()->threads.main()->rootMoves[0].score;
-                const Move bestMove = pos.searcher()->threads.main()->rootMoves[0].pv[0];
-                const int ScoreThresh = 3000; // 自己対局を決着がついたとして止める閾値
-                if (ScoreThresh < abs(score)) { // 差が付いたので投了した事にする。
-                    if (pos.turn() == Black)
-                        gameResult = (score < ScoreZero ? WhiteWin : BlackWin);
-                    else
-                        gameResult = (score < ScoreZero ? BlackWin : WhiteWin);
-                    break;
-                }
-                else if (!bestMove) { // 勝ち宣言
-                    gameResult = (pos.turn() == Black ? BlackWin : WhiteWin);
-                    break;
-                }
+            for (int i = 0; i < 5; ++i) // tkzw: N(6)回ランダムムーブ、もう少し大きい方が良いと考えています。
+                if (!pos.inCheck()) // tkzw: 「王手じゃないという条件」は不要かもしれません。
+                    randomMove(pos, mt);
+                else break;
+                std::unordered_set<Key> keyHash;
+                StateListPtr states = StateListPtr(new std::deque<StateInfo>(1));
+                std::vector<HuffmanCodedPosAndEval> hcpevec;
+                GameResult gameResult = Draw;
+                for (Ply ply = pos.gamePly(); ply < 400; ++ply, ++idx) { // 400 手くらいで終了しておく。
+                    const Key key = pos.getKey();
+                    if (keyHash.find(key) == std::end(keyHash))
+                        keyHash.insert(key);
+                    else { // 同一局面 2 回目で千日手判定とする。
+                        gameResult = Draw;
+                        break;
+                    }
+                    pos.searcher()->alpha = -ScoreMaxEvaluate;
+                    pos.searcher()->beta = ScoreMaxEvaluate;
+                    go(pos, static_cast<Depth>(6));
+                    const Score score = pos.searcher()->threads.main()->rootMoves[0].score;
+                    const Move bestMove = pos.searcher()->threads.main()->rootMoves[0].pv[0];
+                    const int ScoreThresh = 3000; // 自己対局を決着がついたとして止める閾値
+                    if (ScoreThresh < abs(score)) { // 差が付いたので投了した事にする。
+                        if (pos.turn() == Black)
+                            gameResult = (score < ScoreZero ? WhiteWin : BlackWin);
+                        else
+                            gameResult = (score < ScoreZero ? BlackWin : WhiteWin);
+                        break;
+                    }
+                    else if (!bestMove) { // 勝ち宣言
+                        gameResult = (pos.turn() == Black ? BlackWin : WhiteWin);
+                        break;
+                    }
 
-                {
-                    hcpevec.emplace_back(HuffmanCodedPosAndEval());
-                    HuffmanCodedPosAndEval& hcpe = hcpevec.back();
-                    hcpe.hcp = pos.toHuffmanCodedPos();
-                    auto& pv = pos.searcher()->threads.main()->rootMoves[0].pv;
-                    const Color rootTurn = pos.turn();
-                    StateInfo state[MaxPly+7];
-                    StateInfo* st = state;
-                    for (size_t i = 0; i < pv.size(); ++i)
-                        pos.doMove(pv[i], *st++);
-                    // evaluate() の差分計算を無効化する。
-                    SearchStack ss[2];
-                    ss[0].staticEvalRaw.p[0][0] = ss[1].staticEvalRaw.p[0][0] = ScoreNotEvaluated;
-                    const Score eval = evaluate(pos, ss+1);
-                    // root の手番から見た評価値に直す。
-                    hcpe.eval = (rootTurn == pos.turn() ? eval : -eval);
-                    hcpe.bestMove16 = static_cast<u16>(pv[0].value());
+                    {
+                        hcpevec.emplace_back(HuffmanCodedPosAndEval());
+                        HuffmanCodedPosAndEval& hcpe = hcpevec.back();
+                        hcpe.hcp = pos.toHuffmanCodedPos();
+                        auto& pv = pos.searcher()->threads.main()->rootMoves[0].pv;
+                        const Color rootTurn = pos.turn();
+                        StateInfo state[MaxPly + 7];
+                        StateInfo* st = state;
+                        for (size_t i = 0; i < pv.size(); ++i)
+                            pos.doMove(pv[i], *st++);
+                        // evaluate() の差分計算を無効化する。
+                        SearchStack ss[2];
+                        ss[0].staticEvalRaw.p[0][0] = ss[1].staticEvalRaw.p[0][0] = ScoreNotEvaluated;
+                        const Score eval = evaluate(pos, ss + 1);
+                        // root の手番から見た評価値に直す。
+                        hcpe.eval = (rootTurn == pos.turn() ? eval : -eval);
+                        hcpe.bestMove16 = static_cast<u16>(pv[0].value());
 
-                    for (size_t i = pv.size(); i > 0;)
-                        pos.undoMove(pv[--i]);
+                        for (size_t i = pv.size(); i > 0;)
+                            pos.undoMove(pv[--i]);
+                    }
+
+                    states->push_back(StateInfo());
+                    pos.doMove(bestMove, states->back());
                 }
-
-                states->push_back(StateInfo());
-                pos.doMove(bestMove, states->back());
-            }
-            // 勝敗を1局全てに付ける。
-            for (auto& elem : hcpevec)
-                elem.gameResult = gameResult;
-            std::unique_lock<Mutex> lock(omutex);
-            ofs.write(reinterpret_cast<char*>(hcpevec.data()), sizeof(HuffmanCodedPosAndEval) * hcpevec.size());
+                // 勝敗を1局全てに付ける。
+                for (auto& elem : hcpevec)
+                    elem.gameResult = gameResult;
+                std::unique_lock<Mutex> lock(omutex);
+                ofs.write(reinterpret_cast<char*>(hcpevec.data()), sizeof(HuffmanCodedPosAndEval) * hcpevec.size());
         }
     };
-    auto progressFunc = [&teacherNodes] (std::atomic<s64>& index, Timer& t) {
+    auto progressFunc = [&teacherNodes](std::atomic<s64>& index, Timer& t) {
         while (true) {
             std::this_thread::sleep_for(std::chrono::seconds(5)); // 指定秒だけ待機し、進捗を表示する。
             const s64 madeTeacherNodes = index;
@@ -482,8 +482,8 @@ void make_teacher(std::istringstream& ssCmd) {
             auto elapsed_msec = t.elapsed();
             if (progress > 0.0) // 0 除算を回避する。
                 std::cout << std::fixed << "Progress: " << std::setprecision(2) << std::min(100.0, progress * 100.0)
-                          << "%, Elapsed: " << elapsed_msec/1000
-                          << "[s], Remaining: " << std::max<s64>(0, elapsed_msec*(1.0 - progress)/(progress*1000)) << "[s]" << std::endl;
+                << "%, Elapsed: " << elapsed_msec / 1000
+                << "[s], Remaining: " << std::max<s64>(0, elapsed_msec*(1.0 - progress) / (progress * 1000)) << "[s]" << std::endl;
             if (index >= teacherNodes)
                 break;
         }
@@ -499,18 +499,18 @@ void make_teacher(std::istringstream& ssCmd) {
         threads[i].join();
     progressThread.join();
 
-    std::cout << "Made " << teacherNodes << " teacher nodes in " << t.elapsed()/1000 << " seconds." << std::endl;
+    std::cout << "Made " << teacherNodes << " teacher nodes in " << t.elapsed() / 1000 << " seconds." << std::endl;
 }
 
 namespace {
     // Learner とほぼ同じもの。todo: Learner と共通化する。
 
     using LowerDimensionedEvaluatorGradient = EvaluatorBase<std::array<std::atomic<double>, 2>,
-                                                            std::array<std::atomic<double>, 2>,
-                                                            std::array<std::atomic<double>, 2> >;
+        std::array<std::atomic<double>, 2>,
+        std::array<std::atomic<double>, 2> >;
     using EvalBaseType = EvaluatorBase<std::array<double, 2>,
-                                       std::array<double, 2>,
-                                       std::array<double, 2> >;
+        std::array<double, 2>,
+        std::array<double, 2> >;
 
     // 小数の評価値を round して整数に直す。
     void copyEval(Evaluator& eval, EvalBaseType& evalBase) {
@@ -584,7 +584,7 @@ namespace {
             for (int boardTurn = 0; boardTurn < 2; ++boardTurn)
                 (*averagedEvalBase.oneArrayKK(i))[boardTurn] = AverageDecay * (*averagedEvalBase.oneArrayKK(i))[boardTurn] + (1.0 - AverageDecay) * (*evalBase.oneArrayKK(i))[boardTurn];
     }
-    constexpr double FVPenalty() { return (0.001/static_cast<double>(FVScale)); }
+    constexpr double FVPenalty() { return (0.001 / static_cast<double>(FVScale)); }
     // RMSProp(実質、改造してAdaGradになっている) でパラメータを更新する。
     template <typename T>
     void updateFV(std::array<T, 2>& v, const std::array<std::atomic<double>, 2>& grad, std::array<std::atomic<double>, 2>& msGrad, std::atomic<double>& max) {
@@ -603,8 +603,8 @@ namespace {
         }
     }
     void updateEval(EvalBaseType& evalBase,
-                    LowerDimensionedEvaluatorGradient& lowerDimentionedEvaluatorGradient,
-                    LowerDimensionedEvaluatorGradient& meanSquareOfLowerDimensionedEvaluatorGradient)
+        LowerDimensionedEvaluatorGradient& lowerDimentionedEvaluatorGradient,
+        LowerDimensionedEvaluatorGradient& meanSquareOfLowerDimensionedEvaluatorGradient)
     {
         std::atomic<double> max;
         max = 0.0;
@@ -650,11 +650,11 @@ void use_teacher(Position& pos, std::istringstream& ssCmd) {
         evaluatorGradients.emplace(i, std::move(std::unique_ptr<TriangularEvaluatorGradient>(new TriangularEvaluatorGradient)));
     for (auto& s : searchers) {
         s.init();
-        const std::string options[] = {"name Threads value 1",
+        const std::string options[] = { "name Threads value 1",
                                        "name MultiPV value 1",
                                        "name USI_Hash value 256",
                                        "name OwnBook value false",
-                                       "name Max_Random_Score_Diff value 0"};
+                                       "name Max_Random_Score_Diff value 0" };
         for (auto& str : options) {
             std::istringstream is(str);
             s.setOption(is);
@@ -682,47 +682,47 @@ void use_teacher(Position& pos, std::istringstream& ssCmd) {
                 if (ifs.eof())
                     return;
             }
-	    if( hcpe.gameResult == Draw ) continue; // 引き分けは今のところ使わない
+            if (hcpe.gameResult == Draw) continue; // 引き分けは今のところ使わない
             auto setpos = [](HuffmanCodedPosAndEval& hcpe, Position& pos) {
                 setPosition(pos, hcpe.hcp);
             };
             setpos(hcpe, pos);
             const Color rootColor = pos.turn();
             pos.searcher()->alpha = -ScoreMaxEvaluate;
-            pos.searcher()->beta  =  ScoreMaxEvaluate;
+            pos.searcher()->beta = ScoreMaxEvaluate;
             if (!qsearch<false>(pos, hcpe.bestMove16)) // 末端の局面に移動する。
                 continue;
             // pv を辿って評価値を返す。pos は pv を辿る為に状態が変わる。
             auto pvEval = [&ss, &rootColor](Position& pos) {
                 ss[0].staticEvalRaw.p[0][0] = ss[1].staticEvalRaw.p[0][0] = ScoreNotEvaluated;
                 // evaluate() は手番側から見た点数なので、eval は rootColor から見た点数。
-                const Score eval = (rootColor == pos.turn() ? evaluate(pos, ss+1) : -evaluate(pos, ss+1));
+                const Score eval = (rootColor == pos.turn() ? evaluate(pos, ss + 1) : -evaluate(pos, ss + 1));
                 return eval;
             };
             const Score eval = pvEval(pos);
             const Score teacherEval = static_cast<Score>(hcpe.eval); // root から見た評価値が入っている。
             const Color leafColor = pos.turn(); // pos は末端の局面になっている。
-	    const double eval_winrate = sigmoidWinningRate(eval);
-	    const double teacher_winrate = sigmoidWinningRate(teacherEval);
-	    double t = -1; // tkzw: 勝っていれば1, 負けていれば0
-	    if( rootColor == Black ){
-		if( hcpe.gameResult == BlackWin )
-		    t = 1.0;
-		else if( hcpe.gameResult == WhiteWin )
-		    t = 0.0;
-	    }
-	    else{
-		if( hcpe.gameResult == BlackWin )
-		    t = 0.0;
-		else if( hcpe.gameResult == WhiteWin )
-		    t = 1.0;
-	    }
-	    const double LAMBDA = 0.5; // tkzw: 適当に変えてください。WCSC27は0.5で実行しています。
-            const double dsig = (eval_winrate -t) + LAMBDA * (eval_winrate - teacher_winrate);
-            const double tmp = -1 * ( log( eval_winrate/(1-eval_winrate) ) ) \
-				+ LAMBDA * (-teacher_winrate*log(eval_winrate) - (1-teacher_winrate)*log(1-eval_winrate));
+            const double eval_winrate = sigmoidWinningRate(eval);
+            const double teacher_winrate = sigmoidWinningRate(teacherEval);
+            double t = -1; // tkzw: 勝っていれば1, 負けていれば0
+            if (rootColor == Black) {
+                if (hcpe.gameResult == BlackWin)
+                    t = 1.0;
+                else if (hcpe.gameResult == WhiteWin)
+                    t = 0.0;
+            }
+            else {
+                if (hcpe.gameResult == BlackWin)
+                    t = 0.0;
+                else if (hcpe.gameResult == WhiteWin)
+                    t = 1.0;
+            }
+            const double LAMBDA = 0.5; // tkzw: 適当に変えてください。WCSC27は0.5で実行しています。
+            const double dsig = (eval_winrate - t) + LAMBDA * (eval_winrate - teacher_winrate);
+            const double tmp = -1 * (log(eval_winrate / (1 - eval_winrate))) \
+                + LAMBDA * (-teacher_winrate*log(eval_winrate) - (1 - teacher_winrate)*log(1 - eval_winrate));
             loss += tmp; // tkzw: lossの計算は不要なので通常、上の行とこの行はコメントアウトして使っています。
-            std::array<double, 2> dT = {{(rootColor == Black ? -dsig : dsig), (rootColor == leafColor ? -dsig : dsig)}};
+            std::array<double, 2> dT = { {(rootColor == Black ? -dsig : dsig), (rootColor == leafColor ? -dsig : dsig)} };
             evaluatorGradient.incParam(pos, dT);
         }
     };
@@ -752,7 +752,7 @@ void use_teacher(Position& pos, std::istringstream& ssCmd) {
     auto writeSyn = [&] {
         std::ofstream((Evaluator::addSlashIfNone(pos.searcher()->options["Eval_Dir"]) + "KPP_synthesized.bin").c_str()).write((char*)Evaluator::KPP, sizeof(Evaluator::KPP));
         std::ofstream((Evaluator::addSlashIfNone(pos.searcher()->options["Eval_Dir"]) + "KKP_synthesized.bin").c_str()).write((char*)Evaluator::KKP, sizeof(Evaluator::KKP));
-        std::ofstream((Evaluator::addSlashIfNone(pos.searcher()->options["Eval_Dir"]) + "KK_synthesized.bin" ).c_str()).write((char*)Evaluator::KK , sizeof(Evaluator::KK ));
+        std::ofstream((Evaluator::addSlashIfNone(pos.searcher()->options["Eval_Dir"]) + "KK_synthesized.bin").c_str()).write((char*)Evaluator::KK, sizeof(Evaluator::KK));
     };
     Timer t;
     // 教師データ全てから学習した時点で終了する。
@@ -760,7 +760,7 @@ void use_teacher(Position& pos, std::istringstream& ssCmd) {
         t.restart();
         nodes = 0;
         std::cout << "iteration: " << iteration << ", nodes: " << NodesPerIteration * iteration + nodes << "/" << MaxNodes
-                  << " (" << std::fixed << std::setprecision(2) << static_cast<double>(NodesPerIteration * iteration + nodes) * 100 / MaxNodes << "%)" << std::endl;
+            << " (" << std::fixed << std::setprecision(2) << static_cast<double>(NodesPerIteration * iteration + nodes) * 100 / MaxNodes << "%)" << std::endl;
         std::vector<std::thread> threads(threadNum);
         std::vector<double> losses(threadNum, 0.0);
         for (int i = 0; i < threadNum; ++i)
@@ -1028,8 +1028,8 @@ void measureGenerateMoves(const Position& pos) {
             pms = generateMoves<CapturePlusPro>(pms, pos);
             pms = generateMoves<NonCaptureMinusPro>(pms, pos);
             pms = generateMoves<Drop>(pms, pos);
-//          pms = generateMoves<PseudoLegal>(pms, pos);
-//          pms = generateMoves<Legal>(pms, pos);
+            //          pms = generateMoves<PseudoLegal>(pms, pos);
+            //          pms = generateMoves<Legal>(pms, pos);
         }
     }
     const int elapsed = t.elapsed();
@@ -1072,14 +1072,14 @@ void Searcher::doUSICommandLoop(int argc, char* argv[]) {
             if (token == "ponderhit" && limits.moveTime != 0)
                 limits.moveTime += timeManager.elapsed();
         }
-        else if (token == "go"       ) go(pos, ssCmd);
-        else if (token == "position" ) setPosition(pos, ssCmd);
+        else if (token == "go") go(pos, ssCmd);
+        else if (token == "position") setPosition(pos, ssCmd);
         else if (token == "usinewgame"); // isready で準備は出来たので、対局開始時に特にする事はない。
-        else if (token == "usi"      ) SYNCCOUT << "id name " << std::string(options["Engine_Name"])
-                                                << "\nid author Hiraoka Takuya"
-                                                << "\n" << options
-                                                << "\nusiok" << SYNCENDL;
-        else if (token == "isready"  ) { // 対局開始前の準備。
+        else if (token == "usi") SYNCCOUT << "id name " << std::string(options["Engine_Name"])
+            << "\nid author Hiraoka Takuya"
+            << "\n" << options
+            << "\nusiok" << SYNCENDL;
+        else if (token == "isready") { // 対局開始前の準備。
             tt.clear();
             threads.main()->previousScore = ScoreInfinite;
             if (!evalTableIsRead) {
@@ -1097,7 +1097,7 @@ void Searcher::doUSICommandLoop(int argc, char* argv[]) {
             Evaluator::writeSynthesized(options["Eval_Dir"]);
         }
 #if defined LEARN
-        else if (token == "l"        ) {
+        else if (token == "l") {
             auto learner = std::unique_ptr<Learner>(new Learner);
             learner->learn(pos, ssCmd);
         }
@@ -1118,24 +1118,24 @@ void Searcher::doUSICommandLoop(int argc, char* argv[]) {
         else if (token == "check_teacher") {
             check_teacher(ssCmd);
         }
-        else if (token == "print"    ) printEvalTable(SQ88, f_gold + SQ78, f_gold, false);
+        else if (token == "print") printEvalTable(SQ88, f_gold + SQ78, f_gold, false);
 #endif
 #if !defined MINIMUL
         // 以下、デバッグ用
-        else if (token == "bench"    ) {
+        else if (token == "bench") {
             if (!evalTableIsRead) {
                 std::unique_ptr<Evaluator>(new Evaluator)->init(options["Eval_Dir"], true);
                 evalTableIsRead = true;
             }
             benchmark(pos);
         }
-        else if (token == "key"      ) SYNCCOUT << pos.getKey() << SYNCENDL;
-        else if (token == "tosfen"   ) SYNCCOUT << pos.toSFEN() << SYNCENDL;
-        else if (token == "eval"     ) std::cout << evaluateUnUseDiff(pos) / FVScale << std::endl;
-        else if (token == "d"        ) pos.print();
-        else if (token == "s"        ) measureGenerateMoves(pos);
-        else if (token == "t"        ) std::cout << pos.mateMoveIn1Ply().toCSA() << std::endl;
-        else if (token == "b"        ) makeBook(pos, ssCmd);
+        else if (token == "key") SYNCCOUT << pos.getKey() << SYNCENDL;
+        else if (token == "tosfen") SYNCCOUT << pos.toSFEN() << SYNCENDL;
+        else if (token == "eval") std::cout << evaluateUnUseDiff(pos) / FVScale << std::endl;
+        else if (token == "d") pos.print();
+        else if (token == "s") measureGenerateMoves(pos);
+        else if (token == "t") std::cout << pos.mateMoveIn1Ply().toCSA() << std::endl;
+        else if (token == "b") makeBook(pos, ssCmd);
 #endif
         else                           SYNCCOUT << "unknown command: " << cmd << SYNCENDL;
     } while (token != "quit" && argc == 1);
