@@ -55,7 +55,7 @@ bool KifuConverter::ConvertKifuToText(Position& pos, std::istringstream& ssCmd) 
             }
 
             pos.set(record.hcp, pos.searcher()->threads.main());
-            ofs << pos.toSFEN() << std::endl;
+            ofs << pos.toSFEN().substr(5) << std::endl;
             ofs << record.eval << std::endl;
             switch (record.gameResult) {
             case BlackWin:
@@ -107,7 +107,7 @@ bool KifuConverter::ConvertKifuToBinary(Position& pos, std::istringstream& ssCmd
             std::string _;
             std::getline(ifs, _);
 
-            pos.set(sfen.substr(5), pos.searcher()->threads.main());
+            pos.set(sfen, pos.searcher()->threads.main());
             HuffmanCodedPosAndEval record = { 0 };
             record.hcp = pos.toHuffmanCodedPos();
             record.eval = static_cast<s16>(eval);
