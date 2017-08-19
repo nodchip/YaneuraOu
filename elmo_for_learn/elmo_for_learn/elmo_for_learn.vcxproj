@@ -151,6 +151,7 @@
     <ClCompile Include="..\..\src\generateMoves.cpp" />
     <ClCompile Include="..\..\src\hand.cpp" />
     <ClCompile Include="..\..\src\init.cpp" />
+    <ClCompile Include="..\..\src\kifu_converter.cpp" />
     <ClCompile Include="..\..\src\main.cpp" />
     <ClCompile Include="..\..\src\move.cpp" />
     <ClCompile Include="..\..\src\movePicker.cpp" />
@@ -176,6 +177,7 @@
     <ClInclude Include="..\..\src\hand.hpp" />
     <ClInclude Include="..\..\src\ifdef.hpp" />
     <ClInclude Include="..\..\src\init.hpp" />
+    <ClInclude Include="..\..\src\kifu_converter.hpp" />
     <ClInclude Include="..\..\src\learner.hpp" />
     <ClInclude Include="..\..\src\move.hpp" />
     <ClInclude Include="..\..\src\movePicker.hpp" />

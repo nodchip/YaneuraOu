@@ -32,6 +32,7 @@
 #include "thread.hpp"
 #include "benchmark.hpp"
 #include "learner.hpp"
+#include "kifu_converter.hpp"
 
 namespace {
     void onThreads(Searcher* s, const USIOption&) { s->threads.readUSIOptions(s); }
@@ -1119,6 +1120,22 @@ void Searcher::doUSICommandLoop(int argc, char* argv[]) {
             check_teacher(ssCmd);
         }
         else if (token == "print") printEvalTable(SQ88, f_gold + SQ78, f_gold, false);
+        else if (token == "convert_kifu_to_text") {
+            if (!KifuConverter::ConvertKifuToText(pos, ssCmd)) {
+                std::exit(-1);
+            }
+        }
+        else if (token == "convert_kifu_to_binary") {
+            if (!KifuConverter::ConvertKifuToBinary(pos, ssCmd)) {
+                std::exit(-1);
+            }
+        }
+        else if (token == "create_record_file") {
+            pos.set(DefaultStartPositionSFEN, pos.searcher()->threads.main());
+            HuffmanCodedPos record = pos.toHuffmanCodedPos();
+            std::ofstream ofs("record_file.bin", std::ios::out | std::ios::binary);
+            ofs.write(reinterpret_cast<char*>(&record), sizeof(record));
+        }
 #endif
 #if !defined MINIMUL
         // 以下、デバッグ用
