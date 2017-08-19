@@ -43,12 +43,11 @@ bool KifuConverter::ConvertKifuToText(Position& pos, std::istringstream& ssCmd) 
 
         int64_t num_records = 0;
         HuffmanCodedPosAndEval record = { 0 };
-        while (!ifs.eof()) {
+        while (ifs.read(reinterpret_cast<char*>(&record), sizeof(record))) {
             if (++num_records % 10000000 == 0) {
                 std::cerr << num_records << std::endl;
             }
 
-            ifs.read(reinterpret_cast<char*>(&record), sizeof(record));
             if (record.gameResult != BlackWin && record.gameResult != WhiteWin) {
                 // 引き分け等をスキップする
                 continue;
