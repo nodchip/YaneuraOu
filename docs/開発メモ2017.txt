@@ -1,4 +1,700 @@
-﻿
+﻿# ToDO
+
+- pythonの自己対戦フレームワーク、改良する。
+- 詰将棋探索エンジン、他の探索部から呼び出せるように改良する。
+- PPAP評価関数
+	- FP型(2GB)
+	- SP型(6GB)
+	- EP型(16GB)
+- elmoの学習ルーチン、取り込む。
+
+
+## 2017/05/19
+
+- BonaPieceを拡張するのに際して、この実装、良くないな。
+	PieceNo piece_no_list[fe_end2];
+	うーん。大改造になるな…。
+	→　そうでもなかった。むしろ明快になった。
+
+	Nodes/second    : 840985
+	// 速度的には遅くなったかも知れんが仕方がない。
+
+	// 置換表16MB 2.5%ぐらい速いかも。
+	Nodes/second    : 865076
+
+
+- PieceNoをu8に。
+
+トーナメント用
+Nodes/second    : 837767
+Nodes/second    : 847426
+// そうでないやつ
+Nodes/second    : 851751
+Nodes/second    : 853966
+
+遅くはなってなさげなので良しとする。
+他にもテーブルサイズ、もう少しシュリンク、頑張ったほうが良いのでは。
+
+- Fix memory access in Search::clear()
+	なるほど。オーバーアクセスしてたのか…。
+
+
+## 2017/05/18
+
+- config.hにトーナメント用のbuild、FOR_TOURNAMENTオプション追加。AVX2用でEVAL_HASH大きめ。EVAL_LEARN、TEST_CMD使用不可。
+
+- do_move()のときのmemcpy要らんのでは…。
+	Nodes/second    : 828360
+	Nodes/second    : 831744
+変わらんか…。
+
+- Position::piece_bb →　byTypeBBに、occupied → byColorBBにrename。
+	StockfishのPositionに合わせておく。
+
+- LONG_EFFECT_LIBRARY、何か壊してしまっている。do_move()書き換えたからか。あとでなおす。
+	- なおした。
+
+- mate1ply()、先後テンプレートで分けた。ほとんど速くならない。
+	Nodes/second    : 836288
+
+- Position::do_move()もう少し綺麗に書き直したほうがいい。
+	Nodes searched  : 20361112
+	Nodes/second    : 844859
+よくわからんが、少し速くなったのかも。
+
+		occupied[COLOR_ALL] = occupied[BLACK] | occupied[WHITE];
+
+		// xor_piece()で、occupied[COLOR_ALL]は更新しない版
+		inline void Position::xor_piece_simple(Piece pc, Square sq)
+		{
+			Color c = color_of(pc);
+			const Bitboard q = Bitboard(sq);
+			occupied[c] ^= q;
+			piece_bb[type_of(pc)] ^= q;
+		}
+
+	このリファクタリングは良くないかも…。
+
+	do_move()あまり綺麗に書き直せなかった。また今度頑張る。
+
+- mate1ply()、check infoを使えば、attackers_to()を呼び出す回数が減るのでは…。
+	- 減らんかった。
+
+- KK,KKPを16bitにして、かつBonaPieceを詰めた評価関数を用意すべき？BonaPiece詰めるとpiece_typeの導出が難しくなるのか。
+	KK,KKPは32bitのまま、値は16bitにして、残り16bitに進行度用の値を突っ込むか…。そうするといまの形式のまま、
+	追加の計算コストほぼなしに進行度の計算が出来ることになるが…。
+
+
+## 2017/05/17
+
+- lazySMPで4コアのときに8Tと4Tとどちらがいいか微妙。計測したほうがいいような。
+	- また考える。
+
+・角のテーブル小さくすることを考えたほうがいいかも。
+	- した
+
+// 1T
+Nodes/second    : 816502
+Nodes/second    : 822704
+	// 変わらないのでこれでいく。
+
+// 8T
+Total time (ms) : 31455
+Nodes searched  : 107911684
+Nodes/second    : 3430668
+Nodes searched(main thread) : 13632956
+Nodes/second  (main thread) : 433411
+
+
+・飛車のテーブルさらに小さくした。
+Nodes searched  : 20361112
+Nodes/second    : 823136
+// SSE4.1
+Nodes/second    : 689646
+
+・飛車のテーブルさらに小さくした。
+Nodes/second    : 820384
+
+・角と飛車のテーブル、大きいのでなんとかする。この変なテーブル使うのやめる。
+	角はそんなに大きくないのか。飛車をまずなんとかする。
+
+	飛車のテーブル消したが、ほぼ速度変わらない。
+	Nodes/second    : 811652
+	Nodes/second    : 816927
+
+Total time (ms) : 24635
+Nodes searched  : 84955436
+Nodes/second    : 3448566
+Nodes searched(main thread) : 10999930
+Nodes/second  (main thread) : 446516
+
+
+・lanceEffect()はrootFileEffect()を使うように変更。
+
+// 8T
+Total time (ms) : 13327
+Nodes searched  : 46596805
+Nodes/second    : 3496421
+Nodes searched(main thread) : 5807426
+Nodes/second  (main thread) : 435763
+
+Total time (ms) : 18130
+Nodes searched  : 63283390
+Nodes/second    : 3490534
+Nodes searched(main thread) : 7985854
+Nodes/second  (main thread) : 440477
+
+
+- 歩の打てるところを調べるコード、テーブルを2つに分割。先後の区別なしにする。
+
+- pawnEffect(Color,Bitboard)追加。Shift<>(Bitboard)削除。
+
+- NextSquareテーブル、 u8に変更。
+Nodes/second    : 829271
+// ほぼ変わらず
+
+
+## 2017/05/16
+
+・Moveのdropのときのfrom、SQ_NB + Pieceにしたほうが使い勝手が良いのでは…。
+	Piece自体はmoved_piece_after()で取得できるわけで…。
+// 善悪微妙なのでこの改造はいいや。
+
+- attackers_to()改良。
+
+Nodes searched  : 20361112
+Nodes/second    : 825004
+// ほぼ変わらず。
+
+・reformatting position.h
+
+・玉以外SQ_NBに移動させることはないので、ここの利きとか配列、不要。
+	→　王手になる指し手を生成するために王(SQ_NB)からの利きを見るので、そう簡単でもないのか。
+
+・ベンチマークだけTEST_CMDから移動させる。これは常に必要。
+
+
+・position::gives_check() リファクタリング。
+共通化できて、少し速くなった。(かも)
+
+
+・EVAL_LEARN、オフにしたほうが高速化する気がする。余計なコードが減って、コードが詰められるからか？
+Nodes searched  : 20361112
+Nodes/second    : 831473
+test cmdもなくしたほうが速くなるかも知れないが、benchコマンドもなくなるのでテストできなくなる。
+
+・Stockfish
+	- Execute an implied ucinewgame at startup
+		- 将棋だとusinewgameではなくisreadyに対して初期化しているのでそちらのコードを整理。
+
+・Learner::search、max_game_plyの値を変更しないようにした。
+・Limits.max_game_plyに一本化していたの、やめた。
+
+		// -- MAX_PLYに到達したかの判定が面倒なのでLimits.max_game_plyに一本化する。
+
+		// あとで戻す用
+		auto max_game_ply = Limits.max_game_ply;
+		Limits.max_game_ply = std::min(Limits.max_game_ply, rootPos.game_ply() + MAX_PLY - 1);
+
+		// これ、スレッドごとに並列探索するときによくないな。
+
+
+## 2017/05/15
+
+・新しくなってからLearner::search()がおかしいんじゃないかという件、調査する。
+	- 単体テスト用に"test search"コマンド追加。
+
+
+・読み筋の出力
+	- 1手詰めを呼んだときにpv更新するように。
+		- 3手詰め ) sfen 1+R6l/3snS1b1/p4p1+Bp/3pskp2/5l1p1/PPSNpPG2/2KPP3P/4G4/L1G5L b RGN3Pn2p 1
+		- してないけど、ちゃんと出力されてるな…。まあいいか。
+	- 検討時の読み筋出力用のオプションを追加した。
+
+
+・SILVER_HDK、GOLDS_HDK追加。
+
+Nodes searched  : 20361112
+Nodes/second    : 824904
+
+0.5%ぐらい速くなったかも。
+
+
+## 2017/05/14
+
+- 技巧2のソースコード調査する。
+	- 探索部
+		- 進行度を考慮したfutility
+		- 実現確率に基づくLMR
+
+	- futility marginに進行度を考慮。
+
+		inline Score futility_margin(Depth depth) {
+		  return static_cast<Score>(200 * (depth / kOnePly));
+		}
+		↓
+		inline Score futility_margin(Depth depth, double progress) {
+		  // 終盤になるほど、マージンを大きくする
+		  int c = static_cast<int>(120.0 + 80.0 * progress);
+		  return static_cast<Score>(c * (depth / kOnePly));
+		}
+	    
+		// 子ノードにおける futility pruning（王手がかかっている場合は、スキップされる）
+		if (   !kIsPv
+			&& !ss->skip_null_move
+			&&  depth < 7 * kOnePly
+			&&  eval - futility_margin(depth, progress) >= beta
+			&&  abs(beta) < kScoreMateInMaxPly) {
+		return eval - futility_margin(depth, progress);
+		}
+
+		// 末尾に引数ひとつ追加。
+
+	    MovePicker mp(node, history_, gains_, hash_move, rbeta - ss->static_score);
+
+
+	- 指し手の実現確率
+
+		MoveProbability::SetCacheTableToNextAge();
+
+	- aspiration
+
+		// αβウィンドウをセットする
+		Score alpha = -kScoreInfinite, beta = kScoreInfinite;
+		Score half_window = Score(64);
+
+
+	- IIDの条件変更
+
+		  // 内部反復深化（王手がかかっている場合は、スキップされる）
+		  if (   depth >= 6 * kOnePly
+			  && hash_move == kMoveNone
+			  && (kIsPv || ss->static_score + 256 >= beta)) {
+			Depth d = (depth * 3 / 4) - (2 * kOnePly);
+
+	・王手延長の条件にmove_countpruningを追加。
+
+			const bool move_count_pruning =    depth < 16 * kOnePly
+											&& move_count >= futility_move_count(kIsPv, depth);
+
+			// 王手延長
+			if (   move_gives_check
+				&& !move_count_pruning) {
+			  ext = !Swap::IsLosing(move, node) ? kOnePly : (kOnePly / 2);
+			}
+
+	・singular margin変更。
+
+			// depthに応じたマージンに
+		  Score rbeta = hash_score - int(3 * depth / kOnePly);
+		  ss->excluded_move = move;
+		  ss->skip_null_move = true;
+		  Score score = MainSearch<kNonPvNode>(node, rbeta-1, rbeta, depth / 3, ply,
+											   cut_node);
+		  ss->skip_null_move = false;
+		  ss->excluded_move = kMoveNone;
+
+		  if (score < rbeta) {
+			ext = kOnePly; // 0.5手から1手に
+		  }
+
+	・実現確率を用いたLMR
+
+		// 実現確率 及び LMR（Late Move Reduction）
+		// 一定以上の残り深さがあれば実現確率を、そうでなければLMRを用いる。
+		// 本当はすべて実現確率にしたいところだが、実現確率の計算コストが高いため、残り深さが大きい
+		// ところに限って実現確率を用いている
+		if (   depth >= 3 * kOnePly
+			&& (move_is_quiet || depth >= MoveProbability::kAppliedDepth)
+			&& move_count >= 2
+			&& move != ss->killers[0]
+			&& move != ss->killers[1]) {
+
+		  // 実現確率
+		  if (depth >= MoveProbability::kAppliedDepth) {
+			// 指し手の確率に基づいて、何手減らすかを決定する
+
+
+・Bitboardクラス、リファクタリング。
+	- enemy_field、Bitboardを別途用意した。
+	- Bitboard::test()追加。
+	- Bitboard::extract64(),insert64()追加。
+	- FOREACH_BB、修正。
+
+Total time (ms) : 24892
+Nodes searched  : 20361112
+Nodes/second    : 817978
+
+// 速くなっているかは微妙だがxmmレジスタをいったんストアしてないだけマシだと思うことにする。
+
+Total time (ms) : 25446
+Nodes searched  : 86563443
+Nodes/second    : 3401848
+Nodes searched(main thread) : 11001396
+Nodes/second  (main thread) : 432342
+
+Bitboardクラス、もう少しソースコードを整理したほうが良いと思うが、キリがないので今回はこれくらいにしておく。
+
+
+## 2017/05/13
+
+・V4.52ではConsiderBookMoveCountが無視されていた模様。これはV4.54で修正されている。
+	まふ定跡の選択がおかしかった件はこれのようだ。
+	https://github.com/yaneurao/YaneuraOu/pull/24#issuecomment-301193795
+
+・配布している実行ファイルで同じ定跡の指し手が選ばれる問題
+	  // std::random_device rd; s = (u64)rd() + ((u64)rd() << 32);
+	  // msys2のgccでbuildすると同じ値を返すっぽい。なんぞこれ…。
+	random_device使わないようにする。
+
+・定跡選択部、リファクタリング。
+
+・定跡部で指し手を選ぶ時に、いくつからいくつに減らしたかを出力するようにした。
+
+
+## 2017/05/12
+
+- 定跡の指し手の選択部、リファクタリング。
+
+- 比較実験用のKKPT型評価関数追加。
+	- nps、5%ぐらいしか変わらない。メモリレイアウトが悪いのか…。元がAVX2用のコードだし、そのせいもあるのか…。
+
+- rootMoves、上位にPIECE入ってないのでは。
+	- 入ってる。
+		Move ttMove = RootNode ? thisThread->rootMoves[thisThread->PVIdx].pv[0]
+	- ああ、 MemoryBook::find()で
+		m.bestMove = pos.move16_to_move(m.bestMove);
+		してた。そうか。これは全エディション共通か。
+
+- Stockfish最新版にキャッチアップ
+	- Default argument for see_ge()
+		- https://github.com/official-stockfish/Stockfish/commit/0c1f119069bf915b85126159d4865c4bcc532239
+	- Remove int to int conversion, unused include.
+		- https://github.com/official-stockfish/Stockfish/commit/99d914985f6ddb1ee22b232d41f17a35e1d34f89
+	- Move Pieces[] out of global visibility
+		- https://github.com/official-stockfish/Stockfish/commit/25296547d0258f8519b7614e4474bbc947eaea04
+		- 使ってないから関係なさげ。
+	- Avoid *begin always being included in the sorted list regardless of its value.
+		- https://github.com/official-stockfish/Stockfish/commit/321a27fbe3b5af9961b99585ddd365a9cc855e38
+	- use int16_t for histories
+		- https://github.com/official-stockfish/Stockfish/pull/1113
+			nps、0.5%ぐらい上がるらしい。
+
+
+## 2017/05/11
+
+
+- alignas必要のないときにつけないようにする。
+	- しなくていいらしい。
+	- ARM用のコンパイル、コンパイルオプションによっては
+		alignasがついているとbus errorになるらしいが…。
+		(たぶんコンパイラのバグ)
+
+
+## 2017/05/10
+
+
+・定跡を選択するときのConsiderBookMoveCountの処理が間違っていたので修正。
+	- 定跡選択部自体をリファクタリングしたほうがいいような気はするが…。
+
+
+・王手のかかっている局面をPosition::set_from_packed_sfen()で読むと状態が不正になる
+	- https://github.com/yaneurao/YaneuraOu/issues/27
+
+
+・Learner::qsearch() および Learner::search() でnullポインタアクセスする件修正。(thx. tanuki-さん)
+	- https://github.com/yaneurao/YaneuraOu/issues/26
+
+
+- gccでコンパイル、-fltoを指定するとセグフォで落ちる件、調査する。
+	- あと、strip試す
+
+	- USER_ENGINEにして、EVAL_NO_USEでも実行した途端にセグフォ。そんな馬鹿な…。
+	- make nosseでビルドしてもセグフォ。
+	- オプション指定するところ間違えてた…。修正した。
+	- nosseでは32bit用バイナリを生成しようと思ったが、-m32を指定するとコンパイルエラーが出て、
+	大変そうなのでこれ指定するのやめる。
+
+
+- 評価関数ファイルの自動判定機能追加。
+		{ 0x7171a5469027ebf , "ShinYane(20161010)" } ,
+		{ 0x71fc7fd40c668cc , "Ukamuse(sdt4)"      } ,
+
+		{ 0x65cd7c55a9d4cd9 , "elmo(WCSC27)"       } ,
+		{ 0x3aa68b055a020a8 , "Yomita(WCSC27)"     } ,
+		{ 0x702fb2ee5672156 , "Qhapaq(WCSC27)"     } ,
+		{ 0x6c54a1bcb654e37 , "tanuki(WCSC27)"     } ,
+
+
+// eval = elmo(WCSC27)
+Total time (ms) : 26151
+Nodes searched  : 20361112
+Nodes/second    : 778597
+
+// flto,PGOあり。
+Total time (ms) : 25944
+Nodes searched  : 20361112
+Nodes/second    : 784810
+
+// flto
+Total time (ms) : 24836
+Nodes searched  : 20361112
+Nodes/second    : 819822
+
+// PGOあまり意味なさげ
+
+// VC++2017
+Total time (ms) : 27416
+Nodes searched  : 20361112
+Nodes/second    : 742672
+Nodes/second    : 751249
+// gccのほうが5%ぐらい速いのかも知れん。
+
+// gcc + nosse
+Nodes searched  : 20361112
+Nodes/second    : 585998
+
+## 2017/05/09
+
+- pull req取り込む。
+	- 全部なんとかした。
+
+- 読み筋出力がおかしいらしい件、調査する。
+	- V4.50で解決しているらしい。調査おわり。
+
+- 定跡データベースの採択率に比例して指し手を選択するオプション追加
+	- https://github.com/yaneurao/YaneuraOu/pull/24/files
+
+
+- Apery定跡データベース読み込みルーチン
+	- まふ定跡を読み込むためにAperyの定跡DBを読み込む機能が必要らしい。
+	- https://github.com/yaneurao/YaneuraOu/pull/23
+
+- _mm_malloc()やめてposix_memalign()使う件
+	- #include <cstdlib>  // posix_memalign()
+	- これやっているのに
+		エラー	C3861	'posix_memalign': 識別子が見つかりませんでした
+	- よくわかんない。あれれ？
+	- Windows環境では使えないような…。
+		- http://stackoverflow.com/questions/33696092/whats-the-correct-replacement-for-posix-memalign-in-windows
+
+- 魔女
+	- msys2で
+		make -j8 bmi2
+	でビルドできた。あれれ…そうなのか…。
+
+
+## 2017/05/08
+
+- Position::piece_bb、やはり大改造することにした。
+
+Total time (ms) : 34291
+Nodes searched  : 26014961
+Nodes/second    : 779147
+Nodes/second    : 793962
+
+// gcc
+Total time (ms) : 33368
+Nodes searched  : 26014961
+Nodes/second    : 777936
+Nodes/second    : 773311
+
+// 前の
+Nodes/second    : 766724
+Nodes/second    : 781511
+Nodes/second    : 793163
+
+
+- mm_alloc()より、posix_memalign()使うほうがいいらしい。
+	- http://kawa0810.hateblo.jp/entry/20120430/1335775256
+
+- VC++2017のPGO
+	- https://docs.microsoft.com/ja-jp/windows/uwp/debug-test-perf/pgo-for-uwp
+	- pgo140rt.dllが無い。うーん？
+	- C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Tools\MSVC\14.10.25017\bin\HostX64\x64 にあった。
+	- evaluate_kppt_learn.cppが内部コンパイルエラーになる(´；ω；｀)　こら、どうもならん..
+	- EVAL_LEARNをundefしとけばPGO出来た。肝心のnpsはほぼ変わらず…。なんなんこれ…。
+
+
+## 2017/05/07
+
+- 検討モードの読み筋に関する修正。(thanks! tさん)
+	- cf. http://yaneuraou.yaneu.com/2017/05/06/%e3%82%84%e3%81%ad%e3%81%86%e3%82%89%e7%8e%8b%e3%81%a7%e8%aa%ad%e3%81%bf%e7%ad%8b%e3%81%8c%e6%95%b0%e6%89%8b%e3%81%97%e3%81%8b%e8%a1%a8%e7%a4%ba%e3%81%95%e3%82%8c%e3%81%aa%e3%81%84%e3%81%93%e3%81%a8/#comment-13392
+
+
+- 魔女がgccの最新版でコンパイル通らない件
+
+	DBL_MINを使ってあるので、common.hppで
+	#include <cfloat>
+	する。
+
+	gotoで未初期化の変数がある。
+	search.cppの469行付近の
+	bool isbook = false;
+	を455行らへんに移動する。
+
+	pull req.したほうがいいか？
+
+- Positionクラスのリファクタリング
+	- 駒種別のbitboard、先後まぜこぜにしたの、1手詰めが遅くなるので善悪は微妙か。
+	- 1手詰めを考慮すると、駒種別にbitboardがあっても良いような気がしてきた。うーん、そうか…。大改造になるな…。
+	→　少しやってみたが、むしろ遅くなりそう..
+
+
+## 2017/05/07
+
+・ShogiGUIの検討モードできちんと読み筋が出力されるように修正。go infiniteのときはPvの出力を減らさないほうが良いのでは…。
+> position startpos moves 2g2f 3c3d 2f2e 2b3c 7g7f 3a2b 3i4h 4a3b 3g3f 8c8d 6i7h 8d8e 4h3g 8e8f 8g8f 8b8f P*8g 8f8e 3g4f 7a6b 5i6i 7c7d 5g5f 3c8h+ 7i8h 2b3c 8h7g 6c6d 7g6f 6b6c 5f5e 6a5b B*5f 8a7c 8i7g 8e8a 3f3e 3d3e 4f3e 7d7e 6f7e 7c6e 7g6e 6d6e 3e4f P*7d 7e8f 5a6b 5f4e 4c4d 4e2g 4d4e 2g4e 3c4d 4e1h P*4e N*5f 3b4c 5f4d 4c4d 4f5g 5c5d 5e5d B*5e S*5c 5b5c 5d5c+ 6b5c 4g4f P*5f 5g5f 5e4f G*3g 4f5g+ 3g4g 5g4g 5f4g N*5g 6i7i 5g4i+ 2i3g 2a3c P*3d 4d3d 2e2d
+
+あー、わかった。
+	lastInfoTime + pv_interval < Time.elapsed()
+これ、
+	lastInfoTime + pv_interval <= Time.elapsed()
+こう書かないと連続してPV出力できないということでは…。
+
+
+- Positionクラスのリファクタリング
+	- AperyのsetPiece()方式にしたほうが良いのでは…。
+	- PieceTypeBitboardを廃止してGoldのBitobard追加したほうが良いのでは…。
+	- 利きもがらっと変わるし、大改造になるな…。
+	- ソースコードは少しシンプルになるが速度的にはほぼ変わらないか、むしろ遅くなるような気がしてきた。ツライ。
+	- まずは、occupied[COLOR_ALL]の更新だけ分離する。
+	- あとで大幅にいじる。変更後に探索ノードが変わるので自己対戦のためのが必要だから、この修正は落ち着いてから。
+
+
+
+## 2017/05/06
+
+・benchコマンド用の局面1つ追加。> startpos moves 2g2f 3c3d 2f2e 2b3c 7g7f 4c4d 3i4h 8c8d
+	- 1.1Mnpsぐらい出る。VC++でコンパイルされた魔女とほぼ同じ。
+
+・ChangedBonaPieceを用意してデータ構造変更。
+Total time (ms) : 33403
+Nodes searched  : 26014961
+Nodes/second    : 778821
+
+・USE_TT_PV、デフォルトでオンに変更する。検討モードが使いにくすぎ。
+	- https://twitter.com/mizumon_/status/860566849007763456
+
+	- TT.probe()でgenerationが新しくなるので探索node数が変わってしまう。
+	またbench時のこのタイミングが異なるのでbenchごとにnode数が変わってしまう…。不便だなぁ…。
+	→　bench対策した。
+
+・思考エンジン名にevalフォルダ名を含めないとevalフォルダを変更したときにきちんと選ばれているのかわかりづらい
+	evalのchecksumは出力しているのでそれを確認すればいいか…。うーん？
+	checksumごとに代表的なソフト名(評価関数名)を出力するだとか？考えとく。
+
+
+## 2017/05/05
+
+- MovePickerの配列、よく考えたらtoがSQ_NBであるような指し手を渡すことはないので
+		int table[SQ_NB + 7][SQ_NB][COLOR_NB];
+でいい。修正。
+
+
+- もしかして、positionクラスで、
+	Bitboard piece_bb[PIECE_TYPE_BITBOARD_NB][COLOR_NB];
+	色別に持たないほうが良いのでは…。大改造になるが高速化のために変更してみる。
+
+Nodes searched  : 20361112
+Nodes/second    : 813598
+// 結果、変わらない気がする。
+
+- piece_bb[][]を直接参照しているところをPosition::pieces()経由でアクセスするように変更。
+
+// 改良前
+Total time (ms) : 32729
+Nodes searched  : 26014961
+Nodes/second    : 794859
+
+// 改良後
+Total time (ms) : 32437
+Nodes searched  : 26014961
+Nodes/second    : 802015
+
+// gccでbuildした場合。2%ぐらい速いかも？
+Total time (ms) : 31770
+Nodes searched  : 26014961
+Nodes/second    : 818853
+
+
+// 4 threads
+Total time (ms) : 28682
+Nodes searched  : 66869828
+Nodes/second    : 2331421
+Nodes searched(main thread) : 16690131
+Nodes/second  (main thread) : 581902
+
+// 8 threads
+Total time (ms) : 27703
+Nodes searched  : 90831960
+Nodes/second    : 3278777
+Nodes searched(main thread) : 11602893
+Nodes/second  (main thread) : 418831
+
+遅くはなっていないが4Tにしたときに4倍のnps出てないのおかしくないか？
+2Tにした時点で700k/tぐらいしか出ない。うーん..
+
+### V4.44
+
+engine1 = YaneuraOuV440.exe , eval = ShinYane20161117
+engine2 = YaneuraOuV444.exe , eval = ShinYane20161117
+T1,b1000,1733 - 86 - 1711(50.32% R2.22) win black : white = 50.78% : 49.22%
+
+たぶん計測誤差。何も変わってない。
+
+
+## 2017/05/04
+
+・Stockfish
+	- Fix multiPV issue #502
+		- https://github.com/official-stockfish/Stockfish/commit/8b15961349e18a9ba113973c53f53913d0cd0fad
+
+・search()でalpha値を更新したときに詰み探索を呼ぶほうが良いだとか？
+
+
+						// PvNodeでalpha値を更新したときにここが最善応手列になるので
+						// ここで1手進めてから詰み探索を呼ぶ。
+#if 1
+						if (!RootNode && is_ok(bestMove))
+						{
+							// mate_depth = 1 or 3 or 5
+							int mate_depth = min(5, depth / (4 * ONE_PLY) * 2 + 1);
+							if (mate_depth >= 3)
+							{
+								pos.do_move(bestMove, st);
+								move = pos.weak_mate_n_ply(mate_depth);
+								pos.undo_move(bestMove);
+
+								if (move != MOVE_NONE)
+								{
+									// N手詰めかも知れないのでmate_depth手詰めのスコアを返す。
+									bestValue = mated_in(ss->ply + 1 + mate_depth);
+
+#if !defined(DISABLE_TT_PROBE)
+									tte->save(posKey, value_to_tt(bestValue, ss->ply), BOUND_EXACT,
+										DEPTH_MAX, move, /* ss->staticEval */ bestValue, TT.generation());
+#endif
+									return bestValue;
+								}
+							}
+						}
+#endif
+
+
+上のコード追加してもほぼ弱くならない。
+これは、PvNodeの全体に占める割合が極めて小さいから。
+PvNodeで相手からの詰みを調べたほうが良いかと思ったが、そうでもない。
+Pv自体が枝刈りしまくった結果の産物で、信用ならないからかも知れない。
+
+いずれにせよ、もう少しきちんと書くべき。詰み探索を調べたかどうかをTTに書くべきだろうし。
+あと、もっと投機的に詰み探索などを呼ぶ仕組みを入れたほうが良いと思う。
+reductionをthread idごとにバラけさせるだとか…。
+いずれにせよ、TT拡張すること考えたほうが良さげ。
+
+・benchコマンドのデフォルト設定、早く終わりすぎて役目を果たしていないのでdepth15から17に条件を変更。
+
+
 ## 2017/05/04
 
 ・置換表にEVAL_HASH突っ込んだほうがいいのでは…。
@@ -18,7 +714,15 @@
 
 ### V4.41
 
-T1,b1000,614 - 31 - 725(45.86% R-28.87) win black : white = 52.93% : 47.07%
+engine1 = YaneuraOuV439.exe , eval = ShinYane20161117
+engine2 = YaneuraOuV440.exe , eval = ShinYane20161117
+T1,b1000,2265 - 107 - 2628(46.29% R-25.82) win black : white = 50.91% : 49.09%
+T4,b1000,633 - 81 - 686(47.99% R-13.97) win black : white = 52.29% : 47.71%
+T4,b3000,1050 - 178 - 1222(46.21% R-26.35) win black : white = 52.19% : 47.81%
+
+engine1 = gikou_win_20160606/gikou.exe , eval = dummy
+engine2 = YaneuraOuV440.exe , eval = ShinYane20161117
+T4,b2000,1075 - 22 - 2773(27.94% R-164.62) win black : white = 52.09% : 47.91%
 
 
 ## 2017/05/03その2

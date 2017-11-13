@@ -7,10 +7,6 @@ ThreadPool Threads;
 using namespace std;
 using namespace Search;
 
-namespace USI {
-  extern std::string last_position_cmd;
-}
-
 namespace {
 
 	// std::thread派生型であるT型のthreadを一つ作って、そのidle_loopを実行するためのマクロ。
@@ -169,8 +165,6 @@ void ThreadPool::start_thinking(const Position& pos, const Search::LimitsType& l
 		SetupStates = std::move(states);
 
 	init_for_slave(pos, limits);
-
-  sync_cout << "info string " << USI::last_position_cmd << sync_endl;
 
 	main()->start_searching();
 }

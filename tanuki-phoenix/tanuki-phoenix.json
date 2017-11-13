@@ -1,0 +1,11 @@
+{
+  "working_directory": "C:\\Programs\\Shogidokoro-3.7.2\\Engine",
+  "exe_path": "C:\\Programs\\Shogidokoro-3.7.2\\Engine\\Lesserkai2.exe",
+  "test_working_directory": "K:\\work\\201703\\tanuki-phoenix\\DummyTanuki\\bin\\Debug",
+  "test_exe_path": "K:\\work\\201703\\tanuki-phoenix\\DummyTanuki\\bin\\Debug\\DummyTanuki.exe",
+  "arguments": [
+    "test"
+  ],
+  "retry_sleep_ms": 200,
+  "retry_count": 5
+}

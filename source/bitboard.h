@@ -7,153 +7,236 @@
 //     Bitboard
 // --------------------
 
-namespace Bitboards{
-  void init(); // Bitboard関連のテーブル初期化のための関数
-}
+// Bitboard関連のテーブル初期化のための関数
+namespace Bitboards { void init(); }
 
 // Bitboard本体クラス
 
 struct alignas(16) Bitboard
 {
-#ifdef  USE_SSE2
-  union
-  {
-    // 64bitずつとして扱いとき用
-    uint64_t p[2];
+#if defined (USE_SSE2)
+	union
+	{
+		// 64bitずつとして扱うとき用
+		u64 p[2];
 
-    // SSEで取り扱い時用
-    // bit0がSQ_11,bit1がSQ_12,…,bit81がSQ_99を表現する。
-    // このbit位置がSquare型と対応する。
-    // ただしbit63は未使用。これは、ここを余らせることで飛車の利きをpext1回で求めるためのhack。
-    // Aperyを始めとするmagic bitboard派によって考案された。
-    __m128i m;
-  };
+		// SSEで取り扱い時用
+		// bit0がSQ_11,bit1がSQ_12,…,bit81がSQ_99を表現する。
+		// このbit位置がSquare型と対応する。
+		// ただしbit63は未使用。これは、ここを余らせることで飛車の利きをpext1回で求めるためのhack。
+		// Aperyを始めとするmagic bitboard派によって考案された。
+		__m128i m;
+	};
 #else // no SSE
-  u64 p[2];
+	u64 p[2];
 #endif
 
-#ifdef  USE_SSE2
-  // SSE2が使えるときは代入等においてはSSE2を使ったコピーがなされて欲しい。
+#if defined (USE_SSE2)
+	// SSE2が使えるときは代入等においてはSSE2を使ったコピーがなされて欲しい。
 
-  Bitboard& operator = (const Bitboard& rhs) { _mm_store_si128(&this->m, rhs.m); return *this; }
+	Bitboard& operator = (const Bitboard& rhs) { _mm_store_si128(&this->m, rhs.m); return *this; }
 
-  Bitboard(const Bitboard& bb) { _mm_store_si128(&this->m, bb.m); }
+	Bitboard(const Bitboard& bb) { _mm_store_si128(&this->m, bb.m); }
 #endif
 
-  // --- ctor
+	// --- ctor
 
-  // 初期化しない。このとき中身は不定。
-  Bitboard() {}
+	// 初期化しない。このとき中身は不定。
+	Bitboard() {}
 
-  // p[0],p[1]の値を直接指定しての初期化。(Bitboard定数の初期化のときのみ用いる)
-  Bitboard(uint64_t p0, uint64_t p1) { p[0] = p0; p[1] = p1; }
-
-  // sqの升が1のBitboardとして初期化する。
-  Bitboard(Square sq);
+	// p[0],p[1]の値を直接指定しての初期化。(Bitboard定数の初期化のときのみ用いる)
+	Bitboard(u64 p0, u64 p1);
+	
+	// sqの升が1のBitboardとして初期化する。
+	Bitboard(Square sq);
   
-  // 値を直接代入する。
-  void set(uint64_t p0, uint64_t p1) { p[0] = p0; p[1] = p1; }
+	// 値を直接代入する。
+	void set(u64 p0, u64 p1);
 
-  // --- property
+	// --- property
 
-  // Stockfishのソースとの互換性がよくなるようにboolへの暗黙の型変換書いておく。
-  operator bool() const {
-#ifdef USE_SSE41
-    return !(_mm_testz_si128(m, _mm_set1_epi8(static_cast<char>(0xffu))));
-#else
-    return (this->merge() ? true : false);
-#endif
-  }
+	// Stockfishのソースとの互換性がよくなるようにboolへの暗黙の型変換書いておく。
+	operator bool() const;
 
-  // p[0]とp[1]をorしたものを返す。toU()相当。
-  uint64_t merge() const { return p[0] | p[1]; }
+	// bit test命令
+	// if (lhs & rhs)とか(lhs & sq) と書くべきところを
+	// if (lhs.test(rhs)) とか(lhs.test(ssq)) 書くことでSSE命令を用いて高速化する。
+  
+	bool test(Bitboard rhs) const;
+	bool test(Square sq) const { return test(Bitboard(sq)); }
 
-  // p[0]とp[1]とで and したときに被覆しているbitがあるか。
-  // merge()したあとにpext()を使うときなどに被覆していないことを前提とする場合にそのassertを書くときに使う。
-  bool cross_over() const { return p[0] & p[1]; }
+	// p[n]を取り出す。SSE4の命令が使えるときはそれを使う。
+	template <int n> u64 extract64() const;
 
-  // 指定した升(Square)が Bitboard のどちらの u64 変数の要素に属するか。
-  // 本ソースコードのように縦型Bitboardにおいては、香の利きを求めるのにBitboardの
-  // 片側のp[x]を調べるだけで済むので、ある升がどちらに属するかがわかれば香の利きは
-  // そちらを調べるだけで良いというAperyのアイデア。
-  constexpr static int part(const Square sq) { return static_cast<int>(SQ_79 < sq); }
+	// p[n]に値を設定する。SSE4の命令が使えるときはそれを使う。
+	template <int n> Bitboard& insert64(u64 u);
 
-  // --- operator
+	// p[0]とp[1]をbitwise orしたものを返す。toU()相当。
+	u64 merge() const { return extract64<0>() | extract64<1>(); }
 
-  // 下位bitから1bit拾ってそのbit位置を返す。
-  // 絶対に1bitはnon zeroと仮定
-  // while(to = bb.pop())
-  //  make_move(from,to);
-  // のように用いる。
-  FORCE_INLINE Square pop() { return (p[0] != 0) ? Square(pop_lsb(p[0])) : Square(pop_lsb(p[1]) + 63); }
+	// p[0]とp[1]とで bitwise and したときに被覆しているbitがあるか。
+	// merge()したあとにpext()を使うときなどに被覆していないことを前提とする場合にそのassertを書くときに使う。
+	bool cross_over() const { return extract64<0>() & extract64<1>(); }
 
-  // このBitboardの値を変えないpop()
-  FORCE_INLINE Square pop_c() const { return (p[0] != 0) ? Square(LSB64(p[0])) : Square(LSB64(p[1]) + 63); }
+	// 指定した升(Square)が Bitboard のどちらの u64 変数の要素に属するか。
+	// 本ソースコードのように縦型Bitboardにおいては、香の利きを求めるのにBitboardの
+	// 片側のp[x]を調べるだけで済むので、ある升がどちらに属するかがわかれば香の利きは
+	// そちらを調べるだけで良いというAperyのアイデア。
+	constexpr static int part(const Square sq) { return static_cast<int>(SQ_79 < sq); }
 
-  // pop()をp[0],p[1]に分けて片側ずつする用
-  FORCE_INLINE Square pop_from_p0() { ASSERT_LV3(p[0] != 0);  return Square(pop_lsb(p[0])); }
-  FORCE_INLINE Square pop_from_p1() { ASSERT_LV3(p[1] != 0);  return Square(pop_lsb(p[1]) + 63); }
+	// --- operator
 
-  // 1のbitを数えて返す。
-  int pop_count() const { return (int)(POPCNT64(p[0]) + POPCNT64(p[1])); }
+	// 下位bitから1bit拾ってそのbit位置を返す。
+	// 絶対に1bitはnon zeroと仮定
+	// while(to = bb.pop())
+	//  make_move(from,to);
+	// のように用いる。
+	FORCE_INLINE Square pop();
 
-  // 代入型演算子
+	// このBitboardの値を変えないpop()
+	FORCE_INLINE Square pop_c() const { u64 q0 = extract64<0>();  return (q0 != 0) ? Square(LSB64(q0)) : Square(LSB64(extract64<1>()) + 63); }
+
+	// pop()をp[0],p[1]に分けて片側ずつする用
+	FORCE_INLINE Square pop_from_p0() { u64 q0 = extract64<0>(); ASSERT_LV3(q0 != 0);  Square sq = Square(pop_lsb(q0)); insert64<0>(q0); return sq; }
+	FORCE_INLINE Square pop_from_p1() { u64 q1 = extract64<1>(); ASSERT_LV3(q1 != 0);  Square sq = Square(pop_lsb(q1) + 63); insert64<1>(q1); return sq; }
+
+	// 1のbitを数えて返す。
+	int pop_count() const { return (int)(POPCNT64(extract64<0>()) + POPCNT64(extract64<1>())); }
+
+	// 代入型演算子
 
 #ifdef USE_SSE2
-  Bitboard& operator |= (const Bitboard& b1) { this->m = _mm_or_si128( m, b1.m); return *this; }
-  Bitboard& operator &= (const Bitboard& b1) { this->m = _mm_and_si128(m, b1.m); return *this; }
-  Bitboard& operator ^= (const Bitboard& b1) { this->m = _mm_xor_si128(m, b1.m); return *this; }
-  Bitboard& operator += (const Bitboard& b1) { this->m = _mm_add_epi64(m, b1.m); return *this; }
-  Bitboard& operator -= (const Bitboard& b1) { this->m = _mm_sub_epi64(m, b1.m); return *this; }
+	Bitboard& operator |= (const Bitboard& b1) { this->m = _mm_or_si128( m, b1.m); return *this; }
+	Bitboard& operator &= (const Bitboard& b1) { this->m = _mm_and_si128(m, b1.m); return *this; }
+	Bitboard& operator ^= (const Bitboard& b1) { this->m = _mm_xor_si128(m, b1.m); return *this; }
+	Bitboard& operator += (const Bitboard& b1) { this->m = _mm_add_epi64(m, b1.m); return *this; }
+	Bitboard& operator -= (const Bitboard& b1) { this->m = _mm_sub_epi64(m, b1.m); return *this; }
 
-  // 左シフト(縦型Bitboardでは左1回シフトで1段下の升に移動する)
-  // ※　シフト演算子は歩の利きを求めるためだけに使う。
-  Bitboard& operator <<= (int shift) { ASSERT_LV3(shift == 1); m = _mm_slli_epi64(m, shift); return *this; }
+	// 左シフト(縦型Bitboardでは左1回シフトで1段下の升に移動する)
+	// ※　シフト演算子は歩の利きを求めるためだけに使う。
+	Bitboard& operator <<= (int shift) { /*ASSERT_LV3(shift == 1);*/ m = _mm_slli_epi64(m, shift); return *this; }
 
-  // 右シフト(縦型Bitboardでは右1回シフトで1段上の升に移動する)
-  Bitboard& operator >>= (int shift) { ASSERT_LV3(shift == 1); m = _mm_srli_epi64(m, shift); return *this; }
+	// 右シフト(縦型Bitboardでは右1回シフトで1段上の升に移動する)
+	Bitboard& operator >>= (int shift) { /*ASSERT_LV3(shift == 1);*/ m = _mm_srli_epi64(m, shift); return *this; }
 
 #else
-  Bitboard& operator |= (const Bitboard& b1) { this->p[0] |= b1.p[0]; this->p[1] |= b1.p[1]; return *this; }
-  Bitboard& operator &= (const Bitboard& b1) { this->p[0] &= b1.p[0]; this->p[1] &= b1.p[1]; return *this; }
-  Bitboard& operator ^= (const Bitboard& b1) { this->p[0] ^= b1.p[0]; this->p[1] ^= b1.p[1]; return *this; }
-  Bitboard& operator += (const Bitboard& b1) { this->p[0] += b1.p[0]; this->p[1] += b1.p[1]; return *this; }
-  Bitboard& operator -= (const Bitboard& b1) { this->p[0] -= b1.p[0]; this->p[1] -= b1.p[1]; return *this; }
+	Bitboard& operator |= (const Bitboard& b1) { this->p[0] |= b1.p[0]; this->p[1] |= b1.p[1]; return *this; }
+	Bitboard& operator &= (const Bitboard& b1) { this->p[0] &= b1.p[0]; this->p[1] &= b1.p[1]; return *this; }
+	Bitboard& operator ^= (const Bitboard& b1) { this->p[0] ^= b1.p[0]; this->p[1] ^= b1.p[1]; return *this; }
+	Bitboard& operator += (const Bitboard& b1) { this->p[0] += b1.p[0]; this->p[1] += b1.p[1]; return *this; }
+	Bitboard& operator -= (const Bitboard& b1) { this->p[0] -= b1.p[0]; this->p[1] -= b1.p[1]; return *this; }
 
-  Bitboard& operator <<= (int shift) { ASSERT_LV3(shift == 1); this->p[0] <<= shift; this->p[1] <<= shift; return *this; }
-  Bitboard& operator >>= (int shift) { ASSERT_LV3(shift == 1); this->p[0] >>= shift; this->p[1] >>= shift; return *this; }
+	Bitboard& operator <<= (int shift) { /*ASSERT_LV3(shift == 1);*/ this->p[0] <<= shift; this->p[1] <<= shift; return *this; }
+	Bitboard& operator >>= (int shift) { /*ASSERT_LV3(shift == 1);*/ this->p[0] >>= shift; this->p[1] >>= shift; return *this; }
 #endif
 
+	// 比較演算子
 
-  // 比較演算子
+	bool operator == (const Bitboard& rhs) const;
+	bool operator != (const Bitboard& rhs) const { return !(*this == rhs); }
 
-  bool operator == (const Bitboard& rhs) const {
-#ifdef USE_SSE41
-    // 以下のようにすると2命令で済むらしい。
-    // testing equality between two __m128i variables
-    // cf.http://stackoverflow.com/questions/26880863/sse-testing-equality-between-two-m128i-variables
-    __m128i neq = _mm_xor_si128(this->m, rhs.m);
-    return _mm_test_all_zeros(neq, neq) ? true : false;
-#else
-    return (this->p[0] == rhs.p[0]) && (this->p[1] == rhs.p[1]);
-#endif
-  }
+	// 2項演算子
 
-  bool operator != (const Bitboard& rhs) const { return !(*this == rhs); }
+	Bitboard operator & (const Bitboard& rhs) const { return Bitboard(*this) &= rhs; }
+	Bitboard operator | (const Bitboard& rhs) const { return Bitboard(*this) |= rhs; }
+	Bitboard operator ^ (const Bitboard& rhs) const { return Bitboard(*this) ^= rhs; }
+	Bitboard operator + (const Bitboard& rhs) const { return Bitboard(*this) += rhs; }
+	Bitboard operator << (const int i) const { return Bitboard(*this) <<= i; }
+	Bitboard operator >> (const int i) const { return Bitboard(*this) >>= i; }
 
-  // 2項演算子
-
-  Bitboard operator & (const Bitboard& rhs) const { return Bitboard(*this) &= rhs; }
-  Bitboard operator | (const Bitboard& rhs) const { return Bitboard(*this) |= rhs; }
-  Bitboard operator ^ (const Bitboard& rhs) const { return Bitboard(*this) ^= rhs; }
-  Bitboard operator + (const Bitboard& rhs) const { return Bitboard(*this) += rhs; }
-  Bitboard operator << (const int i) const { return Bitboard(*this) <<= i; }
-  Bitboard operator >> (const int i) const { return Bitboard(*this) >>= i; }
-
-  // range-forで回せるようにするためのhack(少し遅いので速度が要求されるところでは使わないこと)
-  Square operator*() { return pop(); }
-  void operator++() {}
+	// range-forで回せるようにするためのhack(少し遅いので速度が要求されるところでは使わないこと)
+	Square operator*() { return pop(); }
+	void operator++() {}
 };
+
+
+// --- Bitboardの実装
+
+inline Bitboard::Bitboard(u64 p0, u64 p1) :
+#if defined(USE_SSE2)
+	// この命令、引数の順に注意。
+	m( _mm_set_epi64x(p1,p0))
+#else
+	p { p0 , p1 }
+#endif
+{}
+
+// 値を直接代入する。
+inline void Bitboard::set(u64 p0, u64 p1)
+{
+#if defined(USE_SSE2)
+	m = _mm_set_epi64x(p1,p0);
+#else
+	p[0] = p0; p[1] = p1;
+#endif
+}
+
+
+
+inline Bitboard::operator bool() const
+{
+#if defined(USE_SSE41)
+	return !_mm_testz_si128(m, m);
+#else
+	return (this->merge() ? true : false);
+#endif
+}
+
+inline bool Bitboard::test(Bitboard rhs) const
+{
+#if defined(USE_SSE41)
+	return !_mm_testz_si128(m, rhs.m);
+#else
+	return (*this & rhs);
+#endif
+}
+
+FORCE_INLINE Square Bitboard::pop()
+{
+	u64 q0 = extract64<0>();  Square sq;
+	if (q0 != 0) { sq = Square(pop_lsb(q0)); insert64<0>(q0); }
+	else { u64 q1 = extract64<1>();  sq = Square(pop_lsb(q1) + 63); insert64<1>(q1); }
+	return sq;
+}
+
+// p[n]を取り出す。SSE4の命令が使えるときはそれを使う。
+template <int n>
+inline u64 Bitboard::extract64() const
+{
+	static_assert(n == 0 || n == 1, "");
+#if defined(USE_SSE41)
+	return (u64)(_mm_extract_epi64(m, n));
+#else
+	return p[n];
+#endif
+}
+
+template <int n>
+inline Bitboard& Bitboard::insert64(u64 u)
+{
+	static_assert(n == 0 || n == 1, "");
+#if defined(USE_SSE41)
+	m = _mm_insert_epi64(m, u, n);
+#else
+	p[n] = u;
+#endif
+	return *this;
+}
+
+inline bool Bitboard::operator == (const Bitboard& rhs) const
+{
+#ifdef USE_SSE41
+	// 以下のようにすると2命令で済むらしい。
+	// testing equality between two __m128i variables
+	// cf.http://stackoverflow.com/questions/26880863/sse-testing-equality-between-two-m128i-variables
+	__m128i neq = _mm_xor_si128(this->m, rhs.m);
+	return _mm_test_all_zeros(neq, neq) ? true : false;
+#else
+	return (this->p[0] == rhs.p[0]) && (this->p[1] == rhs.p[1]);
+#endif
+}
+
+// --- Bitboard定数
 
 // sqの升が1であるbitboard
 extern Bitboard SquareBB[SQ_NB_PLUS1];
@@ -222,15 +305,17 @@ extern Bitboard RANK_BB[RANK_NB];
 // color == WHITEのとき、n段目よりBLACK側(n+1から9段目)を表現するBitboard。
 // このアイデアはAperyのもの。
 extern Bitboard InFrontBB[COLOR_NB][RANK_NB];
-  
+
 // 先手から見て1段目からr段目までを表現するBB(US==WHITEなら、9段目から数える)
 inline const Bitboard rank1_n_bb(const Color US, const Rank r) { ASSERT_LV2(is_ok(r));  return InFrontBB[US][(US == BLACK ? r + 1 : 7 - r)]; }
 
 // 敵陣を表現するBitboard。
-inline const Bitboard enemy_field(const Color US) { return rank1_n_bb(US, RANK_3); }
+extern Bitboard EnemyField[COLOR_NB];
+inline const Bitboard enemy_field(const Color Us) { return EnemyField[Us]; }
 
 // 歩が打てる筋を得るためのBitboard mask
-extern Bitboard PAWN_DROP_MASK_BB[0x200][COLOR_NB];
+// これ、bitboard、均等に81升をp[0],p[1]に割り振られているほうがテーブル小さくて済むのだが…。
+extern Bitboard PAWN_DROP_MASK_BB[0x80]; // p[0]には1～7筋 、p[1]には8,9筋のときのデータが入っている。
 
 // 2升に挟まれている升を返すためのテーブル(その2升は含まない)
 extern Bitboard BetweenBB[SQ_NB_PLUS1][SQ_NB_PLUS1];
@@ -252,73 +337,51 @@ inline bool aligned(Square s1, Square s2, Square s3) {
 #endif
 
 // sqの升にいる敵玉に王手となるc側の駒ptの候補を得るテーブル。第2添字は(pr-1)を渡して使う。
-extern Bitboard CheckCandidateBB[SQ_NB_PLUS1][HDK][COLOR_NB];
+extern Bitboard CheckCandidateBB[SQ_NB_PLUS1][KING][COLOR_NB];
 
 // sqの升にいる敵玉に王手となるus側の駒ptの候補を得る
 // pr == ROOKは無条件全域なので代わりにHORSEで王手になる領域を返す。
 // pr == KINGはsqの24近傍を返す。(ただしこれは王手生成では使わない)
-inline const Bitboard check_candidate_bb(Color us, Piece pr, Square sq) { ASSERT_LV3(PAWN<= pr && pr <= HDK); return CheckCandidateBB[sq][pr - 1][us]; }
+inline const Bitboard check_candidate_bb(Color us, Piece pr, Square sq) { ASSERT_LV3(PAWN<= pr && pr <= KING); return CheckCandidateBB[sq][pr - 1][us]; }
 
 // ある升の24近傍のBitboardを返す。
-inline const Bitboard around24_bb(Square sq) { return check_candidate_bb(BLACK, HDK, sq); }
-
-// --------------------
-//  Bitboard用の駒定数
-// --------------------
-
-// Bitboardの配列用の定数
-// StepEffect[]の添字で使う。
-enum PieceTypeBitboard
-{
-  PIECE_TYPE_BITBOARD_PAWN,
-  PIECE_TYPE_BITBOARD_LANCE,
-  PIECE_TYPE_BITBOARD_KNIGHT,
-  PIECE_TYPE_BITBOARD_SILVER,
-  PIECE_TYPE_BITBOARD_BISHOP,
-  PIECE_TYPE_BITBOARD_ROOK,
-  PIECE_TYPE_BITBOARD_GOLD,
-  PIECE_TYPE_BITBOARD_HDK, // Horse , Dragon , King
-
-  PIECE_TYPE_BITBOARD_NB = 8, // ビットボードを示すときにのみ使う定数
-
-  // 以下、StepEffectで使う特殊な定数
-  PIECE_TYPE_BITBOARD_QUEEN = 8,  // 馬+龍
-  PIECE_TYPE_BITBOARD_CROSS00 = 9,   // 十字方向に1升
-  PIECE_TYPE_BITBOARD_CROSS45 = 10,  // ×字方向に1升
-
-  PIECE_TYPE_BITBOARD_NB2 = 16, // StepEffectに使う特殊な定数
-};
+inline const Bitboard around24_bb(Square sq) { return check_candidate_bb(BLACK, KING, sq); }
 
 // --------------------
 // 利きのためのテーブル
 // --------------------
 
 // 利きのためのライブラリ
-// Bitboardを用いるとソースコードが長くなるが、ソースコードのわかりやすさ、速度において現実的なのであえて使う。
+// 注意) ここのテーブルを直接参照せず、kingEffect()など、利きの関数を経由して用いること。
 
-// 近接駒の利き
-// 3番目の添字がPIECE_TYPE_BITBOARD_LANCE,PIECE_TYPE_BITBOARD_BISHOP,PIECE_TYPE_BITBOARD_ROOK
-// のときは、盤上の駒の状態を無視した(盤上に駒がないものとする)香・角・飛の利き。
-// また、PIECE_TYPE_BITBOARD_QUEEN,PIECE_TYPE_BITBOARD_CROSS00,PIECE_TYPE_BITBOARD_CROSS45
-// は、馬+龍,十字方向に1升,×字方向に1升となる。
-extern Bitboard StepEffectsBB[SQ_NB_PLUS1][COLOR_NB][PIECE_TYPE_BITBOARD_NB2];
+// --- 近接駒の利き
 
-// --- 香の利き
-extern Bitboard LanceEffect[COLOR_NB][SQ_NB_PLUS1][128];
+// 具体的なPiece名を指定することがほとんどなので1本の配列になっているメリットがあまりないので配列を分ける。
 
-// 指定した位置の属する file の bit を shift し、
+extern Bitboard KingEffectBB[SQ_NB_PLUS1];
+extern Bitboard GoldEffectBB[SQ_NB_PLUS1][COLOR_NB];
+extern Bitboard SilverEffectBB[SQ_NB_PLUS1][COLOR_NB];
+extern Bitboard KnightEffectBB[SQ_NB_PLUS1][COLOR_NB];
+extern Bitboard PawnEffectBB[SQ_NB_PLUS1][COLOR_NB];
+
+// 盤上の駒をないものとして扱う、遠方駒の利き。香、角、飛
+extern Bitboard LanceStepEffectBB[SQ_NB_PLUS1][COLOR_NB];
+extern Bitboard BishopStepEffectBB[SQ_NB_PLUS1];
+extern Bitboard RookStepEffectBB[SQ_NB_PLUS1];
+
+// --- 角の利き
+extern Bitboard BishopEffect[2][1856+1];
+extern Bitboard BishopEffectMask[2][SQ_NB_PLUS1];
+extern int BishopEffectIndex[2][SQ_NB_PLUS1];
+
+// --- 飛車の縦、横の利き
+
+// 飛車の縦方向の利きを求めるときに、指定した升sqの属するfileのbitをshiftし、
 // index を求める為に使用する。(from Apery)
 extern int Slide[SQ_NB_PLUS1];
 
-// --- 角の利き
-extern Bitboard BishopEffect[20224+1];
-extern Bitboard BishopEffectMask[SQ_NB_PLUS1];
-extern int BishopEffectIndex[SQ_NB_PLUS1];
-
-// --- 飛車の利き
-extern Bitboard RookEffect[495616+1];
-extern Bitboard RookEffectMask[SQ_NB_PLUS1];
-extern int RookEffectIndex[SQ_NB_PLUS1];
+extern u64      RookEffectFile[RANK_NB + 1][128];
+extern Bitboard RookEffectRank[FILE_NB + 1][128];
 
 // Haswellのpext()を呼び出す。occupied = occupied bitboard , mask = 利きの算出に絡む升が1のbitboard
 // この関数で戻ってきた値をもとに利きテーブルを参照して、遠方駒の利きを得る。
@@ -331,72 +394,116 @@ inline uint64_t occupiedToIndex(const Bitboard& occupied, const Bitboard& mask) 
 // --- 近接駒
 
 // 王の利き
-inline Bitboard kingEffect(const Square sq) { return StepEffectsBB[sq][BLACK][PIECE_TYPE_BITBOARD_HDK]; }
+inline Bitboard kingEffect(const Square sq) { return KingEffectBB[sq]; }
 
 // 歩の利き
-inline Bitboard pawnEffect(const Color color, const Square sq) { return StepEffectsBB[sq][color][PIECE_TYPE_BITBOARD_PAWN]; }
+inline Bitboard pawnEffect(const Color color, const Square sq) { return PawnEffectBB[sq][color]; }
+
+// Bitboardに対する歩の利き
+// color = BLACKのとき、51の升は49の升に移動するので、注意すること。
+// (51の升にいる先手の歩は存在しないので、歩の移動に用いる分には問題ないが。)
+inline Bitboard pawnEffect(const Color color, const Bitboard bb)
+{
+	// Apery型の縦型Bitboardにおいては歩の利きはbit shiftで済む。
+	ASSERT_LV3(color == BLACK || color == WHITE);
+	return  color == BLACK ? bb >> 1 : color == WHITE ? bb << 1
+		: ZERO_BB;
+}
 
 // 桂の利き
-inline Bitboard knightEffect(const Color color, const Square sq) { return StepEffectsBB[sq][color][PIECE_TYPE_BITBOARD_KNIGHT]; }
+inline Bitboard knightEffect(const Color color, const Square sq) { return KnightEffectBB[sq][color]; }
 
 // 銀の利き
-inline Bitboard silverEffect(const Color color, const Square sq) { return StepEffectsBB[sq][color][PIECE_TYPE_BITBOARD_SILVER]; }
+inline Bitboard silverEffect(const Color color, const Square sq) { return SilverEffectBB[sq][color]; }
 
 // 金の利き
-inline Bitboard goldEffect(const Color color, const Square sq) { return StepEffectsBB[sq][color][PIECE_TYPE_BITBOARD_GOLD]; }
+inline Bitboard goldEffect(const Color color, const Square sq) { return GoldEffectBB[sq][color]; }
 
 // --- 遠方仮想駒(盤上には駒がないものとして求める利き)
 
-// 盤上の駒を無視するQueenの動き。
-inline Bitboard queenStepEffect(const Square sq) { return StepEffectsBB[sq][BLACK][PIECE_TYPE_BITBOARD_QUEEN]; }
-
-// 十字の利き 利き長さ=1升分。
-inline Bitboard cross00StepEffect(Square sq) { return StepEffectsBB[sq][BLACK][PIECE_TYPE_BITBOARD_CROSS00]; }
-
-// 斜め十字の利き 利き長さ=1升分。
-inline Bitboard cross45StepEffect(Square sq) { return StepEffectsBB[sq][BLACK][PIECE_TYPE_BITBOARD_CROSS45]; }
-
-// 盤上の駒を考慮しない香の利き
-inline Bitboard lanceStepEffect(Color c, Square sq) { return StepEffectsBB[sq][c][PIECE_TYPE_BITBOARD_LANCE];}
-
 // 盤上の駒を考慮しない角の利き
-inline Bitboard bishopStepEffect(Square sq) { return StepEffectsBB[sq][BLACK][PIECE_TYPE_BITBOARD_BISHOP]; }
+inline Bitboard bishopStepEffect(Square sq) { return BishopStepEffectBB[sq]; }
 
 // 盤上の駒を考慮しない飛車の利き
-inline Bitboard rookStepEffect(Square sq) { return StepEffectsBB[sq][BLACK][PIECE_TYPE_BITBOARD_ROOK];}
+inline Bitboard rookStepEffect(Square sq) { return RookStepEffectBB[sq]; }
+
+// 盤上の駒を考慮しない香の利き
+inline Bitboard lanceStepEffect(Color c, Square sq) { return LanceStepEffectBB[sq][c]; }
+
+// 盤上の駒を無視するQueenの動き。
+inline Bitboard queenStepEffect(const Square sq) { return rookStepEffect(sq) | bishopStepEffect(sq); }
+
+// 縦横十字の利き 利き長さ=1升分。
+inline Bitboard cross00StepEffect(Square sq) { return rookStepEffect(sq) & kingEffect(sq); }
+
+// 斜め十字の利き 利き長さ=1升分。
+inline Bitboard cross45StepEffect(Square sq) { return bishopStepEffect(sq) & kingEffect(sq); }
 
 // --- 遠方駒(盤上の駒の状態を考慮しながら利きを求める)
 
-// 香 : occupied bitboardを考慮しながら香の利きを求める
-inline Bitboard lanceEffect(const Color c,const Square sq, const Bitboard& occupied) {
-  const int index = (occupied.p[Bitboard::part(sq)] >> Slide[sq]) & 127;
-  return LanceEffect[c][sq][index];
+// 角の右上と左下方向への利き
+inline Bitboard bishopEffect0(const Square sq, const Bitboard& occupied)
+{
+	const Bitboard block0(occupied & BishopEffectMask[0][sq]);
+	return BishopEffect[0][BishopEffectIndex[0][sq] + occupiedToIndex(block0, BishopEffectMask[0][sq])];
 }
 
+// 角の左上と右下方向への利き
+inline Bitboard bishopEffect1(const Square sq, const Bitboard& occupied)
+{
+	const Bitboard block1(occupied & BishopEffectMask[1][sq]);
+	return BishopEffect[1][BishopEffectIndex[1][sq] + occupiedToIndex(block1, BishopEffectMask[1][sq])];
+}
+
+
 // 角 : occupied bitboardを考慮しながら角の利きを求める
-inline Bitboard bishopEffect(const Square sq, const Bitboard& occupied) {
-  const Bitboard block(occupied & BishopEffectMask[sq]);
-  return BishopEffect[BishopEffectIndex[sq] + occupiedToIndex(block, BishopEffectMask[sq])];
+inline Bitboard bishopEffect(const Square sq, const Bitboard& occupied)
+{
+	return bishopEffect0(sq, occupied) | bishopEffect1(sq, occupied);
 }
 
 // 馬 : occupied bitboardを考慮しながら香の利きを求める
 inline Bitboard horseEffect(const Square sq, const Bitboard& occupied) { return bishopEffect(sq, occupied) | kingEffect(sq); }
 
-// 飛 : occupied bitboardを考慮しながら香の利きを求める
+
+// 飛車の縦の利き
+inline Bitboard rookEffectFile(const Square sq, const Bitboard& occupied)
+{
+	ASSERT_LV3(sq <= SQ_NB);
+	const int index = (occupied.p[Bitboard::part(sq)] >> Slide[sq]) & 0x7f;
+	File f = file_of(sq);
+	return (f <= FILE_7) ?
+		Bitboard(RookEffectFile[rank_of(sq)][index] << int(f | RANK_1), 0) :
+		Bitboard(0, RookEffectFile[rank_of(sq)][index] << int((File)(f - FILE_8) | RANK_1));
+}
+
+// 飛車の横の利き
+inline Bitboard rookEffectRank(const Square sq, const Bitboard& occupied)
+{
+	ASSERT_LV3(sq <= SQ_NB);
+	// 将棋盤をシフトして、SQ_71 , SQ_61 .. SQ_11に飛車の横方向の情報を持ってくる。
+	// このbitを直列化して7bit取り出して、これがindexとなる。
+	// しかし、r回の右シフトを以下の変数uに対して行なうと計算完了まで待たされるので、
+	// PEXT64()の第二引数のほうを左シフトしておく。
+	int r = rank_of(sq);
+	u64 u = (occupied.extract64<1>() << 6*9 ) + (occupied.extract64<0>() >> 9);
+	u64 index = PEXT64(u, 0b1000000001000000001000000001000000001000000001000000001 << r);
+	return RookEffectRank[file_of(sq)][index] << r;
+}
+
+// 飛 : occupied bitboardを考慮しながら飛車の利きを求める
 inline Bitboard rookEffect(const Square sq, const Bitboard& occupied)
 {
-  const Bitboard block(occupied & RookEffectMask[sq]);
-  return RookEffect[RookEffectIndex[sq] + occupiedToIndex(block, RookEffectMask[sq])];
+	return rookEffectFile(sq, occupied) | rookEffectRank(sq, occupied);
+}
+
+// 香 : occupied bitboardを考慮しながら香の利きを求める
+inline Bitboard lanceEffect(const Color c, const Square sq, const Bitboard& occupied) {
+	return rookEffectFile(sq, occupied) & lanceStepEffect(c, sq);
 }
 
 // 龍 : occupied bitboardを考慮しながら香の利きを求める
-inline Bitboard dragonEffect(const Square sq, const Bitboard& occupied){ return rookEffect(sq, occupied) | kingEffect(sq); }
-
-// 上下にしか利かない飛車の利き
-inline Bitboard rookEffectFile(const Square sq, const Bitboard& occupied) {
-  const int index = (occupied.p[Bitboard::part(sq)] >> Slide[sq]) & 127;
-  return LanceEffect[BLACK][sq][index] | LanceEffect[WHITE][sq][index];
-}
+inline Bitboard dragonEffect(const Square sq, const Bitboard& occupied) { return rookEffect(sq, occupied) | kingEffect(sq); }
 
 // --------------------
 //   汎用性のある利き
@@ -413,19 +520,6 @@ Bitboard effects_from(Piece pc, Square sq, const Bitboard& occ);
 // 2bit以上あるかどうかを判定する。縦横斜め方向に並んだ駒が2枚以上であるかを判定する。この関係にないと駄目。
 // この関係にある場合、Bitboard::merge()によって被覆しないことがBitboardのレイアウトから保証されている。
 inline bool more_than_one(const Bitboard& bb) { ASSERT_LV2(!bb.cross_over()); return POPCNT64(bb.merge()) > 1; }
-
-// shift()は、与えられた方向に添ってbitboardを1升ずつ移動させる。主に歩に対して用いる。
-// SQ_Uを指定したときに、51の升は49の升に移動するので、注意すること。(51の升にいる先手の歩は存在しないので、
-// 歩の移動に用いる分には問題ないはずではあるが。)
-
-template<Square D>
-inline Bitboard shift(Bitboard b) {
-	ASSERT_LV3(D == SQ_U || D == SQ_D);
-
-	// Apery型の縦型Bitboardにおいては歩の利きはbit shiftで済む。
-	return  D == SQ_U ? b >> 1 : D == SQ_D ? b << 1
-		: ZERO_BB;
-}
 
 
 #endif // #ifndef _BITBOARD_H_

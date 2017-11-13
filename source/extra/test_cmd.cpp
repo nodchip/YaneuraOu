@@ -3,12 +3,22 @@
 // USI拡張コマンドのうち、開発上のテスト関係のコマンド。
 // 思考エンジンの実行には関係しない。GitHubにはcommitしないかも。
 
-#ifdef ENABLE_TEST_CMD
+#if defined(ENABLE_TEST_CMD)
 
 #include "all.h"
 #include <unordered_set>
 
+// 評価関数ファイルを読み込む。
+// 局面の初期化は行わないので必要ならばPosition::set()などで初期化すること。
 extern void is_ready();
+
+#if defined(EVAL_LEARN)
+namespace Learner
+{
+	extern pair<Value, vector<Move> > qsearch(Position& pos);
+	extern pair<Value, vector<Move> >  search(Position& pos, int depth, size_t multiPV = 1);
+}
+#endif
 
 // ----------------------------------
 //  USI拡張コマンド "perft"(パフォーマンステスト)
@@ -1194,6 +1204,38 @@ void book_check_cmd(Position& pos, istringstream& is)
 }
 
 
+#if defined(EVAL_LEARN)
+// "test search"コマンド。
+// 現局面からLearner::search()を呼び出して探索させる。
+// depthを指定できる。
+// 例) test search 10
+// とするとdepth 10で探索して結果を返す。
+// depthを指定しないときはdefaultでは6。
+void test_search(Position& pos, istringstream& is)
+{
+	pos.set_this_thread(Threads.main());
+
+	int depth = 6;
+	is >> depth;
+
+	auto result1 = Learner::qsearch(pos);
+	cout << "qsearch eval = " << result1.first << " , PV = ";
+	for (auto move : result1.second)
+	{
+		cout << move << " ";
+	}
+	cout << endl;
+
+	auto result2 = Learner::search(pos, depth);
+	cout << "search eval = " << result2.first << " , PV = ";
+	for (auto move : result2.second)
+	{
+		cout << move << " ";
+	}
+	cout << endl;
+}
+#endif
+
 #ifdef EVAL_KPPT
 //
 // eval merge
@@ -1348,11 +1390,6 @@ void eval_merge(istringstream& is)
 #endif
 
 #ifdef EVAL_LEARN
-namespace Learner
-{
-	extern pair<Value, vector<Move> > qsearch(Position& pos);
-	extern pair<Value, vector<Move> >  search(Position& pos, int depth);
-}
 
 void dump_sfen(Position& pos, istringstream& is)
 {
@@ -1454,6 +1491,7 @@ void dump_sfen(Position& pos, istringstream& is)
 
 void test_cmd(Position& pos, istringstream& is)
 {
+	// 探索をするかも知れないので初期化しておく。
 	is_ready();
 
 	std::string param;
@@ -1470,6 +1508,7 @@ void test_cmd(Position& pos, istringstream& is)
 	else if (param == "exambook") exam_book(pos);                    // 定跡の精査用コマンド
 	else if (param == "bookcheck") book_check_cmd(pos,is);           // 定跡のチェックコマンド
 #ifdef EVAL_LEARN
+	else if (param == "search") test_search(pos, is);                // 現局面からLearner::search()を呼び出して探索させる
 	else if (param == "dumpsfen") dump_sfen(pos, is);                // gensfenコマンドで生成した教師局面のダンプ
 #endif
 #ifdef EVAL_KPPT
@@ -1489,79 +1528,57 @@ void test_cmd(Position& pos, istringstream& is)
 	}
 }
 
+#ifdef MATE_ENGINE
 // ----------------------------------
-//  USI拡張コマンド "bench"(ベンチマーク)
+//  USI拡張コマンド "test_mate_engine"
 // ----------------------------------
 
-// benchmark用デフォルトの局面集
-// これを増やすなら、下のほうの fens.assign のところの局面数も増やすこと。
-static const char* BenchSfen[] = {
-
-  // 読めば読むほど後手悪いような局面
-  "l4S2l/4g1gs1/5p1p1/pr2N1pkp/4Gn3/PP3PPPP/2GPP4/1K7/L3r+s2L w BS2N5Pb 1",
-
-  // 57同銀は詰み、みたいな。
-  // 読めば読むほど先手が悪いことがわかってくる局面。
-  "6n1l/2+S1k4/2lp4p/1np1B2b1/3PP4/1N1S3rP/1P2+pPP+p1/1p1G5/3KG2r1 b GSN2L4Pgs2p 1",
-
-  // 指し手生成祭りの局面
-  // cf. http://d.hatena.ne.jp/ak11/20110508/p1
-  "l6nl/5+P1gk/2np1S3/p1p4Pp/3P2Sp1/1PPb2P1P/P5GS1/R8/LN4bKL w RGgsn5p 1",
+// 詰将棋エンジンテスト用局面集
+static const char* TestMateEngineSfen[] = {
+  // http://www.ne.jp/asahi/tetsu/toybox/shogi/kifu.htm
+  "3sks3/9/4+P4/9/9/+B8/9/9/9 b S2rb4gs4n4l17p 1",
+  // http://www.ne.jp/asahi/tetsu/toybox/shogi/kifu.htm
+  "7nl/7k1/6p2/6S1p/9/9/9/9/9 b GS2r2b3g2s3n3l16p 1",
+  // http://www.ne.jp/asahi/tetsu/toybox/shogi/kifu.htm
+  "4k4/9/PPPPPPPPP/9/9/9/9/9/9 b B4L2rb4g4s4n9p 1",
+  // http://wdoor.c.u-tokyo.ac.jp/shogi/view/index.cgi?csa=http://wdoor.c.u-tokyo.ac.jp/shogi/LATEST/2017/04/30/wdoor%2Bfloodgate-300-10F%2Bukamuse_6700K%2Bcatshogi%2B20170430143005.csa&move_to=102
+  "l2g5/2s3g2/3k1p2p/P2pp2P1/1pP4s1/p1+B6/NP1P+nPS1P/K1G4+p1/L6NL b RBGNLPrs3p 1",
+  // http://wdoor.c.u-tokyo.ac.jp/shogi/view/index.cgi?csa=http://wdoor.c.u-tokyo.ac.jp/shogi/LATEST/2017/04/30/wdoor%2Bfloodgate-300-10F%2Bcoduck_pi2_600MHz_1c%2BShogiNet%2B20170430110007.csa&move_to=100
+  "6lnk/6+Rbl/2n4pp/7s1/1p2P2NP/p1P2PPP1/1P4GS1/6GK1/LNr5L b B2G2S6Pp 1",
+  // http://wdoor.c.u-tokyo.ac.jp/shogi/view/index.cgi?csa=http://wdoor.c.u-tokyo.ac.jp/shogi/LATEST/2017/04/30/wdoor%2Bfloodgate-300-10F%2BSM_1_25_Xeon_E5_2698_v4_40c%2BSILENT_MAJORITY_1.25_6950X%2B20170430103005.csa&move_to=195
+  "lnks5/1pg1s4/2p5p/p4+r3/P1g6/1Nn6/BKN1P3P/9/LG2s4 w GSL2Prbl9p 1",
+  // http://wdoor.c.u-tokyo.ac.jp/shogi/view/index.cgi?csa=http://wdoor.c.u-tokyo.ac.jp/shogi/LATEST/2017/04/30/wdoor%2Bfloodgate-300-10F%2Bcatshogi%2Bgps_l%2B20170430070003.csa&move_to=134
+  "l7l/2+Rbk4/3rp4/2p3pPs/p2P1p2p/2P1G4/P1N1PPN2/2GK2G2/L7L b B2S6Pgs2n 1",
+  // http://wdoor.c.u-tokyo.ac.jp/shogi/view/index.cgi?csa=http://wdoor.c.u-tokyo.ac.jp/shogi/LATEST/2017/04/30/wdoor%2Bfloodgate-300-10F%2Bcatshogi%2BGikouAperyEvalMix_SeoTsume_i5-33%2B20170430063002.csa&move_to=127
+  "l5g1l/2s+B5/p2ppp2p/5kpP1/3n5/6Pp1/P3PP1lP/2+nr2SS1/3N1GKRL w G2Pbgsn3p 1",
+  // http://wdoor.c.u-tokyo.ac.jp/shogi/view/index.cgi?csa=http://wdoor.c.u-tokyo.ac.jp/shogi/LATEST/2017/04/30/wdoor%2Bfloodgate-300-10F%2BGc_at_Cortex-A53_4c%2BSaturday_Crush_4770K%2B20170430023007.csa&move_to=99
+  "l4g2l/7k1/p1+Pp3pp/5ss1P/3Pp1gP1/P3SL3/N2GPK3/1+rP6/+p6RL w BG2N2Pbsn3p 1",
+  // http://wdoor.c.u-tokyo.ac.jp/shogi/view/index.cgi?csa=http://wdoor.c.u-tokyo.ac.jp/shogi/LATEST/2017/04/30/wdoor%2Bfloodgate-300-10F%2BSM_1_25_Xeon_E5_2698_v4_40c%2Bukamuse_i7%2B20170430013007.csa&move_to=116
+  "l2s3nl/3g1p+R+R1/p1k5p/2pPp4/1p1p5/5Sp2/PPP1PP2P/3G5/L1K4NL b BG2S2Pbg2np 1",
+  // http://wdoor.c.u-tokyo.ac.jp/shogi/view/index.cgi?csa=http://wdoor.c.u-tokyo.ac.jp/shogi/LATEST/2017/04/30/wdoor%2Bfloodgate-300-10F%2BGc_at_Cortex-A53_4c%2Bsonic%2B20170430013003.csa&move_to=149
+  "ln7/2gk1S+S2/2+rpPp2G/2p5p/PP4P2/3B4P/K1SP3PN/1Sg2P+np1/L+r6L w L2Pbgn3p 1",
+  // http://wdoor.c.u-tokyo.ac.jp/shogi/view/index.cgi?csa=http://wdoor.c.u-tokyo.ac.jp/shogi/LATEST/2017/04/30/wdoor%2Bfloodgate-300-10F%2BTest_NB10.5_i5_6200U%2BGikouAperyEvalMix_SeoTsume_i5-33%2B20170430010007.csa&move_to=121
+  "6p1l/1+R1G2g2/5pns1/pp1pk3p/2p3P2/P7P/1L1PSP+b2/1SG1K2P1/L5G1L w N2Prbs2n3p 1",
+  // http://wdoor.c.u-tokyo.ac.jp/shogi/view/index.cgi?csa=http://wdoor.c.u-tokyo.ac.jp/shogi/LATEST/2017/04/30/wdoor%2Bfloodgate-300-10F%2BInoue%2Byeu%2B20170430003006.csa&move_to=144
+  "lng3+R2/2kgs4/ppp6/1B1pp4/7B1/2P2pLp1/PP1PP3P/1S1K2p2/LN5GL b RG2SP2n3p 1",
 };
 
-void bench_cmd(Position& pos, istringstream& is)
-{
+// "test_mate_engine"コマンド
+void test_mate_engine_cmd(Position& pos, istringstream& is) {
   string token;
-  Search::LimitsType limits;
-  vector<string> fens;
 
   // →　デフォルト1024にしておかないと置換表あふれるな。
   string ttSize = (is >> token) ? token : "1024";
 
-  string threads = (is >> token) ? token : "1";
-  string limit = (is >> token) ? token : "15";
-
-  string fenFile = (is >> token) ? token : "default";
-  string limitType = (is >> token) ? token : "depth";
-  
-  if (ttSize == "d")
-  {
-    // デバッグ用の設定(毎回入力するのが面倒なので)
-    ttSize = "1024";
-    threads = "1";
-    fenFile = "default";
-    limitType = "depth";
-    limit = "6";
-  }
-
-  if (limitType == "time")
-    limits.movetime = 1000 * stoi(limit); // movetime is in ms
-
-  else if (limitType == "nodes")
-    limits.nodes = stoll(limit);
-
-  else if (limitType == "mate")
-    limits.mate = stoi(limit);
-
-  else
-    limits.depth = stoi(limit);
-
   Options["Hash"] = ttSize;
-  Options["Threads"] = threads;
 
-  TT.clear();
+  Search::LimitsType limits;
+
+  // ベンチマークモードにしておかないとPVの出力のときに置換表を漁られて探索に影響がある。
+  limits.bench = true;
 
   // Optionsの影響を受けると嫌なので、その他の条件を固定しておく。
   limits.enteringKingRule = EKR_NONE;
-
-  // テスト用の局面
-  // "default"=デフォルトの局面、"current"=現在の局面、それ以外 = ファイル名とみなしてそのsfenファイルを読み込む
-  if (fenFile == "default")
-    fens.assign(BenchSfen, BenchSfen + 3);
-  else if (fenFile == "current")
-    fens.push_back(pos.sfen());
-  else
-    read_all_lines(fenFile, fens);
 
   // 評価関数の読み込み等
   is_ready();
@@ -1572,18 +1589,17 @@ void bench_cmd(Position& pos, istringstream& is)
   // main threadが探索したノード数
   int64_t nodes_main = 0;
   Search::StateStackPtr st;
-  
+
   // ベンチの計測用タイマー
   Timer time;
   time.reset();
-  
-  for (size_t i = 0; i < fens.size(); ++i)
-  {
+
+  for (const char* sfen : TestMateEngineSfen) {
     Position pos;
-    pos.set(fens[i]);
+    pos.set(sfen);
     pos.set_this_thread(Threads.main());
-    
-    sync_cout << "\nPosition: " << (i + 1) << '/' << fens.size() << sync_endl;
+
+    sync_cout << "\nPosition: " << sfen << sync_endl;
 
     // 探索時にnpsが表示されるが、それはこのglobalなTimerに基づくので探索ごとにリセットを行なうようにする。
     Time.reset();
@@ -1596,7 +1612,7 @@ void bench_cmd(Position& pos, istringstream& is)
   }
 
   auto elapsed = time.elapsed() + 1; // 0除算の回避のため
-  
+
   sync_cout << "\n==========================="
     << "\nTotal time (ms) : " << elapsed
     << "\nNodes searched  : " << nodes
@@ -1610,6 +1626,6 @@ void bench_cmd(Position& pos, istringstream& is)
   cout << sync_endl;
 
 }
-
+#endif
 
 #endif // ENABLE_TEST_CMD

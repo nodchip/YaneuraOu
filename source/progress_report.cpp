@@ -1,6 +1,7 @@
 #include "progress_report.h"
 
 #include <cstdio>
+#include <ctime>
 
 namespace {
   double kAlpha = 0.1;
@@ -16,6 +17,7 @@ void ProgressReport::Show(int64_t current_data) {
     return;
   }
 
+  std::lock_guard<std::mutex> lock(show_mutex_);
   time_t current_time = std::time(nullptr);
   if (previous_time_ + show_at_most_sec_ > current_time) {
     return;
@@ -27,14 +29,14 @@ void ProgressReport::Show(int64_t current_data) {
   int second = elapsed_time % 60;
 
   time_t duration = current_time - previous_time_;
-  exponential_moving_averaged_time =
-    kAlpha * duration + (1.0 - kAlpha) * exponential_moving_averaged_time;
+  exponential_moving_averaged_time_ =
+    kAlpha * duration + (1.0 - kAlpha) * exponential_moving_averaged_time_;
 
   int64_t diff = current_data - previous_data_;
-  exponential_moving_averaged_data =
-    kAlpha * diff + (1.0 - kAlpha) * exponential_moving_averaged_data;
+  exponential_moving_averaged_data_ =
+    kAlpha * diff + (1.0 - kAlpha) * exponential_moving_averaged_data_;
 
-  double time_per_data = exponential_moving_averaged_time / exponential_moving_averaged_data;
+  double time_per_data = exponential_moving_averaged_time_ / exponential_moving_averaged_data_;
   time_t expected_time =
     static_cast<time_t>(current_time + (total_data_ - current_data) * time_per_data);
   struct tm current_tm = *std::localtime(&current_time);

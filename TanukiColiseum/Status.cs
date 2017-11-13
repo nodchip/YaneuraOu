@@ -7,6 +7,7 @@
         public int TimeMs { get; set; }
         // [エンジン][先手・後手]
         public int[,] Win { get; } = { { 0, 0 }, { 0, 0 }, };
+        public int[] DeclarationWin { get; } = { 0, 0 };
         public int NumDraw;
 
         public Status() { }

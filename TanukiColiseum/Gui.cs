@@ -181,18 +181,21 @@ namespace TanukiColiseum
             int engine2BlackWinRatio = 100 * engine2BlackWin / (engine1Win + engine2Win);
             int engine2WhiteWinRatio = 100 * engine2WhiteWin / (engine1Win + engine2Win);
             int numFinishedGames = engine1Win + engine2Win + numDraw;
+            int engine1DeclarationWin = status.DeclarationWin[0];
+            int engine2DeclarationWin = status.DeclarationWin[1];
 
             string text = string.Format(
                 @"対局数{0} 先手勝ち{1}({2}%) 後手勝ち{3}({4}%) 引き分け{5}
 {6}
-勝ち{7}({8}%) 先手勝ち{9}({10}%) 後手勝ち{11}({12}%)
+勝ち{7}({8}%) 先手勝ち{9}({10}%) 後手勝ち{11}({12}%) 宣言勝ち{20}
 {13}
-勝ち{14}({15}%) 先手勝ち{16}({17}%) 後手勝ち{18}({19}%)",
+勝ち{14}({15}%) 先手勝ち{16}({17}%) 後手勝ち{18}({19}%) 宣言勝ち{21}",
                 numFinishedGames, blackWin, blackWinRatio, whiteWin, whiteWinRatio, numDraw,
                 engine1,
                 engine1Win, engine1WinRatio, engine1BlackWin, engine1BlackWinRatio, engine1WhiteWin, engine1WhiteWinRatio,
                 engine2,
-                engine2Win, engine2WinRatio, engine2BlackWin, engine2BlackWinRatio, engine2WhiteWin, engine2WhiteWinRatio);
+                engine2Win, engine2WinRatio, engine2BlackWin, engine2BlackWinRatio, engine2WhiteWin, engine2WhiteWinRatio,
+                engine1DeclarationWin, engine2DeclarationWin);
             textBoxOutput.Text = text;
 
             progressBar1.Maximum = numGames;

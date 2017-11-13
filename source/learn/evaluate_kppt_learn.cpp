@@ -415,9 +415,9 @@ namespace Eval
 
 		if (kk_w_ == nullptr)
 		{
-			u64 size;
+			size_t size;
 
-			size = u64(SQ_NB)*u64(SQ_NB);
+			size = size_t(SQ_NB)*size_t(SQ_NB);
 			kk_w_ = (Weight(*)[SQ_NB][SQ_NB])new Weight[size];
 			memset(kk_w_, 0, sizeof(Weight) * size);
 #ifdef RESET_TO_ZERO_VECTOR
@@ -425,14 +425,14 @@ namespace Eval
 			memset(kk_, 0, sizeof(ValueKk) * size);
 #endif
 
-			size = u64(SQ_NB)*u64(fe_end)*u64(fe_end);
+			size = size_t(SQ_NB)*size_t(fe_end)*size_t(fe_end);
 			kpp_w_ = (Weight(*)[SQ_NB][fe_end][fe_end])new Weight[size];
 			memset(kpp_w_, 0, sizeof(Weight) * size);
 #ifdef RESET_TO_ZERO_VECTOR
 			memset(kpp_, 0, sizeof(ValueKpp) * size);
 #endif
 
-			size = u64(SQ_NB)*u64(SQ_NB)*u64(fe_end);
+			size = size_t(SQ_NB)*size_t(SQ_NB)*size_t(fe_end);
 			kkp_w_ = (Weight(*)[SQ_NB][SQ_NB][fe_end])new Weight[size];
 			memset(kkp_w_, 0, sizeof(Weight) * size);
 #ifdef RESET_TO_ZERO_VECTOR
@@ -737,10 +737,10 @@ namespace Eval
 		// 未初期化の値を突っ込んでおく。
 		for (BonaPiece p = BONA_PIECE_ZERO; p < fe_end; ++p)
 		{
-			inv_piece[p] = (BonaPiece)-1;
+			inv_piece[p] = BONA_PIECE_NOT_INIT;
 
 			// mirrorは手駒に対しては機能しない。元の値を返すだけ。
-			mir_piece[p] = (p < f_pawn) ? p : (BonaPiece)-1;
+			mir_piece[p] = (p < f_pawn) ? p : BONA_PIECE_NOT_INIT;
 		}
 
 		for (BonaPiece p = BONA_PIECE_ZERO; p < fe_end; ++p)
@@ -789,8 +789,8 @@ namespace Eval
 		}
 
 		for (BonaPiece p = BONA_PIECE_ZERO; p < fe_end; ++p)
-			if (inv_piece[p] == (BonaPiece)-1
-				|| mir_piece[p] == (BonaPiece)-1
+			if (inv_piece[p] == BONA_PIECE_NOT_INIT
+				|| mir_piece[p] == BONA_PIECE_NOT_INIT
 				)
 			{
 				// 未初期化のままになっている。上のテーブルの初期化コードがおかしい。

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace TanukiColiseum
 {
@@ -29,48 +30,60 @@ namespace TanukiColiseum
             Console.WriteLine("Initializing engines...");
             Console.Out.Flush();
 
+            List<Task> startAsyncTasks = new List<Task>();
+
             for (int gameIndex = 0; gameIndex < options.NumConcurrentGames; ++gameIndex)
             {
                 int numaNode = gameIndex * options.NumNumaNodes / options.NumConcurrentGames;
 
                 // エンジン1初期化
-                var options1 = new List<string>();
-                options1.Add("setoption name Threads value 1");
-                options1.Add("setoption name EvalDir value " + options.Eval1FolderPath);
-                options1.Add("setoption name Hash value " + options.HashMb);
-                options1.Add("setoption name BookFile value no_book");
-                options1.Add("setoption MinimumThinkingTime value 1000");
-                options1.Add("setoption name NetworkDelay value 0");
-                options1.Add("setoption name NetworkDelay2 value 0");
-                options1.Add("setoption name EvalShare value true");
-                options1.Add("setoption name BookMoves value " + options.NumBookMoves1);
-                options1.Add("setoption name BookFile value " + options.BookFileName1);
+                Dictionary<string, string> overriddenOptions1 = new Dictionary<string, string>(){
+                    {"EvalDir", options.Eval1FolderPath},
+                    {"Hash", options.HashMb.ToString()},
+                    {"MinimumThinkingTime", "1000"},
+                    {"NetworkDelay", "0"},
+                    {"NetworkDelay2", "0"},
+                    {"EvalShare", "true"},
+                    {"BookMoves", options.NumBookMoves1.ToString()},
+                    {"BookFile", options.BookFileName1},
+                    {"Threads", options.NumThreads1.ToString()},
+                    {"BookEvalDiff1", options.BookEvalDiff1.ToString()},
+                    {"ConsiderBookMoveCount1", options.ConsiderBookMoveCount1},
+                };
                 Console.WriteLine("Starting the engine process " + (gameIndex * 2));
                 Console.Out.Flush();
-                var engine1 = new Engine(options.Engine1FilePath, options1, this, gameIndex * 2, gameIndex, 0, numaNode);
-                engine1.StartAsync().Wait();
+                var engine1 = new Engine(options.Engine1FilePath, this, gameIndex * 2, gameIndex, 0, numaNode, overriddenOptions1);
+                startAsyncTasks.Add(engine1.StartAsync());
 
                 // エンジン2初期化
-                var options2 = new List<string>();
-                options2.Add("setoption name Threads value 1");
-                options2.Add("setoption name EvalDir value " + options.Eval2FolderPath);
-                options2.Add("setoption name Hash value " + options.HashMb);
-                options2.Add("setoption name BookFile value no_book");
-                options2.Add("setoption MinimumThinkingTime value 1000");
-                options2.Add("setoption name NetworkDelay value 0");
-                options2.Add("setoption name NetworkDelay2 value 0");
-                options2.Add("setoption name EvalShare value true");
-                options2.Add("setoption name BookMoves value " + options.NumBookMoves2);
-                options2.Add("setoption name BookFile value " + options.BookFileName2);
+                Dictionary<string, string> overriddenOptions2 = new Dictionary<string, string>()
+                {
+                    {"EvalDir", options.Eval2FolderPath},
+                    {"Hash", options.HashMb.ToString()},
+                    {"MinimumThinkingTime", "1000"},
+                    {"NetworkDelay", "0"},
+                    {"NetworkDelay2", "0"},
+                    {"EvalShare", "true"},
+                    {"BookMoves", options.NumBookMoves2.ToString()},
+                    {"BookFile", options.BookFileName2},
+                    {"Threads", options.NumThreads2.ToString()},
+                    {"BookEvalDiff2", options.BookEvalDiff2.ToString()},
+                    {"ConsiderBookMoveCount2", options.ConsiderBookMoveCount2},
+                };
                 Console.WriteLine("Starting the engine process " + (gameIndex * 2 + 1));
                 Console.Out.Flush();
-                var engine2 = new Engine(options.Engine2FilePath, options2, this, gameIndex * 2 + 1, gameIndex, 1, numaNode);
-                engine2.StartAsync().Wait();
+                var engine2 = new Engine(options.Engine2FilePath, this, gameIndex * 2 + 1, gameIndex, 1, numaNode, overriddenOptions2);
+                startAsyncTasks.Add(engine2.StartAsync());
 
                 // ゲーム初期化
                 // 偶数番目はengine1が先手、奇数番目はengine2が先手
                 Games.Add(new Game(gameIndex & 1, options.TimeMs, engine1, engine2,
                     options.NumBookMoves, openings));
+            }
+
+            foreach (var startAsyncTask in startAsyncTasks)
+            {
+                startAsyncTask.Wait();
             }
 
             Console.WriteLine("Initialized engines...");
@@ -108,15 +121,20 @@ namespace TanukiColiseum
             OnStatusChanged(new Status(Status));
         }
 
-        public void OnGameFinished(int enginWin, int blackWhiteWin, bool draw)
+        public void OnGameFinished(int engineWin, int blackWhiteWin, bool draw, bool declarationWin)
         {
             if (!draw)
             {
-                Interlocked.Increment(ref Status.Win[enginWin, blackWhiteWin]);
+                Interlocked.Increment(ref Status.Win[engineWin, blackWhiteWin]);
             }
             else
             {
                 Interlocked.Increment(ref Status.NumDraw);
+            }
+
+            if (declarationWin)
+            {
+                Interlocked.Increment(ref Status.DeclarationWin[engineWin]);
             }
 
             if (LastOutput.AddMilliseconds(ProgressIntervalMs) <= DateTime.Now)

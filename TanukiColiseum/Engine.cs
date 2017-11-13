@@ -11,13 +11,13 @@ namespace TanukiColiseum
         private const int MaxMoves = 256;
         private Process Process = new Process();
         private Coliseum Coliseum;
-        private List<string> Options;
         private SemaphoreSlim ReadyokSemaphoreSlim = new SemaphoreSlim(0);
         private int ProcessIndex;
         private int GameIndex;
         private int EngineIndex;
+        private Dictionary<string, string> OverriddenOptions;
 
-        public Engine(string fileName, List<string> options, Coliseum coliseum, int processIndex, int gameIndex, int engineIndex, int numaNode)
+        public Engine(string fileName, Coliseum coliseum, int processIndex, int gameIndex, int engineIndex, int numaNode, Dictionary<string, string> overriddenOptions)
         {
             this.Process.StartInfo.FileName = "cmd.exe";
             if (Path.IsPathRooted(fileName))
@@ -32,17 +32,17 @@ namespace TanukiColiseum
             this.Process.OutputDataReceived += HandleStdout;
             this.Process.ErrorDataReceived += HandleStderr;
             this.Coliseum = coliseum;
-            this.Options = options;
             this.ProcessIndex = processIndex;
             this.GameIndex = gameIndex;
             this.EngineIndex = engineIndex;
+            this.OverriddenOptions = overriddenOptions;
         }
 
         /// <summary>
         /// 思考エンジンを開始し、isreadyを送信し、readyokが返るのを待つ
         /// </summary>
         /// <returns></returns>
-        public async Task StartAsync()
+        public Task StartAsync()
         {
             //BeginOutputReadLine()/BeginErrorReadLine()が呼び出されたあと
             //読み込みスレッドが動かないので
@@ -52,12 +52,7 @@ namespace TanukiColiseum
             Process.BeginOutputReadLine();
             Process.BeginErrorReadLine();
             Send("usi");
-            foreach (var option in Options)
-            {
-                Send(option);
-            }
-            Send("isready");
-            await ReadyokSemaphoreSlim.WaitAsync().ConfigureAwait(false);
+            return ReadyokSemaphoreSlim.WaitAsync();
         }
 
         public void Finish()
@@ -93,7 +88,15 @@ namespace TanukiColiseum
             //Debug.WriteLine("    < [{0}] {1}", ProcessIndex, e.Data);
 
             List<string> command = Util.Split(e.Data);
-            if (command.Contains("readyok"))
+            if (command.Contains("usiok"))
+            {
+                HandleUsiok(command);
+            }
+            else if (command.Contains("option"))
+            {
+                HandleOption(command);
+            }
+            else if (command.Contains("readyok"))
             {
                 HandleReadyok(command);
             }
@@ -113,6 +116,29 @@ namespace TanukiColiseum
             Debug.WriteLine("    ! [{0}] {1}", ProcessIndex, e.Data);
         }
 
+        private void HandleUsiok(List<string> command)
+        {
+            Send("isready");
+        }
+        private void HandleOption(List<string> command)
+        {
+            int nameIndex = command.IndexOf("name");
+            int defaultIndex = command.IndexOf("default");
+            if (nameIndex == -1 || nameIndex + 1 >= command.Count ||
+                defaultIndex == -1 || defaultIndex + 1 >= command.Count)
+            {
+                return;
+            }
+
+            string name = command[nameIndex + 1];
+            string value = command[defaultIndex + 1];
+            if (OverriddenOptions.ContainsKey(name))
+            {
+                value = OverriddenOptions[name];
+            }
+            Send(string.Format("setoption name {0} value {1}", name, value));
+        }
+
         private void HandleReadyok(List<string> command)
         {
             // readyokが返ってきたのでセマフォを開放してStart()関数から抜けさせる
@@ -126,20 +152,20 @@ namespace TanukiColiseum
             {
                 int engineWin;
                 int blackWhiteWin;
-                bool draw;
+                bool draw = false;
+                bool declaration = false;
                 if (command[1] == "resign")
                 {
                     // 相手側の勝数を上げる
                     engineWin = game.Turn ^ 1;
                     blackWhiteWin = (game.Moves.Count + 1) & 1;
-                    draw = false;
                 }
                 else if (command[1] == "win")
                 {
                     // 自分側の勝数を上げる
                     engineWin = game.Turn;
                     blackWhiteWin = game.Moves.Count & 1;
-                    draw = false;
+                    declaration = true;
                 }
                 else
                 {
@@ -152,7 +178,7 @@ namespace TanukiColiseum
                 // 次の対局を開始する
                 // 先にGame.OnGameFinished()を読んでゲームの状態を停止状態に移行する
                 game.OnGameFinished();
-                Coliseum.OnGameFinished(engineWin, blackWhiteWin, draw);
+                Coliseum.OnGameFinished(engineWin, blackWhiteWin, draw, declaration);
             }
             else
             {
