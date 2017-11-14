@@ -1,68 +1,102 @@
-# About this project
-
-YaneuraOu mini is a shogi engine(AI player), stronger than Bonanza6 , educational and tiny code(about 2500 lines) , USI compliant engine , capable of being compiled by VC++2017
-
-やねうら王miniは、将棋の思考エンジンで、Bonanza6より強く、教育的で短いコード(2500行程度)で書かれたUSIプロトコル準拠の思考エンジンで、VC++2017でコンパイル可能です。
-
-[やねうら王mini 公式サイト (解説記事、開発者向け情報等)](http://yaneuraou.yaneu.com/YaneuraOu_Mini/)
-
-[やねうら王公式 ](http://yaneuraou.yaneu.com/)
-
-## やねうら王シリーズの遊び方
-
-[このプロジェクトのexeフォルダ](https://github.com/yaneurao/YaneuraOu/tree/master/exe)の対象フォルダ配下にある、XXX-readme.txtをご覧ください。
-
-- 質問等は以下の記事のコメント欄でお願いします。Twitterでの個別質問にはお答え出来ません。
-	- [やねうら王セットアップ質問スレッド](http://yaneuraou.yaneu.com/2017/05/04/%E3%82%84%E3%81%AD%E3%81%86%E3%82%89%E7%8E%8B-%E3%82%BB%E3%83%83%E3%83%88%E3%82%A2%E3%83%83%E3%83%97%E8%B3%AA%E5%95%8F%E3%82%B9%E3%83%AC%E3%83%83%E3%83%89/)
-
-# 現在進行中のサブプロジェクト
-
-## やねうら王2017 Early
-
-2017年5月5日完成。この思考エンジンを用いたelmoがWCSC27で優勝しました。elmo(WCSC27)や蒼天幻想ナイツ・オブ・タヌキ(WCSC27出場)の評価関数を用いるとXeon 24コアでR4000程度の模様。
-
-## やねうら王2017 GOKU
-
-《開発計画中》
-
-## やねうら王詰め将棋solver
-
-《tanuki-さんが開発中》
-
-長手数の詰将棋が解けるsolverです。
+# 概要
+tanuki-シリーズは『やねうら王』より派生したUSIプロトコル将棋エンジンです。
+開発コンセプトは「楽に楽しく」です。
+配布ライセンスは『やねうら王』に準拠します。
 
 
-# 過去のサブプロジェクト
+# 現状
+第5回電王トーナメント版『平成将棋合戦ぽんぽこ』の棋譜生成ルーチン・機械学習ルーチン・定跡データベース生成ルーチン等を公開しました。
 
-過去のサブプロジェクトである、やねうら王nano , mini , classic、王手将棋、取る一手将棋、協力詰めsolver、連続自己対戦フレームワークなどはこちらからどうぞ。
 
-- [過去のサブプロジェクト](/docs/README2017.md)
+# ファイルの説明
+* source/experimental_book.* 定跡データベース生成ルーチン
+* source/experimental_learner.* 機械学習ルーチン
+* source/experimental_progress.* 進行度ルーチン
+* source/kifu_converter.* 棋譜データ変換ルーチン
+* source/kifu_generator.* 棋譜生成ルーチン
+* source/kifu_reader.* 棋譜読み込みルーチン
+* source/kifu_shuffler.* 棋譜シャッフルルーチン
+* source/kifu_writer.* 棋譜書き込みルーチン
+* source/progress_report.* 処理残り時間表示ルーチン
+* tanuki-optimizer 探索パラメーター自動調整プログラム
+* tanuki-phoenix 使わないで下さい
+* tanuki-proxy クラスタマスタープログラム
+* TanukiColiseum 自己対戦プログラム
 
-## やねうら王評価関数ファイル
 
-やねうら王2016Mid用/2016Late用/2017Early用
+# 利用環境
+メモリに最低でも 2GB 程度空きがあること。
+64bit OS であること。
+Haswell マイクロアーキテクチャ以降の Intel 製 CPU
 
-- [真やねうら王の評価関数ファイル](https://drive.google.com/open?id=0ByIGrGAuSfHHVVh0bEhxRHNpcGc) (Apery20161007の評価関数から追加学習させたものです。) 詳しい情報は[こちら。](http://yaneuraou.yaneu.com/2016/10/17/%E7%9C%9F%E3%82%84%E3%81%AD%E3%81%86%E3%82%89%E7%8E%8B%E3%81%AE%E8%A9%95%E4%BE%A1%E9%96%A2%E6%95%B0%E3%81%AB%E3%81%A4%E3%81%84%E3%81%A6/)
-- [やねうら王で使える評価関数ファイル28バリエーション公開しました](http://yaneuraou.yaneu.com/2016/07/22/%E3%82%84%E3%81%AD%E3%81%86%E3%82%89%E7%8E%8B%E3%81%A7%E4%BD%BF%E3%81%88%E3%82%8B%E8%A9%95%E4%BE%A1%E9%96%A2%E6%95%B0%E3%83%95%E3%82%A1%E3%82%A4%E3%83%AB28%E3%83%90%E3%83%AA%E3%82%A8%E3%83%BC%E3%82%B7/)
-- また、Apery(WCSC26)、Apery(SDT4)＝「浮かむ瀬」の評価関数バイナリがそのまま使えます。
 
-## 定跡集
+# 使い方
+第5回電王トーナメント版『平成将棋合戦ぽんぽこ』のバイナリは現時点で公開しておりません。
 
-やねうら王2016Mid以降で使える、各種定跡集。
-ダウンロードしたあと、zipファイルになっているのでそれを解凍して、やねうら王の実行ファイルを配置しているフォルダ配下のbookフォルダに放り込んでください。
 
-コンセプトおよび定跡フォーマットについて : [やねうら大定跡はじめました](http://yaneuraou.yaneu.com/2016/07/10/%E3%82%84%E3%81%AD%E3%81%86%E3%82%89%E5%A4%A7%E5%AE%9A%E8%B7%A1%E3%81%AF%E3%81%98%E3%82%81%E3%81%BE%E3%81%97%E3%81%9F/)
+# 開発者向け注意点
+Visual Studio 2015 Comunity Edition Update 3 を用いて開発しています。
+文字コードは UTF-8 です。
+clang-formatを用いてフォーマットしています。設定は以下の通りです。
+* BasedOnStyle: Google
+* IndentWidth: 4
+* ColumnLimit: 100
 
--[やねうら大定跡V1.01](https://drive.google.com/open?id=0Bzbi5rbfN85NbWxfazMzamFVZm8)
--[真やねうら定跡](https://drive.google.com/open?id=0ByIGrGAuSfHHcXRrc2FmdHVmRzA)
 
-## 世界コンピュータ将棋選手権および2017年に開催される第5回将棋電王トーナメントに参加される開発者の方へ
+# tanuki-proxy
+tanuki-proxyは第26回世界コンピュータ将棋選手権でたぬきのもりが使用したクラスタマスタープログラムです。
+tanuki-proxyの実行には.Net Framework 4.6.1が必要です。
+tanuki-proxyには早押しクイズ方式と合議制の2種類の実装があります。
+* tanuki-proxy-wcsc26-fastest-finger-first.exe … 早押しクイズ方式
+* tanuki-proxy-wcsc26-collegial-system.exe … 合議制
+詳しくは「たぬきのもり 技術文書」をご覧ください。 https://twitter.com/nodchip/status/727878218917629953?lang=ja
+使用前にproxy-setting.sample.jsonをproxy-setting.jsonにコピーし、内容を編集して下さい。
+キーの意味は以下のとおりです。
+* engines …　スレーブとなる思考エンジンの配列
+* engineName … エンジン名、早押しクイズ方式の時にどの思考エンジンが最も早く結果を返したか表示するために使います
+* optionOverrides … UIから渡ってきたオプションを上書きするよう指定します
+* name … 上書きするオプション名を指定します
+* value …　上書きするオプションの値を指定します
+* arguments … 思考エンジンに渡す引数を指定します
+* workingDirectory …　作業フォルダを指定します
+* fileName … 思考エンジンのファイル名を指定します
+* logDirectory …　ログを出力するフォルダを指定します
+スレーブとなる思考エンジンは、goコマンド受信時に、直前に渡されるpositionに"info string "を付けた文字列を出力しなければなりません。
+例) info string position startpos moves 7g7f 3c3d 2g2f
+実際にクラスタを作る場合は、各スレーブノードにsshdをインストールし、tanuki-proxy-***.exeからssh経由で各ノード内の思考エンジンを呼び出す形をおすすめします。
+tanuki-proxyを使用する際はBook_Sleep_Timeを1500程度に設定してからご使用ください。
 
-やねうら王をライブラリとして用いて参加される場合、このやねうら王のGitHub上にあるすべてのファイルおよび、このトップページから直リンしているファイルすべてが使えます。
-ただし、真やねうら王の評価関数ファイルを用いる場合は、Aperyライブラリの申請が必要かも知れません。詳しくは大会のルールを参照してください。
 
-## ライセンス
+# Using tanuki- with WinBoard 4.8.0
+Please follow the steps below.
 
-やねうら王プロジェクトのソースコードはStockfishをそのまま用いている部分が多々あり、Apery/SilentMajorityを参考にしている部分もありますので、やねうら王プロジェクトは、それらのプロジェクトのライセンス(GPLv3)に従うものとします。
+1. Install WinBoard 4.8.0. The installation path is "C:\WinBoard-4.8.0".
+2. Download "apery_twig_sdt3.7z" from http://hiraokatakuya.github.io/apery/, and extract to "C:\WinBoard-4.8.0\apery_twig_sdt3".
+3. Download "tanuki-2016-09-10.7z" from https://github.com/nodchip/tanuki-/releases, and extract to "C:\WinBoard-4.8.0\apery_twig_sdt3\bin".
+4. Start "C:\WinBoard-4.8.0\WinBoard\winboard.exe".
+5. Check "Advanced options", and set -uxiAdapter {UCI2WB -%variant "%fcp" "%fd"). Please refer #8 (comment) about this step.
+6. Add "tanuki- WCSC26" with the following settings:
+      Engine (.exe or .jar): C:\WinBoard-4.8.0\apery_twig_sdt3\bin\tanuki-wcsc26-sse42-gcc-lazy-smp.exe
+      command-line parameters: empty
+      Special WinBoard options: empty
+      directory: empty
+      UCCI/USI [uses specified /uxiAdapter]: on
+7. Engine > Engine #1 Settings... > Set "Minimum_Thinking_Time" to "0".
 
-また、「真やねうら王の評価関数ファイル」は、Aperyの評価関数バイナリから追加学習させたものですので、その著作権は、Aperyの開発者の平岡拓也氏に帰属し、ライセンスや取扱いは元のライセンスに従うものとします。また、やねうら王プロジェクト側はこのファイルの著作権を主張しません。
+The steps will be changed in future versions.
+
+# Q & A
+Q. Do you plan to create an all-in-one package with WinBoard and tanuki-?
+A. There are no plans for it.
+
+Q. Do you plan to support WB/CECP-protocol in the next tanuki- edition? http://hgm.nubati.net/CECP.html v2 - http://home.hccnet.nl/h.g.muller/engine-intf.html v1
+A. There are no plans for it.
+
+Q. Do you plan to add any logos to tanuki-?
+A. There are no plans for it.
+
+Q. Why tanuki- uses up all its time with 1 min + 0 sec/move?
+A. Start "C:\WinBoard-4.8.0\WinBoard\winboard.exe", check "Advanced options", and set `-uxiAdapter {UCI2WB -%variant "%fcp" "%fd")`.
+
+Q. Why tanuki- uses up all its time in 27-36 moves with 1 min + 0 sec/move?
+A. Engine > Engine #1 Settings... > Set "Minimum_Thinking_Time" to "0".
