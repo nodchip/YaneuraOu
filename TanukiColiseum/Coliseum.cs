@@ -47,8 +47,9 @@ namespace TanukiColiseum
                     {"BookMoves", options.NumBookMoves1.ToString()},
                     {"BookFile", options.BookFileName1},
                     {"Threads", options.NumThreads1.ToString()},
-                    {"BookEvalDiff1", options.BookEvalDiff1.ToString()},
-                    {"ConsiderBookMoveCount1", options.ConsiderBookMoveCount1},
+                    {"BookEvalDiff", options.BookEvalDiff1.ToString()},
+                    {"ConsiderBookMoveCount", options.ConsiderBookMoveCount1},
+                    {"MaxMovesToDraw", "256"},
                 };
                 Console.WriteLine("Starting the engine process " + (gameIndex * 2));
                 Console.Out.Flush();
@@ -67,8 +68,9 @@ namespace TanukiColiseum
                     {"BookMoves", options.NumBookMoves2.ToString()},
                     {"BookFile", options.BookFileName2},
                     {"Threads", options.NumThreads2.ToString()},
-                    {"BookEvalDiff2", options.BookEvalDiff2.ToString()},
-                    {"ConsiderBookMoveCount2", options.ConsiderBookMoveCount2},
+                    {"BookEvalDiff", options.BookEvalDiff2.ToString()},
+                    {"ConsiderBookMoveCount", options.ConsiderBookMoveCount2},
+                    {"MaxMovesToDraw", "256"},
                 };
                 Console.WriteLine("Starting the engine process " + (gameIndex * 2 + 1));
                 Console.Out.Flush();
