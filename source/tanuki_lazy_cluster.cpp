@@ -13,6 +13,11 @@
 #include "tt.h"
 #include "usi.h"
 
+// ARM上でBoost::shared_ptrがリンクエラー - PEEE802.11 http://peee.hatenablog.com/entry/2014/03/06/020623
+namespace boost {
+	void throw_exception(std::exception const& e) { }
+}
+
 namespace {
 	// 一度に送るパケットの数の最大値。
 	// UDPでは一度に送信するデータは最大でも500～1300倍と程度にするのが一般的らしい。
@@ -60,17 +65,12 @@ namespace {
 		using boost::asio::ip::udp;
 
 		while (SERVER_RUNNING) {
-			try {
-				boost::array<Tanuki::LazyCluster::Packet, kMaxNumPacketsToSend> recv_buffer = {};
-				size_t bytes = UDP_SOCKET->receive(boost::asio::buffer(recv_buffer));
-				int num_packets = bytes / sizeof(Tanuki::LazyCluster::Packet);
-				sync_cout << "info string Lazy Cluster server: Received " << num_packets << " packets." << sync_endl;
-				for (int packet_index = 0; packet_index < num_packets; ++packet_index) {
-					Deserialize(recv_buffer[packet_index]);
-				}
-			}
-			catch (std::exception & e) {
-				sync_cout << "info string Lazy Cluster server error: " << e.what() << sync_endl;
+			boost::array<Tanuki::LazyCluster::Packet, kMaxNumPacketsToSend> recv_buffer = {};
+			size_t bytes = UDP_SOCKET->receive(boost::asio::buffer(recv_buffer));
+			int num_packets = bytes / sizeof(Tanuki::LazyCluster::Packet);
+			sync_cout << "info string Lazy Cluster server: Received " << num_packets << " packets." << sync_endl;
+			for (int packet_index = 0; packet_index < num_packets; ++packet_index) {
+				Deserialize(recv_buffer[packet_index]);
 			}
 		}
 	}
@@ -92,45 +92,35 @@ void Tanuki::LazyCluster::Start() {
 	}
 
 	// 送信の準備を行う。
-	try
-	{
-		// LazyClusterSendToオプションを解析し、アドレスとポートをENDPOINTSに格納する。
-		ENDPOINTS.clear();
+	// LazyClusterSendToオプションを解析し、アドレスとポートをENDPOINTSに格納する。
+	ENDPOINTS.clear();
 
-		IO_CONTEXT = std::make_shared< boost::asio::io_context>();
+	IO_CONTEXT = std::make_shared< boost::asio::io_context>();
 
-		int port = static_cast<int>(Options[Tanuki::LazyCluster::kLazyClusterRecievePort]);
-		UDP_SOCKET = std::make_shared<udp::socket>(*IO_CONTEXT, udp::endpoint(udp::v4(), port));
-		udp::resolver resolver(*IO_CONTEXT);
+	int port = static_cast<int>(Options[Tanuki::LazyCluster::kLazyClusterRecievePort]);
+	UDP_SOCKET = std::make_shared<udp::socket>(*IO_CONTEXT, udp::endpoint(udp::v4(), port));
+	udp::resolver resolver(*IO_CONTEXT);
 
-		// 送信先のアドレスに分割する
-		std::string addresses = static_cast<std::string>(Options[kLazyClusterSendTo]);
-		std::istringstream addresses_iss(addresses);
-		std::string address_and_port;
-		while (std::getline(addresses_iss, address_and_port, ',')) {
-			// アドレスとポートに分割する
-			std::istringstream address_and_port_iss(address_and_port);
-			std::string address;
-			std::getline(address_and_port_iss, address, ':');
-			ASSERT_LV3(!address.empty());
-			std::string port;
-			std::getline(address_and_port_iss, port);
-			ASSERT_LV3(!port.empty());
+	// 送信先のアドレスに分割する
+	std::string addresses = static_cast<std::string>(Options[kLazyClusterSendTo]);
+	std::istringstream addresses_iss(addresses);
+	std::string address_and_port;
+	while (std::getline(addresses_iss, address_and_port, ',')) {
+		// アドレスとポートに分割する
+		std::istringstream address_and_port_iss(address_and_port);
+		std::string address;
+		std::getline(address_and_port_iss, address, ':');
+		ASSERT_LV3(!address.empty());
+		std::string port;
+		std::getline(address_and_port_iss, port);
+		ASSERT_LV3(!port.empty());
 
-			sync_cout << "info string addresss=" << address << sync_endl;
-			sync_cout << "info string port=" << port << sync_endl;
+		sync_cout << "info string addresss=" << address << sync_endl;
+		sync_cout << "info string port=" << port << sync_endl;
 
-			udp::endpoint receiver_endpoint =
-				*resolver.resolve(udp::v4(), address, port).begin();
-			ENDPOINTS.push_back(receiver_endpoint);
-		}
-		//sync_cout << "info string Lazy Cluster client starting." << sync_endl;
-		//UDP_SOCKET->open(udp::v4());
-		//sync_cout << "info string Lazy Cluster client started." << sync_endl;
-	}
-	catch (std::exception & e)
-	{
-		sync_cout << "info string Lazy Cluster client error: " << e.what() << sync_endl;
+		udp::endpoint receiver_endpoint =
+			*resolver.resolve(udp::v4(), address, port).begin();
+		ENDPOINTS.push_back(receiver_endpoint);
 	}
 
 	SERVER_RUNNING = true;

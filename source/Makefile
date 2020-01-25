@@ -96,7 +96,7 @@ endif
 
 ifeq ($(OS),Windows_NT)
 	CFLAGS += $(WCFLAGS)
-	LDFLAGS += -static -Wl,--stack,25000000
+	LDFLAGS += -static -Wl,--stack,25000000 -lwsock32 -lws2_32
 	TARGET = YaneuraOu-by-gcc.exe
 else
 	CFLAGS += -D_LINUX
@@ -207,7 +207,8 @@ SOURCES  = \
 	eval/evaluate_mir_inv_tools.cpp                                            \
 	learn/learner.cpp                                                          \
 	learn/learning_tools.cpp                                                   \
-	learn/multi_think.cpp
+	learn/multi_think.cpp                                                      \
+	tanuki_lazy_cluster.cpp
 
 ifeq ($(YANEURAOU_EDITION),YANEURAOU_ENGINE_KPPT)
 	SOURCES += \
