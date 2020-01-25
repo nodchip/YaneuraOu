@@ -246,6 +246,58 @@
     <Import Project="props\YaneuraOuCpu-x64-sse42.props" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug-mate|x64'">
+    <IncludePath>C:\Boost\include\boost-1_72;$(IncludePath)</IncludePath>
+    <LibraryPath>C:\Boost\lib;$(LibraryPath)</LibraryPath>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug-NNUE|x64'">
+    <IncludePath>C:\Boost\include\boost-1_72;$(IncludePath)</IncludePath>
+    <LibraryPath>C:\Boost\lib;$(LibraryPath)</LibraryPath>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug-user|x64'">
+    <IncludePath>C:\Boost\include\boost-1_72;$(IncludePath)</IncludePath>
+    <LibraryPath>C:\Boost\lib;$(LibraryPath)</LibraryPath>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release-KPP_KKPT|x64'">
+    <IncludePath>C:\Boost\include\boost-1_72;$(IncludePath)</IncludePath>
+    <LibraryPath>C:\Boost\lib;$(LibraryPath)</LibraryPath>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release-KPPT|x64'">
+    <IncludePath>C:\Boost\include\boost-1_72;$(IncludePath)</IncludePath>
+    <LibraryPath>C:\Boost\lib;$(LibraryPath)</LibraryPath>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release-mate|x64'">
+    <IncludePath>C:\Boost\include\boost-1_72;$(IncludePath)</IncludePath>
+    <LibraryPath>C:\Boost\lib;$(LibraryPath)</LibraryPath>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release-mate-sse42|x64'">
+    <IncludePath>C:\Boost\include\boost-1_72;$(IncludePath)</IncludePath>
+    <LibraryPath>C:\Boost\lib;$(LibraryPath)</LibraryPath>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release-NNUE|x64'">
+    <IncludePath>C:\Boost\include\boost-1_72;$(IncludePath)</IncludePath>
+    <LibraryPath>C:\Boost\lib;$(LibraryPath)</LibraryPath>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release-NNUE-GEN|x64'">
+    <IncludePath>C:\Boost\include\boost-1_72;$(IncludePath)</IncludePath>
+    <LibraryPath>C:\Boost\lib;$(LibraryPath)</LibraryPath>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release-NNUE-LEARN|x64'">
+    <IncludePath>C:\Boost\include\boost-1_72;$(IncludePath)</IncludePath>
+    <LibraryPath>C:\Boost\lib;$(LibraryPath)</LibraryPath>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release-NNUE-SSE42|x64'">
+    <IncludePath>C:\Boost\include\boost-1_72;$(IncludePath)</IncludePath>
+    <LibraryPath>C:\Boost\lib;$(LibraryPath)</LibraryPath>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release-user|x64'">
+    <IncludePath>C:\Boost\include\boost-1_72;$(IncludePath)</IncludePath>
+    <LibraryPath>C:\Boost\lib;$(LibraryPath)</LibraryPath>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release-user-sse42|x64'">
+    <IncludePath>C:\Boost\include\boost-1_72;$(IncludePath)</IncludePath>
+    <LibraryPath>C:\Boost\lib;$(LibraryPath)</LibraryPath>
+  </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug-mate|x64'">
     <ClCompile>
       <OpenMPSupport>
@@ -442,6 +494,7 @@
     <ClInclude Include="misc.h" />
     <ClInclude Include="movepick.h" />
     <ClInclude Include="search.h" />
+    <ClInclude Include="tanuki_lazy_cluster.h" />
     <ClInclude Include="types.h" />
     <ClInclude Include="position.h" />
     <ClInclude Include="thread.h" />
@@ -489,6 +542,7 @@
     <ClCompile Include="misc.cpp" />
     <ClCompile Include="movegen.cpp" />
     <ClCompile Include="movepick.cpp" />
+    <ClCompile Include="tanuki_lazy_cluster.cpp" />
     <ClCompile Include="timeman.cpp" />
     <ClCompile Include="types.cpp" />
     <ClCompile Include="position.cpp" />

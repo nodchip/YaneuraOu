@@ -3,6 +3,8 @@
 #include "usi.h"
 #include "misc.h"
 
+#include "tanuki_lazy_cluster.h"
+
 using std::string;
 
 // Option設定が格納されたglobal object。
@@ -162,6 +164,8 @@ namespace USI {
 
 		// 各エンジンがOptionを追加したいだろうから、コールバックする。
 		USI::extra_option(o);
+
+		Tanuki::LazyCluster::InitializeLazyCluster(o);
 
 		// カレントフォルダに"engine_options.txt"があればそれをオプションとしてOptions[]の値をオーバーライドする機能。
 		read_engine_options();

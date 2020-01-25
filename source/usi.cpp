@@ -348,6 +348,9 @@ void is_ready(bool skipCorruptCheck)
 //	Time.availableNodes = 0;
 
 	Threads.stop = false;
+
+	// Lazy Clusterのクライアントとサーバーを開始する。
+	Tanuki::LazyCluster::Start();
 }
 
 // isreadyコマンド処理部
@@ -846,6 +849,9 @@ void USI::loop(int argc, char* argv[])
 
 	// quitが来た時点ではまだ探索中かも知れないのでmain threadの停止を待つ。
 	Threads.main()->wait_for_search_finished();
+
+	// Lazy Clusterのクライアントとサーバーを終了する。
+	Tanuki::LazyCluster::Stop();
 }
 
 // --------------------

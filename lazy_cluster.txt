@@ -1,0 +1,12 @@
+usi
+setoption name Threads value 1
+setoption name Hash value 1024
+setoption name EvalDir value C:\home\nodchip\tanuki-wcsc29-2019-05-06\eval
+setoption name EnableLazyCluster value true
+setoption name LazyClusterSendIntervalMs value 0
+setoption name LazyClusterDontSendFirstMs value 0
+setoption name LazyClusterSendTo value localhost:30001
+setoption name LazyClusterRecievePort value 30001
+isready
+usinewgame
+go infinite

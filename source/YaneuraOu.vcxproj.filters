@@ -264,6 +264,9 @@
     <ClInclude Include="eval\evalhash.h">
       <Filter>リソース ファイル\eval</Filter>
     </ClInclude>
+    <ClInclude Include="tanuki_lazy_cluster.h">
+      <Filter>リソース ファイル</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="movegen.cpp">
@@ -403,6 +406,9 @@
     </ClCompile>
     <ClCompile Include="engine\yaneuraou-engine\yaneuraou-search.cpp">
       <Filter>リソース ファイル\engine\yaneuraou-engine</Filter>
+    </ClCompile>
+    <ClCompile Include="tanuki_lazy_cluster.cpp">
+      <Filter>リソース ファイル</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

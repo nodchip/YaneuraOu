@@ -372,6 +372,15 @@ void Search::clear()
 	//	Tablebases::init(Options["SyzygyPath"]); // Free up mapped files
 }
 
+namespace {
+	// TTEntryを送りすぎないようにするため、
+	// 前回送信した時刻を記録しておき、
+	// そこから一定時間経過してから次のTTEntryを送るようにする。
+	int64_t lastSendTTEntryTimeMs = 0;
+
+	std::mutex sendTTEtnriesMutex;
+}
+
 // 探索開始時に(goコマンドなどで)呼び出される。
 // この関数内で初期化を終わらせ、slaveスレッドを起動してThread::search()を呼び出す。
 // そのあとslaveスレッドを終了させ、ベストな指し手を返すこと。
@@ -395,8 +404,15 @@ void MainThread::search()
 	// fail low/highのときにPVを出力するかどうか。
 	Limits.outout_fail_lh_pv = Options["OutputFailLHPV"];
 
+	// プロセス間でTTEntryをやり取りするかどうか
+	Limits.lazy_cluster_enabled = Options[Tanuki::LazyCluster::kEnableLazyCluster];
+
 	// PVが詰まるのを抑制するために、前回出力時刻を記録しておく。
 	lastPvInfoTime = 0;
+
+	// Lazy Clusterで置換表エントリーを送りすぎないようにするために、
+	// 前回の送信時刻を記録しておく。
+	lastSendTTEntryTimeMs = 0;
 
 	// ponder用の指し手の初期化
 	// やねうら王では、ponderの指し手がないとき、一つ前のiterationのときのbestmoveを用いるという独自仕様。
@@ -743,6 +759,12 @@ void Thread::search()
 	// Stockfishもそうすべきだと思う。
 	//int ct = int(Options["Contempt"]) * PawnValueEg / 100; // From centipawns
 
+	// 一度TTEntryを送信してから次にTTEntryを送信するまでの間隔
+	int64_t lazyClusterSendIntervalMs = Options[Tanuki::LazyCluster::kLazyClusterSendIntervalMs];
+
+	// TTEntryを送らない最初の時間
+	int64_t lazyClusterDontSendFirstMs = Options[Tanuki::LazyCluster::kLazyClusterDontSendFirstMs];
+
 	// ---------------------
 	//   反復深化のループ
 	// ---------------------
@@ -962,6 +984,39 @@ void Thread::search()
 		if (rootMoves[0].pv[0] != lastBestMove) {
 			lastBestMove = rootMoves[0].pv[0];
 			lastBestMoveDepth = rootDepth;
+		}
+
+		// PVのTTEntryを送る。
+		// ロックされている時間を最小にするため、
+		// Double-checked lockingを行う
+		if (Limits.lazy_cluster_enabled
+			// 探索深さが浅いので
+			// Multi PV > 1 で探索しているときは TTEntry を送信しない
+			&& multiPV == 1
+			// 通信量が増えすぎるのと、I/O負荷が高くなりすぎるのを防ぐため、
+			// 前回からsendTTEtnriesInterval経過してから送るようにする
+			// sendTTEtnriesIntervalが0の場合はすべて送るようにする
+			&& lastSendTTEntryTimeMs + lazyClusterSendIntervalMs <= Time.elapsed()
+			// 探索を始めてすぐはイテレーションが早く回り
+			// TTEntryをすべて送ろうとすると通信量が膨大になってしまう
+			// これを防ぐため、最初は送らないようにする
+			&& lazyClusterDontSendFirstMs < Time.elapsed()) {
+
+			// ロックのスコープを最小にするため、
+			// まず本当にTTEntryを送るかどうかだけ決める
+			bool sendTTEntry = false;
+			{
+				std::lock_guard<std::mutex> lock(sendTTEtnriesMutex);
+				if (lastSendTTEntryTimeMs + lazyClusterSendIntervalMs <= Time.elapsed()) {
+					lastSendTTEntryTimeMs = Time.elapsed();
+					sendTTEntry = true;
+				}
+			}
+
+			// 本当にTTEntryを送ると決めた場合のみ送る
+			if (sendTTEntry) {
+				Tanuki::LazyCluster::Send(*this);
+			}
 		}
 
 		if (!mainThread)

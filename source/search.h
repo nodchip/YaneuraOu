@@ -162,6 +162,8 @@ namespace Search {
 		// 全合法手を生成するのか
 		bool generate_all_legal_moves;
 #endif
+		// Lazy Clusterのクライアントとして置換表エントリーを送信するかどうか。
+		bool lazy_cluster_enabled;
 	};
 
 	extern LimitsType Limits;
