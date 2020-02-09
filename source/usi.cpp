@@ -64,6 +64,11 @@ void gameover_handler(const string& cmd);
 
 namespace USI
 {
+	// 最後に受け取ったpositionコマンド文字列とgoコマンド文字列
+	// tanuki-proxyでどの局面に対しての指し手が出力されたか管理するために使う
+	std::string last_position_cmd;
+	std::string last_go_cmd;
+
 	// --------------------
 	//    読み筋の出力
 	// --------------------
@@ -368,6 +373,12 @@ void is_ready_cmd(Position& pos, StateListPtr& states)
 // "position"コマンド処理部
 void position_cmd(Position& pos, istringstream& is , StateListPtr& states)
 {
+	// positionを受け取ったとき、探索中だと高確率でクラッシュする。
+	// これを防ぐため、stopコマンドを受け取ったとき相当の処理を行う。
+	// tanuki-proxyはこの処理が行われることを前提として実装している。
+	Threads.stop = true;
+	Threads.main()->wait_for_search_finished();
+
 	Move m;
 	string token, sfen;
 
@@ -696,10 +707,16 @@ void USI::loop(int argc, char* argv[])
 		}
 
 		// 与えられた局面について思考するコマンド
-		else if (token == "go") go_cmd(pos, is , states);
+		else if (token == "go") {
+			last_go_cmd = cmd;
+			go_cmd(pos, is, states);
+		}
 
 		// (思考などに使うための)開始局面(root)を設定する
-		else if (token == "position") position_cmd(pos, is , states);
+		else if (token == "position") {
+			last_position_cmd = cmd;
+			position_cmd(pos, is, states);
+		}
 
 		// 起動時いきなりこれが飛んでくるので速攻応答しないとタイムアウトになる。
 		else if (token == "usi")

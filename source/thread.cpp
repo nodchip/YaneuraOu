@@ -6,6 +6,11 @@ ThreadPool Threads;		// Global object
 void* Thread::operator new(size_t s) { return aligned_malloc(s, alignof(Thread)); }
 void Thread::operator delete(void*p) noexcept { aligned_free(p); }
 
+namespace USI {
+	extern std::string last_position_cmd;
+	extern std::string last_go_cmd;
+}
+
 Thread::Thread(size_t n) : idx(n) , stdThread(&Thread::idle_loop, this)
 {
 	// スレッドはsearching == trueで開始するので、このままworkerのほう待機状態にさせておく
@@ -199,6 +204,12 @@ void ThreadPool::start_thinking(const Position& pos, StateListPtr& states ,
 
 	// Position::set()によってクリアされていた、st->previousを復元する。
 	setupStates->back() = tmp;
+
+	// tanuki-proxyで、思考エンジンが現在思考中の局面を把握するため、
+	// 現在思考中の局面とgoコマンドを返す。
+	// tanuki-proxyはこの処理が行われることを前提に実装している。
+	sync_cout << "info string " << USI::last_position_cmd << sync_endl;
+	sync_cout << "info string " << USI::last_go_cmd << sync_endl;
 
 	main()->start_searching();
 }
