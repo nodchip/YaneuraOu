@@ -66,7 +66,13 @@ namespace {
 
 		while (SERVER_RUNNING) {
 			boost::array<Tanuki::LazyCluster::Packet, kMaxNumPacketsToSend> recv_buffer = {};
-			size_t bytes = UDP_SOCKET->receive(boost::asio::buffer(recv_buffer));
+			boost::system::error_code error_code;
+			size_t bytes = UDP_SOCKET->receive(boost::asio::buffer(recv_buffer), 0, error_code);
+			if (error_code.failed()) {
+				sync_cout << "info string Falied to receive packets. error_code.message()=" << error_code.message() << sync_endl;
+				continue;
+			}
+
 			int num_packets = bytes / sizeof(Tanuki::LazyCluster::Packet);
 			sync_cout << "info string Lazy Cluster server: Received " << num_packets << " packets." << sync_endl;
 			for (int packet_index = 0; packet_index < num_packets; ++packet_index) {
@@ -192,10 +198,15 @@ void Tanuki::LazyCluster::Send(Thread& thread) {
 
 	// ‘—M‚·‚éB
 	for (const auto& receiver_endpoint : ENDPOINTS) {
-		UDP_SOCKET->send_to(boost::asio::buffer(packets), receiver_endpoint);
+		boost::system::error_code error_code;
+		UDP_SOCKET->send_to(boost::asio::buffer(packets), receiver_endpoint, 0, error_code);
+		if (error_code.failed()) {
+			sync_cout << "info string Falied to send packets. error_code.message()=" << error_code.message() << sync_endl;
+			continue;
+		}
 	}
-	sync_cout << "info string Lazy Cluster client: Sent " << packets.size() << " packets." << sync_endl;
 
+	sync_cout << "info string Lazy Cluster client: Sent " << packets.size() << " packets." << sync_endl;
 }
 
 #endif
