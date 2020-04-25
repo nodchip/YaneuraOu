@@ -3,8 +3,6 @@
 #include "tanuki_lazy_cluster.h"
 #include "config.h"
 
-#ifdef EVAL_LEARN
-
 #include <boost/array.hpp>
 #include <boost/asio.hpp>
 #include <boost/smart_ptr.hpp>
@@ -52,6 +50,7 @@ namespace {
 		packet.is_pv = static_cast<uint16_t>(entry->is_pv());
 		packet.bound = static_cast<uint16_t>(entry->bound());
 		packet.depth = static_cast<uint16_t>(entry->depth());
+		return true;
 	}
 
 	void Deserialize(const Tanuki::LazyCluster::Packet& packet) {
@@ -226,7 +225,5 @@ void Tanuki::LazyCluster::Send(Thread& thread) {
 		//}
 	}
 
-	sync_cout << "info string Lazy Cluster client: Sent " << packets.size() << " packets." << sync_endl;
+	//sync_cout << "info string Lazy Cluster client: Sent " << packets->size() << " packets." << sync_endl;
 }
-
-#endif

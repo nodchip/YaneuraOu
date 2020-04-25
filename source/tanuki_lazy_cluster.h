@@ -2,9 +2,6 @@
 #define _TANUKI_LAZY_CLUNTER_H_
 
 #include "config.h"
-
-#ifdef EVAL_LEARN
-
 #include "usi.h"
 
 class Thread;
@@ -36,7 +33,5 @@ namespace Tanuki {
 		void Send(Thread& thread);
 	}
 }
-
-#endif
 
 #endif

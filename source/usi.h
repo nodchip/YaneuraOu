@@ -6,6 +6,8 @@
 #include <vector>
 #include <functional>	// function
 
+#include "types.h"
+
 // --------------------
 //     USI関連
 // --------------------
