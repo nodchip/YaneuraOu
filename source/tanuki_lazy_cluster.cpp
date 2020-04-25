@@ -201,6 +201,10 @@ void Tanuki::LazyCluster::Send(Thread& thread) {
 		}
 	}
 
+	Send(packets);
+}
+
+void Tanuki::LazyCluster::Send(const boost::shared_ptr<std::vector<Packet>>& packets){
 	// 通信パケットのサイズをUDPで1回で送りやすいサイズに減らす。
 	if (packets->size() > kMaxNumPacketsToSend) {
 		packets->resize(kMaxNumPacketsToSend);
@@ -216,13 +220,6 @@ void Tanuki::LazyCluster::Send(Thread& thread) {
 		// ラムダ関数にキャプチャさせ、送信完了まで保持し続ける。
 		UDP_SOCKET->async_send_to(boost::asio::buffer(*packets), receiver_endpoint,
 			[packets](const boost::system::error_code& /*error*/, std::size_t bytes_transferred) {});
-
-		//boost::system::error_code error_code;
-		//UDP_SOCKET->send_to(boost::asio::buffer(packets), receiver_endpoint, 0, error_code);
-		//if (error_code.failed()) {
-		//	sync_cout << "info string Falied to send packets. error_code.message()=" << error_code.message() << sync_endl;
-		//	continue;
-		//}
 	}
 
 	//sync_cout << "info string Lazy Cluster client: Sent " << packets->size() << " packets." << sync_endl;

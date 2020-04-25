@@ -5,6 +5,7 @@
 #include <cstring>	// std::memset()
 
 #include "../../extra/all.h"
+#include "../../tanuki_lazy_cluster.h"
 
 using namespace std;
 using namespace Search;
@@ -56,6 +57,11 @@ using namespace Search;
 // df-pn探索のコード - 思うだけで学ばない日記
 // http://d.hatena.ne.jp/GMA0BN/20090521/1242911867
 //
+
+namespace USI {
+	extern std::string last_position_cmd;
+	extern std::string last_go_cmd;
+}
 
 namespace MateEngine
 {
@@ -839,6 +845,42 @@ namespace MateEngine
 			sync_cout << "checkmate nomate" << sync_endl;
 		}
 		else {
+			if (static_cast<bool>(Options[Tanuki::LazyCluster::kEnableLazyCluster])) {
+				// LazyClusterで詰み手順をほかのノードに送信する。
+				StateInfo state_info[2048] = {};
+				auto packets = boost::make_shared<std::vector<Tanuki::LazyCluster::Packet>>();
+				for (int play = 0; play + 1 < static_cast<int>(moves.size()); ++play) {
+					int depth = static_cast<int>(moves.size()) - play;
+					int value = ((play & 1)
+						// 詰まされる側
+						? mated_in(depth)
+						// 詰ます側
+						: mate_in(depth));
+					int move = moves[play];
+
+					Tanuki::LazyCluster::Packet packet = {};
+					packet.key = r.key();
+					packet.move = move;
+					packet.value = value;
+					packet.eval = value;
+					packet.is_pv = 1;
+					packet.bound = Bound::BOUND_EXACT;
+					packet.depth = depth;
+					packets->push_back(packet);
+
+					r.do_move(static_cast<Move>(move), state_info[play]);
+				}
+
+				// 局面をもとに戻す
+				for (int play = static_cast<int>(moves.size()) - 1; play >= 0; --play) {
+					r.undo_move(moves[play]);
+				}
+
+				Tanuki::LazyCluster::Send(packets);
+
+				//sync_cout << "info string Lazy Cluster client: Sent " << packets->size() << " packets." << sync_endl;
+			}
+
 			// 詰む手を返す。
 			std::ostringstream oss;
 			oss << "checkmate";

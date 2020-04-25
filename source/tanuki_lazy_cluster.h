@@ -1,6 +1,8 @@
 #ifndef _TANUKI_LAZY_CLUNTER_H_
 #define _TANUKI_LAZY_CLUNTER_H_
 
+#include <boost/smart_ptr.hpp>
+
 #include "config.h"
 #include "usi.h"
 
@@ -31,6 +33,7 @@ namespace Tanuki {
 		void Start();
 		void Stop();
 		void Send(Thread& thread);
+		void Send(const boost::shared_ptr<std::vector<Packet>>& packets);
 	}
 }
 
