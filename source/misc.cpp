@@ -159,7 +159,7 @@ const string engine_info() {
 			<< " TOURNAMENT"
 #endif
 			<< endl
-			<< "id author by yaneurao" << endl;
+			<< "id author by nodchip" << endl;
 	}
 
 	return ss.str();
